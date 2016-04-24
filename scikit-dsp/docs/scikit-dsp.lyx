@@ -1,0 +1,1047 @@
+#LyX 2.1 created this file. For more info see http://www.lyx.org/
+\lyxformat 474
+\begin_document
+\begin_header
+\textclass scrartcl
+\begin_preamble
+\pagestyle{empty}
+\usepackage{amsmath}
+\usepackage{upgreek}
+\providecommand{\me}{\ensuremath{\mathrm{e}}}
+\providecommand{\mj}{\ensuremath{\mathrm{j}}}
+\providecommand{\diff}{\ensuremath{\mathrm{d}}}
+\DeclareMathOperator{\sen}{sen}
+\DeclareMathOperator{\mcd}{mcd}
+\end_preamble
+\use_default_options true
+\maintain_unincluded_children false
+\language spanish
+\language_package default
+\inputencoding utf8
+\fontencoding global
+\font_roman libertine
+\font_sans biolinum
+\font_typewriter libertine-mono
+\font_math libertine-ntxm
+\font_default_family default
+\use_non_tex_fonts false
+\font_sc false
+\font_osf false
+\font_sf_scale 100
+\font_tt_scale 100
+\graphics default
+\default_output_format pdf2
+\output_sync 0
+\bibtex_command default
+\index_command default
+\paperfontsize 12
+\spacing single
+\use_hyperref false
+\papersize a4paper
+\use_geometry false
+\use_package amsmath 1
+\use_package amssymb 1
+\use_package cancel 1
+\use_package esint 1
+\use_package mathdots 1
+\use_package mathtools 1
+\use_package mhchem 1
+\use_package stackrel 1
+\use_package stmaryrd 1
+\use_package undertilde 1
+\cite_engine basic
+\cite_engine_type default
+\biblio_style plain
+\use_bibtopic false
+\use_indices false
+\paperorientation portrait
+\suppress_date false
+\justification true
+\use_refstyle 1
+\branch sol
+\selected 0
+\filename_suffix 0
+\color #faf0e6
+\end_branch
+\branch enu
+\selected 1
+\filename_suffix 0
+\color #faf0e6
+\end_branch
+\index Index
+\shortcut idx
+\color #008000
+\end_index
+\leftmargin 1cm
+\topmargin 1cm
+\rightmargin 1cm
+\bottommargin 1cm
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation skip
+\defskip smallskip
+\quotes_language english
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+\bullet 1 0 9 -1
+\tracking_changes false
+\output_changes false
+\html_math_output 0
+\html_css_as_file 0
+\html_be_strict false
+\end_header
+
+\begin_body
+
+\begin_layout Title
+scikit-dsp
+\end_layout
+
+\begin_layout Part
+Cosas
+\end_layout
+
+\begin_layout Section
+Cosas
+\end_layout
+
+\begin_layout Itemize
+
+\emph on
+Simbólico
+\emph default
+.
+ Parece que va ser muy difícil, sino imposible, hacer un paquete simbólico.
+ Ni Sympy ni Matlab consideran la posibilidad, al menos en este momento,
+ de funciones con soporte discreto; de hecho tienen incluso problemas para
+ gestionar los soportes no enteros de la recta real.
+ Se puede intentar un esquema mixto simbólico-numérico, más numérico que
+ simbólico, pero que tenga en cuenta, aunque sea de manera lateral, a éste
+ último.
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+Esta solución va funcionando bastante bien
+\end_layout
+
+\begin_layout Itemize
+¿Merece la pena mantener una expresión simbólica paramétrica de una señal
+ o sistema (además de la expresión simbólica para cálculo), p.ej en una sinusoide
+ 
+\begin_inset Formula $A\cos[\omega_{0}n+\phi]$
+\end_inset
+
+, ¿mantener esta expresión y la correspondiente con los valores substituidos?
+\end_layout
+
+\end_deeper
+\begin_layout Itemize
+¿Sería interesante que cualquier parámetro pudiera ser una expresión? Por
+ ejemplo 
+\begin_inset Formula $\delta[n-\alpha],\alpha=f[n]$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Itemize
+http://python-textbok.readthedocs.org/en/latest/index.html
+\end_layout
+
+\begin_layout Itemize
+Empieza a haber una estructura más o menos clara, con algunos problemas
+ que van surgiendo (con sympy o con mi ignorancia), algunos evitables y
+ otros no.
+ Por ejemplo, sympy no sabe calcular si una función es o no periódica (mathemati
+ca sí, desde v10) y si se intenta resolver mediante: 
+\family typewriter
+solve(cos(x)-cos(x+T), T)
+\family default
+ (o 
+\family typewriter
+solveset
+\family default
+), aparecen 2 resultados, uno bueno y otro raro; con 
+\family typewriter
+sin(x)
+\family default
+ directamente la caga.
+ Se pueden buscar workarounds, por ejemplo, indicar que 
+\family typewriter
+period = None
+\family default
+, significa que no se sabe, 
+\family typewriter
+period = Inf
+\family default
+, que no es periódica y 
+\family typewriter
+period = cte
+\family default
+ que sí es periódica de periodo 
+\family typewriter
+cte
+\family default
+.
+\end_layout
+
+\begin_layout Itemize
+Cuidado, el 
+\family typewriter
+upcast
+\family default
+ a pelo no funciona como se esperaba, la función 
+\family typewriter
+_demote_xxx
+\family default
+ no hace lo que se pretende.
+\end_layout
+
+\begin_layout Section
+Clase Señal
+\end_layout
+
+\begin_layout Subsection
+Atributos
+\end_layout
+
+\begin_layout Itemize
+data: numpy.array para los datos de la señal (si definida por datos) o una
+ cache (cuando se define por una función)
+\end_layout
+
+\begin_layout Itemize
+range: python range para los datos de la señal
+\end_layout
+
+\begin_layout Itemize
+real, imag
+\end_layout
+
+\begin_layout Subsection
+Métodos
+\end_layout
+
+\begin_layout Itemize
+Para algunos métodos hay funciones cuyo primer parámetro es la señal
+\end_layout
+
+\begin_layout Itemize
+Métodos numpy.ndarray interesantes:
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+copy copia sin cast
+\end_layout
+
+\begin_layout Itemize
+min, max, ptp (peak-to-peak), clip, conj, round, sum, cumsum, prod, cumprod,
+ std, var, mean
+\end_layout
+
+\end_deeper
+\begin_layout Itemize
+Operadores como funciones:
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+operadores unitarios: 
+\family typewriter
+__pos__
+\family default
+, 
+\family typewriter
+__abs__
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+
+\family typewriter
+__neg__
+\end_layout
+
+\end_deeper
+\begin_layout Itemize
+operadores binarios: 
+\family typewriter
+__(i)pow__
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+
+\family typewriter
+__add__
+\family default
+, 
+\family typewriter
+__iadd__
+\family default
+, 
+\family typewriter
+__radd__
+\end_layout
+
+\begin_layout Itemize
+
+\family typewriter
+__sub__
+\family default
+, 
+\family typewriter
+__isub__
+\family default
+, 
+\family typewriter
+__rsub__
+\end_layout
+
+\begin_layout Itemize
+
+\family typewriter
+__mul__
+\family default
+, 
+\family typewriter
+__imul__
+\family default
+, 
+\family typewriter
+__rmul__
+\end_layout
+
+\begin_layout Itemize
+
+\family typewriter
+__lshift__
+\family default
+, 
+\family typewriter
+__ilshift__
+\end_layout
+
+\begin_layout Itemize
+
+\family typewriter
+__rshift__
+\family default
+, 
+\family typewriter
+__irshift__
+\end_layout
+
+\begin_layout Itemize
+
+\family typewriter
+__truediv__
+\family default
+, 
+\family typewriter
+__itruediv__
+\end_layout
+
+\begin_layout Itemize
+
+\family typewriter
+__floordiv__
+\family default
+, 
+\family typewriter
+__ifloordiv__
+\end_layout
+
+\end_deeper
+\begin_layout Itemize
+indexado: 
+\family typewriter
+__len__, __setitem__
+\end_layout
+
+\begin_layout Itemize
+indexado con 
+\family typewriter
+__getitem__
+\family default
+ funciona de dos formas:
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+
+\family typewriter
+s[x0]
+\family default
+, con 
+\family typewriter
+x0
+\family default
+ escalar, devuelve el valor escalar de la señal en 
+\family typewriter
+x0
+\end_layout
+
+\begin_layout Itemize
+
+\family typewriter
+s[start:stop:step]
+\family default
+ (o 
+\family typewriter
+s[x0]
+\family default
+ con 
+\family typewriter
+x0 slice
+\family default
+), devuelve un array con los valores de la señal en el rango 
+\family typewriter
+[start:stop:step]
+\family default
+ (es decir, en el intervalo 
+\family typewriter
+[start, stop)
+\family default
+ con saltos de 
+\family typewriter
+step
+\family default
+) sin interpretar valores negativos como índices desde el final de la señal.
+ El valor predeterminado para 
+\family typewriter
+step
+\family default
+ es 1; no existen valores predeterminados para 
+\family typewriter
+start
+\family default
+ y 
+\family typewriter
+stop
+\family default
+.
+ 
+\family typewriter
+step
+\family default
+ puede tomar valores negativos.
+\end_layout
+
+\end_deeper
+\begin_layout Itemize
+representación:
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+
+\family typewriter
+__str__
+\end_layout
+
+\begin_layout Itemize
+
+\family typewriter
+__repr__
+\end_layout
+
+\end_deeper
+\end_deeper
+\begin_layout Subsection
+Funciones
+\end_layout
+
+\begin_layout Itemize
+Además de las correspondientes a los métodos
+\end_layout
+
+\begin_layout Itemize
+median, correlate, average (con pesos),
+\end_layout
+
+\begin_layout Subsection
+Otras cosas
+\end_layout
+
+\begin_layout Itemize
+Las señales son vectores de un espacio de Hilbert
+\end_layout
+
+\begin_layout Itemize
+Una señal es (o tiene):
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+una función en el dominio del tiempo x(t) o x(n) (continua/discreta)
+\end_layout
+
+\begin_layout Itemize
+una función en el dominio de la frecuencia X(Omega) o X(omega)
+\end_layout
+
+\begin_layout Itemize
+una función en el dominio complejo X(s) o X(z)
+\end_layout
+
+\end_deeper
+\begin_layout Itemize
+Como función
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+existe una expresión para evaluar valores (en cualquier dominio) con o sin
+ parámetros u(n), delta(n), cos(omega0*n+phi), ...
+\end_layout
+
+\begin_layout Itemize
+o los valores están dados por datos (no debería valer para señales continuas)
+\end_layout
+
+\begin_layout Itemize
+soporte -oo a oo, en principio
+\end_layout
+
+\begin_layout Itemize
+la longitud puede estar limitada (valores en los que es no-nula, sin ceros
+ en medio) = duración ...
+ LENGTH(x)
+\end_layout
+
+\begin_layout Itemize
+Se debería poder (si procede, según existencia, convergencia, etc) pasar
+ una función a otra:
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+x(n) a X(omega) a x(n)
+\end_layout
+
+\begin_layout Itemize
+x(n) a X(z) a x(n)
+\end_layout
+
+\begin_layout Itemize
+X(z) a X(omega) a X(z)
+\end_layout
+
+\end_deeper
+\begin_layout Itemize
+Podrían existir expansiones en serie de bases natural, ...
+ 
+\end_layout
+
+\begin_layout Itemize
+Las señales tienen propiedades: (true/false)
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+real, par, impar, ...
+\end_layout
+
+\begin_layout Itemize
+periódica ...
+\end_layout
+
+\begin_layout Itemize
+
+\family typewriter
+isCOLA(R)
+\end_layout
+
+\end_deeper
+\end_deeper
+\begin_layout Itemize
+Podría usarse 
+\family typewriter
+int()
+\family default
+, 
+\family typewriter
+float()
+\family default
+, 
+\family typewriter
+complex()
+\family default
+ para cuantificar, y convertir a real/compleja
+\end_layout
+
+\begin_layout Subsection
+Operadores
+\end_layout
+
+\begin_layout Itemize
+Cada operador tiene una definición en un dominio discreto o continuo.
+\end_layout
+
+\begin_layout Itemize
+Un operador en el dominio del tiempo se corresponde con otro operador en
+ el dominio transformado (y viceversa).
+ Son los teoremas que podrían recogerse en una tabla.
+\end_layout
+
+\begin_layout Itemize
+Los operadores pueden escribirse como funciones o como métodos; en cualquier
+ caso el resultado es una señal distinta:
+\end_layout
+
+\begin_deeper
+\begin_layout Standard
+Por ejemplo, si 
+\family typewriter
+x
+\family default
+ es una señal se puede escribir:
+\end_layout
+
+\begin_layout Itemize
+
+\family typewriter
+y = x.flip().shift(2)
+\family default
+, que produce 
+\family typewriter
+s1 = x.flip(); y = s1.shift(2)
+\family default
+, con 
+\begin_inset Formula $s1=x[-n]$
+\end_inset
+
+ y 
+\begin_inset Formula $y=s1[n-2]=x[-n+2]$
+\end_inset
+
+ que podría escribirse como 
+\family typewriter
+y = sg.shift(sg.flip(x), 2)
+\family default
+ como funciones
+\end_layout
+
+\begin_layout Itemize
+
+\family typewriter
+y = x.shift(2).flip()
+\family default
+, que produce 
+\family typewriter
+s1 = x.shift(2); y = s1.flip()
+\family default
+, con 
+\begin_inset Formula $s1=x[n-2]$
+\end_inset
+
+ y 
+\begin_inset Formula $y=s1[-n]=x[-n-2]$
+\end_inset
+
+ que podría escribirse como 
+\family typewriter
+y = sg.flip(sg.shift(x, 2))
+\family default
+ como funciones
+\end_layout
+
+\begin_layout Standard
+Nótese que como métodos se calculan de izquierda a derecha y como funciones
+ en la forma habitual impuesta por los paréntesis.
+\end_layout
+
+\begin_layout Standard
+Al choricillo 
+\family typewriter
+x.a().b().c()...
+
+\family default
+ parece que se le llama 
+\emph on
+fluent interface
+\emph default
+.
+\end_layout
+
+\end_deeper
+\begin_layout Itemize
+La expresión como métodos permite escribir cosas como:
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+
+\family typewriter
+x = 3*Delta().shift(-2) + 2*(Delta() << 1) + (2+2j)*Delta().shift(2) + 3*(Delta()
+ >> 4)
+\family default
+, para formar la señal que responde a la expresión 
+\begin_inset Formula $x[n]=3\delta[n+2]+2\delta[n+1]+(2+2{\rm {j}})\delta[n-2]+3\delta[n-4]$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Itemize
+Como 
+\family typewriter
+Delta
+\family default
+ y 
+\family typewriter
+Step
+\family default
+ se usan mucho desplazadas, se puede pasar el retardo como parámetro al
+ constructor:
+\begin_inset Newline newline
+\end_inset
+
+
+\family typewriter
+x = 3*Delta(-2) + 2*Delta(-1) + (2+2j)*Delta(2) + 3*Delta(4)
+\family default
+, es 
+\begin_inset Formula $x[n]=3\delta[n+2]+2\delta[n+1]+(2+2{\rm {j}})\delta[n-2]+3\delta[n-4]$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Itemize
+Nótese que el desplazamiento 
+\begin_inset Formula $x[n-k]$
+\end_inset
+
+ se indica con 
+\family typewriter
+x.shift(k)
+\family default
+ o 
+\family typewriter
+x >> k
+\end_layout
+
+\end_deeper
+\begin_layout Itemize
+Como funciones: el primer operando (si el operador es unitario) o los dos
+ primeros (si es binario) son las señales, el resto parámetros.
+\end_layout
+
+\begin_layout Subsubsection
+Unitarios 'reduce': x(n) → número
+\end_layout
+
+\begin_layout Itemize
+norma 1, 2, oo, genérica (p)
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+energía
+\end_layout
+
+\begin_layout Itemize
+potencia
+\end_layout
+
+\begin_layout Itemize
+max, min
+\end_layout
+
+\begin_layout Itemize
+peak-to-peak: max(x)-min(x), numpy.ptp
+\end_layout
+
+\end_deeper
+\begin_layout Subsubsection
+Unitarios 'map': x(n) → y(n)
+\end_layout
+
+\begin_layout Paragraph
+Operadores que cambian la variable independiente:
+\end_layout
+
+\begin_layout Itemize
+pueden interpretarse como 
+\begin_inset Formula $x(\pm|\alpha|t+t_{0})$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Itemize
+si 
+\begin_inset Formula $|\alpha|<1$
+\end_inset
+
+ es una expansión; si 
+\begin_inset Formula $|\alpha|>1$
+\end_inset
+
+ es una compresión
+\end_layout
+
+\begin_layout Itemize
+si 
+\begin_inset Formula $\alpha<0$
+\end_inset
+
+ es, además, una reflexión
+\end_layout
+
+\begin_layout Itemize
+si las señales son discretas, 
+\begin_inset Formula $\alpha$
+\end_inset
+
+ debe ser entero en la compresión y 
+\begin_inset Formula $1/\alpha$
+\end_inset
+
+ entero en la expansión; en ambos casos mayores que 0
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula ${\rm {flip}}(x[n])=x[-n]$
+\end_inset
+
+, 
+\begin_inset Formula ${\rm {flip}}(x(t))=x(-t)$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula ${\rm {compress}}(x[n],\alpha)=x[\alpha n]$
+\end_inset
+
+; si 
+\begin_inset Formula $\alpha$
+\end_inset
+
+ no entero, excepción, 
+\begin_inset Formula ${\rm {compress}}(x(t),\alpha)=x(\alpha t)$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula ${\rm {expand}}(x[n],\beta)=x[n/\beta]$
+\end_inset
+
+; si 
+\begin_inset Formula $\beta$
+\end_inset
+
+ no entero, excepción, 
+\begin_inset Formula ${\rm {expand}}(x(t),\beta)=x(t/\beta)$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula ${\rm {shift}}(x[n],k)=x[n-k]$
+\end_inset
+
+; si 
+\begin_inset Formula $k$
+\end_inset
+
+ no entero, excepción, 
+\begin_inset Formula ${\rm {shift}}(x(t),t_{0})=x(t-t_{0})$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Paragraph
+Otros
+\end_layout
+
+\begin_layout Itemize
+producto por escalar: 
+\begin_inset Formula $ax[n]$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Itemize
+desplazamiento circular: 
+\begin_inset Formula ${\rm {cshift}}(x[n],n_{0},N)=x((n-n0)_{N})$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Itemize
+conjugación: 
+\begin_inset Formula ${\rm {conj}(x[n])=x^{*}[n]}$
+\end_inset
+
+, 
+\begin_inset Formula ${\rm {conj}}(x(t))=x^{*}(t)$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Itemize
+potencia instantánea
+\end_layout
+
+\begin_layout Itemize
+otras funciones no lineales:
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+valor absoluto: 
+\begin_inset Formula $|x(n)|$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Itemize
+cuadrado: 
+\begin_inset Formula $x^{2}(n)$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Itemize
+raíz enésima: 
+\begin_inset Formula $x(n)^{(1/n)}$
+\end_inset
+
+
+\end_layout
+
+\end_deeper
+\begin_layout Itemize
+derivada: dx(t)/dt o diferencia: x(n)-x(n-1)
+\end_layout
+
+\begin_layout Itemize
+integral: int_oo^t x(t) o acumulación: sum_oo^n x(n)
+\end_layout
+
+\begin_layout Paragraph
+Transformadas
+\end_layout
+
+\begin_layout Itemize
+Transformada de Fourier en tiempo discreto: DTFT(x, omega), IDTFT(X, n)
+\end_layout
+
+\begin_layout Itemize
+Transformada de Fourier discreta: DFT(x, k, N), IDFT(X, n, N)
+\end_layout
+
+\begin_layout Itemize
+Transformada de Fourier rápida: FFT(x, k, N), IFFT(X, n, N)
+\end_layout
+
+\begin_layout Subsubsection
+Binarios 'map': x(n) op y(n) → z(n)
+\end_layout
+
+\begin_layout Itemize
+suma: 
+\begin_inset Formula $x(n)+y(n)$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Itemize
+resta: 
+\begin_inset Formula $x(n)-y(n)$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Itemize
+multiplicación: 
+\begin_inset Formula $x(n)\times y(n)$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Itemize
+división: 
+\begin_inset Formula $x(n)/y(n)$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Itemize
+convolución: 
+\begin_inset Formula $x(n)*y(n)$
+\end_inset
+
+: CONV(x, y) = DOT(x, SHIFT(FLIP(h), n))
+\end_layout
+
+\begin_layout Itemize
+convolución circular: x(n) *N y(n): CCONV(x, y, N) = DOT(x, CSHIFT(FLIP(h),
+ n, N)
+\end_layout
+
+\begin_layout Subsubsection
+Binarios 'reduce':
+\end_layout
+
+\begin_layout Itemize
+producto escalar: <x(n), y(n)>: DOT(x, y) 
+\end_layout
+
+\begin_layout Section
+Creación de Señales
+\end_layout
+
+\begin_layout Subsection
+Basadas en Funciones
+\end_layout
+
+\begin_layout Itemize
+delta(), step, sin, cos, exp ..., quizá con nombres típicos, aunque sobrecarguen
+\end_layout
+
+\begin_layout Itemize
+np.fromfunction: NO, porque sólo acepta coordenadas del array
+\end_layout
+
+\begin_layout Itemize
+piecewise: puede ser, p.e.
+ para evaluar u[n] = np.piecewise(n, [n < 0, n >= 0], [lambda n: 0.0, lambda
+ n: 1.0]), hay que guardar la lista de condiciones y de funciones
+\end_layout
+
+\begin_layout Subsection
+Basadas en Datos
+\end_layout
+
+\begin_layout Part
+Documentación
+\end_layout
+
+\begin_layout Section
+Señales
+\end_layout
+
+\end_body
+\end_document

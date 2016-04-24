@@ -1,0 +1,15 @@
+delta:
+self._zt = ZTransform(ZTransform.default_var, sp.sympify(1), sp.Interval(0, sp.oo, False, False))
+self._dtft = DTFT(DTFT.default_var, sp.sympify(1))
+
+step:
+z = ZTransform.default_var
+self._zt = ZTransform(z, 1/(1-z**(-1)), sp.Interval(1, sp.oo, True, False))
+omega = DTFT.default_var
+self._dtft = DTFT(omega, sp.DiracDelta(omega) + (1/(1-sp.exp(-I*omega))))
+
+cos:
+self._zt = None
+omega = DTFT.default_var
+self._dtft = pi * (sp.DiracDelta(omega + 1) + sp.DiracDelta(omega - 1))
+
