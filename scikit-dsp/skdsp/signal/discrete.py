@@ -3,12 +3,13 @@ from skdsp.operator.operator import ShiftOperator, ScaleOperator
 from skdsp.signal.signal import FunctionSignal, ConstantSignal, Signal
 import numpy as np
 import sympy as sp
-
 from sympy.functions.elementary.trigonometric import _pi_coeff
 
 __all__ = ['DiscreteMixin', 'DiscreteFunctionSignal', 'DataSignal'
-           'Constant', 'Delta', 'Step', 'Cosine', 'Sine', 'Sinusoid'
-           'ComplexExponential', 'Exponential']
+           'Constant', 'Delta', 'Step', 'Ramp',
+           'Cosine', 'Sine', 'Sinusoid'
+           'ComplexExponential', 'Exponential',
+           'SawTooth']
 
 
 class DiscreteMixin(object):
@@ -239,6 +240,23 @@ class DiscreteMixin(object):
 #         else:
 #             return False
 
+    def dfs(self, symbolic=False):
+        if not self.is_periodic():
+            raise TypeError('cant compute DFS of non periodic signal')
+        N = self.period
+        X = np.zeros(N, np.complex_)
+        if symbolic:
+            n = self._xvar
+            for k0 in np.arange(0, N):
+                X[k0] = sp.Sum(self._yexpr*sp.exp(-sp.I*2*sp.S.Pi*k0*n/N),
+                               (n, 0, N-1))
+        else:
+            n = np.arange(0, N)
+            x = self.eval(n)
+            for k0 in np.arange(0, N):
+                X[k0] = np.sum(x*np.exp(-1j*2*np.pi*k0*n/N))
+        return X
+
 
 class DataSignal(Signal, DiscreteMixin):
 
@@ -427,6 +445,9 @@ class Ramp(DiscreteFunctionSignal):
             raise TypeError('delay/advance must be integer')
         self._xexpr = ShiftOperator.apply(self._xvar, self._xexpr, delay)
         self._yexpr = ShiftOperator.apply(self._xvar, self._yexpr, delay)
+
+    def _print(self):
+        return 'r[{0}]'.format(str(self._xexpr))
 
     def max(self):
         return sp.oo
@@ -663,29 +684,52 @@ class Exponential(SinCosCExpMixin, DiscreteFunctionSignal):
         return self._period
 
 
-class ComplexSinusoid(SinCosCExpMixin):
+# class ComplexSinusoid(SinCosCExpMixin):
+#
+#     @staticmethod
+#     def _factory(other):
+#         s = ComplexSinusoid()
+#         if other:
+#             other._copy_to(s)
+#         return s
+#
+#     def __init__(self, A=1, omega0=1, phi0=0):
+#         SinCosCExpMixin.__init__(self, omega0, phi0)
+#         self._dtype = np.complex_
+#         self._yexpr = A*sp.exp(sp.I*self._xvar)
+#          delay (negativo, OJO)
+#         delay = -self._phi0
+#         self._xexpr = ShiftOperator.apply(self._xvar, self._xexpr, delay)
+#         self._yexpr = ShiftOperator.apply(self._xvar, self._yexpr, delay)
+#          escalado
+#         self._xexpr = ScaleOperator.apply(self._xvar, self._xexpr,
+#                                           self._omega0)
+#         self._yexpr = ScaleOperator.apply(self._xvar, self._yexpr,
+#                                           self._omega0)
+#
+#     def _copy_to(self, other):
+#         DiscreteFunctionSignal._copy_to(self, other)
+#         SinCosCExpMixin._copy_to(self, other)
+
+
+class SawTooth(DiscreteFunctionSignal):
 
     @staticmethod
     def _factory(other):
-        s = ComplexSinusoid()
+        s = SawTooth()
         if other:
             other._copy_to(s)
         return s
 
-    def __init__(self, A=1, omega0=1, phi0=0):
-        SinCosCExpMixin.__init__(self, omega0, phi0)
-        self._dtype = np.complex_
-        self._yexpr = A*sp.exp(sp.I*self._xvar)
-        # delay (negativo, OJO)
-        delay = -self._phi0
-        self._xexpr = ShiftOperator.apply(self._xvar, self._xexpr, delay)
-        self._yexpr = ShiftOperator.apply(self._xvar, self._yexpr, delay)
-        # escalado
-        self._xexpr = ScaleOperator.apply(self._xvar, self._xexpr,
-                                          self._omega0)
-        self._yexpr = ScaleOperator.apply(self._xvar, self._yexpr,
-                                          self._omega0)
-
     def _copy_to(self, other):
         DiscreteFunctionSignal._copy_to(self, other)
-        SinCosCExpMixin._copy_to(self, other)
+        other._period = self._period
+
+    def __init__(self, N=16):
+        if N <= 0:
+            raise ValueError('N must be greater than 0')
+        DiscreteFunctionSignal.__init__(self, sp.Mod(self._default_xvar(), N))
+        self._period = N
+
+    def _print(self):
+        return 'saw[{0}, {1}]'.format(str(self._xexpr), self._period)

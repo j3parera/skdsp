@@ -69,6 +69,8 @@ class Signal(ABC):
         pass
 
     def __str__(self):
+        if hasattr(self.__class__, '_print'):
+            return self._print()
         return sp.Basic.__str__(self._yexpr)
 
     def __repr__(self):

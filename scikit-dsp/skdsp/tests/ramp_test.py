@@ -79,10 +79,10 @@ class RampTest(unittest.TestCase):
     def test_xvar(self):
         d = Ramp() >> 3
         self.assertEqual(d.name, 'x')
-        self.assertEqual(str(d), 'n - 3')
+        self.assertEqual(str(d), 'r[n - 3]')
         d.xvar = sp.symbols('m', integer=True)
         self.assertEqual(d.name, 'x')
-        self.assertEqual(str(d), 'm - 3')
+        self.assertEqual(str(d), 'r[m - 3]')
 
 if __name__ == "__main__":
     unittest.main()
