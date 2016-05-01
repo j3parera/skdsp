@@ -10,6 +10,13 @@ import unittest
 
 class SawToothTest(unittest.TestCase):
 
+    def saw(self, N, w, n0):
+        n0 = n0 % N
+        if n0 < w:
+            return -1 + 2*n0/w
+        else:
+            return 1 - 2*(n0-w)/(N-w)
+
     def test_constructor(self):
         s = SawTooth()
         self.assertIsInstance(s, Signal)
@@ -18,54 +25,86 @@ class SawToothTest(unittest.TestCase):
         self.assertIsInstance(s, DiscreteFunctionSignal)
         self.assertTrue(is_discrete(s))
         self.assertFalse(is_continuous(s))
-        s = SawTooth(8)
-        self.assertEqual(str(s), 'saw[n, 8]')
+        N = 12
+        width = 4
+        s = SawTooth(N, width)
+        self.assertEqual(str(s), 'saw[n, {0}, {1}]'.format(N, width))
 
     def test_eval_sample(self):
         N = 12
-        d = SawTooth(N)
-        self.assertEqual(d.eval(0), 0.0)
-        self.assertEqual(d.eval(1), 1.0)
-        self.assertEqual(d.eval(2), 2.0)
-        self.assertEqual(d.eval(-1), -1 % N)
-        self.assertEqual(d.eval(-2), -2 % N)
+        w = 4
+        d = SawTooth(N, w)
+        self.assertEqual(d.eval(0), self.saw(N, w, 0))
+        self.assertEqual(d.eval(1), self.saw(N, w, 1))
+        self.assertEqual(d.eval(2), self.saw(N, w, 2))
+        self.assertEqual(d.eval(-1), self.saw(N, w, -1))
+        self.assertEqual(d.eval(-2), self.saw(N, w, -2))
         with self.assertRaises(TypeError):
             d.eval(0.5)
 
     def test_eval_range(self):
         N = 12
-        d = SawTooth(N)
+        w = 4
+        d = SawTooth(N, w)
         n = np.arange(0, 3)
-        np.testing.assert_array_equal(d.eval(n), np.mod(n, N))
+        expected = np.zeros((len(n)))
+        for i, n0 in enumerate(n):
+            expected[i] = self.saw(N, w, n0)
+        np.testing.assert_array_equal(d.eval(n), expected)
         n = np.arange(-1, 3)
-        np.testing.assert_array_equal(d.eval(n), np.mod(n, N))
+        expected = np.zeros((len(n)))
+        for i, n0 in enumerate(n):
+            expected[i] = self.saw(N, w, n0)
+        np.testing.assert_array_equal(d.eval(n), expected)
         n = np.arange(-4, 3, 2)
-        np.testing.assert_array_equal(d.eval(n), np.mod(n, N))
+        expected = np.zeros((len(n)))
+        for i, n0 in enumerate(n):
+            expected[i] = self.saw(N, w, n0)
+        np.testing.assert_array_equal(d.eval(n), expected)
         n = np.arange(3, -2, -2)
-        np.testing.assert_array_equal(d.eval(n), np.mod(n, N))
+        expected = np.zeros((len(n)))
+        for i, n0 in enumerate(n):
+            expected[i] = self.saw(N, w, n0)
+        np.testing.assert_array_equal(d.eval(n), expected)
         with self.assertRaises(TypeError):
             d.eval(np.arange(0, 2, 0.5))
 
     def test_getitem_scalar(self):
         N = 12
-        d = SawTooth(N)
-        self.assertEqual(d[0], 0.0)
-        self.assertEqual(d[1], 1.0)
-        self.assertEqual(d[2], 2.0)
-        self.assertEqual(d[-1], -1 % N)
-        self.assertEqual(d[-2], -2 % N)
+        w = 4
+        d = SawTooth(N, w)
+        self.assertEqual(d[0], self.saw(N, w, 0))
+        self.assertEqual(d[1], self.saw(N, w, 1))
+        self.assertEqual(d[2], self.saw(N, w, 2))
+        self.assertEqual(d[-1], self.saw(N, w, -1))
+        self.assertEqual(d[-2], self.saw(N, w, -2))
         with self.assertRaises(TypeError):
             d[0.5]
 
     def test_getitem_slice(self):
         N = 12
-        d = SawTooth(N)
-        np.testing.assert_array_equal(d[0:3], np.mod(np.arange(0, 3), N))
-        np.testing.assert_array_equal(d[-1:3], np.mod(np.arange(-1, 3), N))
-        np.testing.assert_array_equal(d[-4:2:2],
-                                      np.mod(np.arange(-4, 2, 2), N))
-        np.testing.assert_array_equal(d[3:-2:-2],
-                                      np.mod(np.arange(3, -2, -2), N))
+        w = 4
+        d = SawTooth(N, w)
+        n = np.arange(0, 3)
+        expected = np.zeros((len(n)))
+        for i, n0 in enumerate(n):
+            expected[i] = self.saw(N, w, n0)
+        np.testing.assert_array_equal(d[0:3], expected)
+        n = np.arange(-1, 3)
+        expected = np.zeros((len(n)))
+        for i, n0 in enumerate(n):
+            expected[i] = self.saw(N, w, n0)
+        np.testing.assert_array_equal(d[-1:3], expected)
+        n = np.arange(-4, 2, 2)
+        expected = np.zeros((len(n)))
+        for i, n0 in enumerate(n):
+            expected[i] = self.saw(N, w, n0)
+        np.testing.assert_array_equal(d[-4:2:2], expected)
+        n = np.arange(3, -2, -2)
+        expected = np.zeros((len(n)))
+        for i, n0 in enumerate(n):
+            expected[i] = self.saw(N, w, n0)
+        np.testing.assert_array_equal(d[3:-2:-2], expected)
         with self.assertRaises(TypeError):
             d[0:2:0.5]
 
@@ -89,16 +128,19 @@ class SawToothTest(unittest.TestCase):
 
     def test_xvar(self):
         N = 12
-        d = SawTooth(N) >> 3
+        w = 4
+        shift = 3
+        d = SawTooth(N, w) >> shift
         self.assertEqual(d.name, 'x')
-        self.assertEqual(str(d), 'saw[n - 3, {0}]'.format(N))
+        self.assertEqual(str(d), 'saw[n - {0}, {1}, {2}]'.format(shift, N, w))
         d.xvar = sp.symbols('m', integer=True)
         self.assertEqual(d.name, 'x')
-        self.assertEqual(str(d), 'saw[m - 3, {0}]'.format(N))
+        self.assertEqual(str(d), 'saw[m - {0}, {1}, {2}]'.format(shift, N, w))
 
     def test_period(self):
         N = 12
-        d = SawTooth(N) >> 3
+        w = 4
+        d = SawTooth(N, w)
         self.assertTrue(d.is_periodic())
         self.assertEqual(d.period, N)
 

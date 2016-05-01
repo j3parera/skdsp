@@ -711,7 +711,6 @@ class Exponential(SinCosCExpMixin, DiscreteFunctionSignal):
 #         DiscreteFunctionSignal._copy_to(self, other)
 #         SinCosCExpMixin._copy_to(self, other)
 
-
 class SawTooth(DiscreteFunctionSignal):
 
     @staticmethod
@@ -724,12 +723,28 @@ class SawTooth(DiscreteFunctionSignal):
     def _copy_to(self, other):
         DiscreteFunctionSignal._copy_to(self, other)
         other._period = self._period
+        other._width = self._width
 
-    def __init__(self, N=16):
+    def __init__(self, N=16, width=None):
+        if width is None:
+            width = N
         if N <= 0:
             raise ValueError('N must be greater than 0')
-        DiscreteFunctionSignal.__init__(self, sp.Mod(self._default_xvar(), N))
+        if width > N:
+            raise ValueError('width must be less than N')
+        nm = sp.Mod(self._default_xvar(), N)
+        expr = sp.Piecewise((-1+(2*nm)/width, nm < width),
+                            (1-2*(nm-width)/(N-width), nm < N))
+        DiscreteFunctionSignal.__init__(self, expr)
         self._period = N
+        self._width = width
+
+    def max(self):
+        return 1
+
+    def min(self):
+        return -1
 
     def _print(self):
-        return 'saw[{0}, {1}]'.format(str(self._xexpr), self._period)
+        return 'saw[{0}, {1}, {2}]'.format(str(self._xexpr), self._period,
+                                           self._width)

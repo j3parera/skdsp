@@ -1043,5 +1043,41 @@ Documentación
 Señales
 \end_layout
 
+\begin_layout Subsection
+Diente de sierra
+\end_layout
+
+\begin_layout Standard
+Copiado de matlab para que valga para hacer ondas dientes de sierra y triangular
+es
+\end_layout
+
+\begin_layout Standard
+2 parámetros, N (número de muestras por periodo), width (<= N, anchura)
+\end_layout
+
+\begin_layout Standard
+La señal empieza en -1 y sube hasta 1- en width-1, (1 exacto en width),
+ después baja desde 1 (en width) a -1+ (-1 en N)
+\end_layout
+
+\begin_layout Standard
+Ecuaciones:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+saw[n,N,w]=\begin{cases}
+-1+\frac{{2m}}{w} & 0\le m<w\\
+1-2\frac{(m-w)}{(N-w)} & w\le m<N
+\end{cases}\quad m=((n))_{N}
+\]
+
+\end_inset
+
+
+\end_layout
+
 \end_body
 \end_document
