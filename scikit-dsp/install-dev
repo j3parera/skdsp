@@ -1,2 +1,2 @@
 # /usr/bin/bash
-sudo -H pip3 install --upgrade --editable .
+sudo -H pip install --upgrade --editable .
