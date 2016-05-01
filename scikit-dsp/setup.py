@@ -20,7 +20,7 @@ DOWNLOAD_URL = URL
 PACKAGE_NAME = 'skdsp'
 EXTRA_INFO = dict(
     packages=find_packages(exclude=['contrib', 'docs', 'tests*']),
-    install_requires=['numpy', 'sympy'],
+    # install_requires=['numpy', 'sympy'],
     classifiers=['Development Status :: 2 - Pre-Alpha',
                  'Intended Audience :: Developers',
                  'Intended Audience :: Science/Research',
