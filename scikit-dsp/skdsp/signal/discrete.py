@@ -795,7 +795,7 @@ class Square(DiscreteFunctionSignal):
         if width > N:
             raise ValueError('width must be less than N')
         nm = sp.Mod(self._default_xvar(), N)
-        expr = sp.Piecewise((-1, nm < width), (1, nm < N))
+        expr = sp.Piecewise((1, nm < width), (-1, nm < N))
         DiscreteFunctionSignal.__init__(self, expr)
         self._period = N
         self._width = width

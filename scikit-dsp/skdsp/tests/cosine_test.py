@@ -21,12 +21,6 @@ class CosineTest(unittest.TestCase):
         c2 = Cosine().delay(-sp.S.Pi/6).scale(sp.S.Pi/4)
         self.assertEqual(c1, c2)
 
-#         N = 16
-#         s = 0
-#         for k0 in range(0, 2):
-#             s += Cosine(2*sp.S.Pi*k0/N)
-#         print(s.dfs(N, force=True))
-
     def test_eval_sample(self):
         c = Cosine(sp.S.Pi/4, sp.S.Pi/6)
         self.assertAlmostEqual(c.eval(0), np.cos(np.pi/6))
