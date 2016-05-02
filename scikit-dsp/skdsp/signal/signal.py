@@ -54,15 +54,13 @@ class Signal(ABC):
         return self._dtype == np.complex_
 
     def is_periodic(self):
-        return self.period != np.Inf
+        return self.period != np.Inf and self._period is not None
 
     @property
     def period(self):
         # Calcular el periodo de una señal genérica es difícil
         # Si se intenta hacer con sympy solve(expr(var)-expr(var+T), T)
         # se obtienen resultados raros
-        # Una forma de calcular el periodo es mediante la autocorrelación
-        # pero ....
         return self._period
 
     def eval(self, r):

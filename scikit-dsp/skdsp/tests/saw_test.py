@@ -1,4 +1,4 @@
-from skdsp.signal.discrete import SawTooth, DiscreteFunctionSignal, \
+from skdsp.signal.discrete import Sawtooth, DiscreteFunctionSignal, \
     DiscreteMixin
 from skdsp.signal.signal import Signal, FunctionSignal
 from skdsp.signal.util import is_discrete, is_continuous, is_real, is_complex
@@ -8,7 +8,7 @@ import sympy as sp
 import unittest
 
 
-class SawToothTest(unittest.TestCase):
+class SawtoothTest(unittest.TestCase):
 
     def saw(self, N, w, n0):
         n0 = n0 % N
@@ -18,7 +18,7 @@ class SawToothTest(unittest.TestCase):
             return 1 - 2*(n0-w)/(N-w)
 
     def test_constructor(self):
-        s = SawTooth()
+        s = Sawtooth()
         self.assertIsInstance(s, Signal)
         self.assertIsInstance(s, FunctionSignal)
         self.assertIsInstance(s, DiscreteMixin)
@@ -27,13 +27,13 @@ class SawToothTest(unittest.TestCase):
         self.assertFalse(is_continuous(s))
         N = 12
         width = 4
-        s = SawTooth(N, width)
+        s = Sawtooth(N, width)
         self.assertEqual(str(s), 'saw[n, {0}, {1}]'.format(N, width))
 
     def test_eval_sample(self):
         N = 12
         w = 4
-        d = SawTooth(N, w)
+        d = Sawtooth(N, w)
         self.assertEqual(d.eval(0), self.saw(N, w, 0))
         self.assertEqual(d.eval(1), self.saw(N, w, 1))
         self.assertEqual(d.eval(2), self.saw(N, w, 2))
@@ -45,7 +45,7 @@ class SawToothTest(unittest.TestCase):
     def test_eval_range(self):
         N = 12
         w = 4
-        d = SawTooth(N, w)
+        d = Sawtooth(N, w)
         n = np.arange(0, 3)
         expected = np.zeros((len(n)))
         for i, n0 in enumerate(n):
@@ -72,7 +72,7 @@ class SawToothTest(unittest.TestCase):
     def test_getitem_scalar(self):
         N = 12
         w = 4
-        d = SawTooth(N, w)
+        d = Sawtooth(N, w)
         self.assertEqual(d[0], self.saw(N, w, 0))
         self.assertEqual(d[1], self.saw(N, w, 1))
         self.assertEqual(d[2], self.saw(N, w, 2))
@@ -84,7 +84,7 @@ class SawToothTest(unittest.TestCase):
     def test_getitem_slice(self):
         N = 12
         w = 4
-        d = SawTooth(N, w)
+        d = Sawtooth(N, w)
         n = np.arange(0, 3)
         expected = np.zeros((len(n)))
         for i, n0 in enumerate(n):
@@ -110,7 +110,7 @@ class SawToothTest(unittest.TestCase):
 
     def test_dtype(self):
         N = 12
-        d = SawTooth(N)
+        d = Sawtooth(N)
         self.assertTrue(is_real(d))
         self.assertEqual(d.dtype, np.float_)
         d.dtype = np.complex_
@@ -121,7 +121,7 @@ class SawToothTest(unittest.TestCase):
 
     def test_name(self):
         N = 12
-        d = SawTooth(N)
+        d = Sawtooth(N)
         self.assertEqual(d.name, 'x')
         d.name = 'z'
         self.assertEqual(d.name, 'z')
@@ -130,7 +130,7 @@ class SawToothTest(unittest.TestCase):
         N = 12
         w = 4
         shift = 3
-        d = SawTooth(N, w) >> shift
+        d = Sawtooth(N, w) >> shift
         self.assertEqual(d.name, 'x')
         self.assertEqual(str(d), 'saw[n - {0}, {1}, {2}]'.format(shift, N, w))
         d.xvar = sp.symbols('m', integer=True)
@@ -140,7 +140,7 @@ class SawToothTest(unittest.TestCase):
     def test_period(self):
         N = 12
         w = 4
-        d = SawTooth(N, w)
+        d = Sawtooth(N, w)
         self.assertTrue(d.is_periodic())
         self.assertEqual(d.period, N)
 

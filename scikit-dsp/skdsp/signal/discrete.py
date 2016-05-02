@@ -9,7 +9,7 @@ __all__ = ['DiscreteMixin', 'DiscreteFunctionSignal', 'DataSignal'
            'Constant', 'Delta', 'Step', 'Ramp',
            'Cosine', 'Sine', 'Sinusoid'
            'ComplexExponential', 'Exponential',
-           'SawTooth']
+           'Sawtooth']
 
 
 class DiscreteMixin(object):
@@ -240,10 +240,22 @@ class DiscreteMixin(object):
 #         else:
 #             return False
 
-    def dfs(self, symbolic=False):
-        if not self.is_periodic():
+    def dfs(self, P=None, force=False, symbolic=False):
+        # es difícil determinar si una señal es periódica, así que suponemos
+        # que si se quiere calcular la DFS es porque se sabe que es periódica
+        # de periodo P (que no debe ser None)
+        if not force and not self.is_periodic():
             raise TypeError('cant compute DFS of non periodic signal')
-        N = self.period
+        if force:
+            N = P
+        else:
+            # periodo de la señal
+            N = int(self._period)
+            if P is not None:
+                # P debe ser un múltiplo de N
+                if P % N != 0:
+                    raise ValueError('P must be a multiple of N = {0}'
+                                     .format(N))
         X = np.zeros(N, np.complex_)
         if symbolic:
             n = self._xvar
@@ -293,6 +305,17 @@ class DiscreteFunctionSignal(DiscreteMixin, FunctionSignal):
     @property
     def dtft(self):
         return self._dtft
+
+#     @property
+#     def period(self):
+#         # Si la señal es suma y cada una es periódica, el periodo es el
+#         # mínimo común múltiplo
+#         # Algo así, pero bien
+#         # if isinstance(self._yexpr, sp.Add):
+#         #    Ns = []
+#         #    for s0 in self._yexpr.args:
+#         #        Ns.append(DiscreteFunctionSignal(s0).period)
+#         #    N = mcm(Ns)
 
     def eval(self, x, force=False):
         is_scalar = False
@@ -711,11 +734,11 @@ class Exponential(SinCosCExpMixin, DiscreteFunctionSignal):
 #         DiscreteFunctionSignal._copy_to(self, other)
 #         SinCosCExpMixin._copy_to(self, other)
 
-class SawTooth(DiscreteFunctionSignal):
+class Sawtooth(DiscreteFunctionSignal):
 
     @staticmethod
     def _factory(other):
-        s = SawTooth()
+        s = Sawtooth()
         if other:
             other._copy_to(s)
         return s
@@ -748,3 +771,41 @@ class SawTooth(DiscreteFunctionSignal):
     def _print(self):
         return 'saw[{0}, {1}, {2}]'.format(str(self._xexpr), self._period,
                                            self._width)
+
+
+class Square(DiscreteFunctionSignal):
+
+    @staticmethod
+    def _factory(other):
+        s = Square()
+        if other:
+            other._copy_to(s)
+        return s
+
+    def _copy_to(self, other):
+        DiscreteFunctionSignal._copy_to(self, other)
+        other._period = self._period
+        other._width = self._width
+
+    def __init__(self, N=16, width=None):
+        if width is None:
+            width = N
+        if N <= 0:
+            raise ValueError('N must be greater than 0')
+        if width > N:
+            raise ValueError('width must be less than N')
+        nm = sp.Mod(self._default_xvar(), N)
+        expr = sp.Piecewise((-1, nm < width), (1, nm < N))
+        DiscreteFunctionSignal.__init__(self, expr)
+        self._period = N
+        self._width = width
+
+    def max(self):
+        return 1
+
+    def min(self):
+        return -1
+
+    def _print(self):
+        return 'square[{0}, {1}, {2}]'.format(str(self._xexpr), self._period,
+                                              self._width)
