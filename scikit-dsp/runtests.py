@@ -18,10 +18,10 @@ Examples::
 # framework. Change the following values to adapt to your project:
 #
 
-PROJECT_MODULE = "skexample"
+PROJECT_MODULE = "skdsp"
 PROJECT_ROOT_FILES = ['setup.py']
-SAMPLE_TEST = "skexample/tests/test_stuff.py:test_do_something"
-SAMPLE_SUBMODULE = "stuff"
+SAMPLE_TEST = "skdsp/tests/delta_test.py:test_constructor"
+SAMPLE_SUBMODULE = "delta"
 
 # ---------------------------------------------------------------------
 
@@ -37,6 +37,7 @@ sys.path.pop(0)
 import shutil
 import subprocess
 from argparse import ArgumentParser, REMAINDER
+
 
 def main(argv):
     parser = ArgumentParser(usage=__doc__.lstrip())
@@ -139,6 +140,7 @@ def main(argv):
     else:
         sys.exit(1)
 
+
 def build_project(args):
     """
     Build a dev version of the project.
@@ -183,8 +185,8 @@ def build_project(args):
             '--record=' + os.path.join(dst_dir, 'record.lst')]
     if not os.path.isdir(site_dir):
         os.makedirs(site_dir)
-    env['PYTHONPATH'] = os.pathsep.join([site_dir]
-                                        + env.get('PATH', '').split(os.pathsep))
+    env['PYTHONPATH'] = \
+        os.pathsep.join([site_dir] + env.get('PATH', '').split(os.pathsep))
 
     # Build it.
     print("Building, see build.log...")
