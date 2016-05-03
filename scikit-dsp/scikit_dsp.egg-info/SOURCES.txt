@@ -1,8 +1,8 @@
 README.rst
+setup.py
 scikit_dsp.egg-info/PKG-INFO
 scikit_dsp.egg-info/SOURCES.txt
 scikit_dsp.egg-info/dependency_links.txt
-scikit_dsp.egg-info/requires.txt
 scikit_dsp.egg-info/top_level.txt
 skdsp/__init__.py
 skdsp/cosas.py
@@ -23,8 +23,10 @@ skdsp/tests/delta_test.py
 skdsp/tests/exponential_test.py
 skdsp/tests/misc_test.py
 skdsp/tests/ramp_test.py
+skdsp/tests/saw_test.py
 skdsp/tests/sine_test.py
 skdsp/tests/sinusoid_test.py
+skdsp/tests/square_test.py
 skdsp/tests/step_test.py
 skdsp/tests/time_operators_test.py
 skdsp/tests/ztransform_test.py
