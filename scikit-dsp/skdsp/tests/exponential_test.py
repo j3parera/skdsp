@@ -1,24 +1,25 @@
 import math
 from fractions import Fraction
 from skdsp.signal.discrete import DiscreteFunctionSignal, DiscreteMixin, \
-    Exponential, Delta
+    Exponential
 from skdsp.signal.signal import Signal, FunctionSignal
 from skdsp.signal.util import is_discrete, is_continuous, is_complex
 import numpy as np
 import sympy as sp
 import unittest
-from skdsp.signal.printer import latex
 
 
 class ExponentialTest(unittest.TestCase):
 
     def test_00(self):
         N = 16
-        ns = np.arange(0, N+1)
-        k = 0
-        s = Exponential(sp.exp(sp.I*sp.S.Pi*2*k/N))
-        print(s[ns])
-        print(latex(Delta(3), mode='inline'))
+        k = N
+        s = 0
+        for k0 in range(0, k):
+            s += Exponential(sp.exp(sp.I*2*sp.S.Pi*k0/N))
+        s = s/N
+        ns = np.arange(-25, 25)
+        print(np.real_if_close(s[ns]))
 
     def test_constructor(self):
         c = Exponential()
