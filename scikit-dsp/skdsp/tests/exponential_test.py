@@ -11,15 +11,15 @@ import unittest
 
 class ExponentialTest(unittest.TestCase):
 
-    def test_00(self):
-        N = 16
-        k = N
-        s = 0
-        for k0 in range(0, k):
-            s += Exponential(sp.exp(sp.I*2*sp.S.Pi*k0/N))
-        s = s/N
-        ns = np.arange(-25, 25)
-        print(np.real_if_close(s[ns]))
+#     def test_00(self):
+#         N = 16
+#         k = N
+#         s = 0
+#         for k0 in range(0, k):
+#             s += Exponential(sp.exp(sp.I*2*sp.S.Pi*k0/N))
+#         s = s/N
+#         ns = np.arange(-25, 25)
+#         print(np.real_if_close(s[ns]))
 
     def test_constructor(self):
         c = Exponential()

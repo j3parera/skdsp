@@ -21,7 +21,7 @@ Examples::
 PROJECT_MODULE = "skdsp"
 PROJECT_ROOT_FILES = ['setup.py']
 SAMPLE_TEST = "skdsp/tests/delta_test.py:test_constructor"
-SAMPLE_SUBMODULE = "delta"
+SAMPLE_SUBMODULE = "signal/discrete"
 
 # ---------------------------------------------------------------------
 

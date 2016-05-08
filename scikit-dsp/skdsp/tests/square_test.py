@@ -148,5 +148,14 @@ class SquareTest(unittest.TestCase):
         self.assertTrue(d.is_periodic())
         self.assertEqual(d.period, N)
 
+    def test_dfs(self):
+        N = 12
+        w = 4
+        d = Square(N, w)
+        X = d.dfs()
+        print(X)
+        X = d.dfs(symbolic=True)
+        print(X)
+
 if __name__ == "__main__":
     unittest.main()

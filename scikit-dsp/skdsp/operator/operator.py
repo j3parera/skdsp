@@ -51,6 +51,7 @@ class BinaryOperatorMixin(object):
     """ Mixin para indicar que el operador es binario; es decir,que opera
     sobre dos señales o funciones.
     """
+    pass
 
 # ==============================================================================
 #    Operadores unitarios que cambian la variable independiente

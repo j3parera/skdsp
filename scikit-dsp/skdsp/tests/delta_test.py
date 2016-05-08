@@ -1,5 +1,6 @@
-from skdsp.signal.discrete import Delta, DiscreteFunctionSignal, DiscreteMixin
-from skdsp.signal.signal import Signal, FunctionSignal
+import skdsp.signal.discrete as ds
+import skdsp.signal.continuous as cs
+import skdsp.signal.signal as sg
 from skdsp.signal.util import is_discrete, is_continuous, is_real, is_complex
 import numpy as np
 import sympy as sp
@@ -9,24 +10,40 @@ import unittest
 class DeltaTest(unittest.TestCase):
 
     def test_constructor(self):
-        d = Delta()
-        self.assertIsInstance(d, Signal)
-        self.assertIsInstance(d, FunctionSignal)
-        self.assertIsInstance(d, DiscreteMixin)
-        self.assertIsInstance(d, DiscreteFunctionSignal)
+        # delta discreta
+        d = ds.Delta()
+        self.assertIsInstance(d, sg.Signal)
+        self.assertIsInstance(d, sg.FunctionSignal)
+        self.assertIsInstance(d, ds.DiscreteMixin)
+        self.assertIsInstance(d, ds.DiscreteFunctionSignal)
         self.assertTrue(is_discrete(d))
         self.assertFalse(is_continuous(d))
+        # delta continua
+        d = cs.Delta()
+        self.assertIsInstance(d, sg.Signal)
+        self.assertIsInstance(d, sg.FunctionSignal)
+        self.assertIsInstance(d, cs.ContinuousMixin)
+        self.assertIsInstance(d, cs.ContinuousFunctionSignal)
+        self.assertFalse(is_discrete(d))
+        self.assertTrue(is_continuous(d))
 
     def test_eval_sample(self):
-        d = Delta()
+        # delta discreta
+        d = ds.Delta()
         self.assertEqual(d.eval(0), 1.0)
         self.assertEqual(d.eval(1), 0.0)
         self.assertEqual(d.eval(-1), 0.0)
         with self.assertRaises(TypeError):
             d.eval(0.5)
+        # delta continua
+        d = cs.Delta()
+        self.assertTrue(np.isnan(d.eval(0)))
+        self.assertEqual(d.eval(1), 0.0)
+        self.assertEqual(d.eval(-1), 0.0)
+        self.assertEqual(d.eval(0.5), 0.0)
 
     def test_eval_range(self):
-        d = Delta()
+        d = ds.Delta()
         expected = np.array([1.0, 0.0])
         actual = d.eval(np.arange(0, 2))
         np.testing.assert_array_equal(expected, actual)
@@ -43,7 +60,7 @@ class DeltaTest(unittest.TestCase):
             d.eval(np.arange(0, 2, 0.5))
 
     def test_getitem_scalar(self):
-        d = Delta()
+        d = ds.Delta()
         self.assertEqual(d[0], 1.0)
         self.assertEqual(d[1], 0.0)
         self.assertEqual(d[-1], 0.0)
@@ -51,7 +68,7 @@ class DeltaTest(unittest.TestCase):
             d[0.5]
 
     def test_getitem_slice(self):
-        d = Delta()
+        d = ds.Delta()
         np.testing.assert_array_equal(d[0:2], np.array([1.0, 0.0]))
         np.testing.assert_array_equal(d[-1:2], np.array([0.0, 1.0, 0.0]))
         np.testing.assert_array_equal(d[-4:1:2], np.array([0.0, 0.0, 1.0]))
@@ -60,7 +77,7 @@ class DeltaTest(unittest.TestCase):
             d[0:2:0.5]
 
     def test_dtype(self):
-        d = Delta()
+        d = ds.Delta()
         self.assertTrue(is_real(d))
         self.assertEqual(d.dtype, np.float_)
         d.dtype = np.complex_
@@ -70,13 +87,13 @@ class DeltaTest(unittest.TestCase):
             d.dtype = np.int_
 
     def test_name(self):
-        d = Delta()
+        d = ds.Delta()
         self.assertEqual(d.name, 'x')
         d.name = 'z'
         self.assertEqual(d.name, 'z')
 
     def test_xvar(self):
-        d = Delta() >> 3
+        d = ds.Delta() >> 3
         self.assertEqual(d.name, 'x')
         self.assertEqual(str(d), 'd[n - 3]')
         d.xvar = sp.symbols('m', integer=True)

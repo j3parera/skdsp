@@ -1,11 +1,11 @@
 from abc import ABC
+from numbers import Integral, Number, Real
 
 import numpy as np
 import sympy as sp
 
 from skdsp.operator.operator import ShiftOperator, FlipOperator, \
     ScaleOperator, GainOperator, AbsOperator
-from numbers import Number
 
 
 __all__ = ['Signal', 'FunctionSignal', 'ConstantSignal']
@@ -14,6 +14,28 @@ __all__ = ['Signal', 'FunctionSignal', 'ConstantSignal']
 class Signal(ABC):
     ''' Signal is the abstract base class
     '''
+    @staticmethod
+    def _check_is_real(x):
+        ok = True
+        if isinstance(x, sp.Expr):
+            x = x.evalf()
+            if not isinstance(x, sp.Float):
+                ok = False
+        elif not isinstance(x, Real):
+            ok = False
+        return ok
+
+    @staticmethod
+    def _check_is_integer(x):
+        ok = True
+        if isinstance(x, sp.Expr):
+            x = x.evalf()
+            if not isinstance(x, sp.Integer):
+                ok = False
+        elif not isinstance(x, Integral):
+            ok = False
+        return ok
+
     def __init__(self):
         self._dtype = np.float_
         self.name = 'x'
@@ -164,9 +186,14 @@ class FunctionSignal(Signal):
             if not to_real:
                 y = y.astype(self._dtype)
         except NameError:
+            # sympy no ha podido hacer una función lambda
+            # así que se procesan los valores uno a uno
             y = np.zeros_like(x, self._dtype)
-            for k, x0 in enumerate(x):
-                y[k] = self._yexpr.subs(self._xvar, x0)
+            try:
+                for k, x0 in enumerate(x):
+                    y[k] = self._yexpr.xreplace({self._xvar: x0})
+            except TypeError:
+                y[k] = np.nan
         if to_real:
             y = np.real_if_close(y)
         return y
@@ -245,6 +272,25 @@ class FunctionSignal(Signal):
     def __abs__(self):
         self._yexpr = AbsOperator.apply(self._xvar, self._yexpr)
         return self
+
+    def __eq__(self, other):
+        # TODO: ¿es correcto? NO si las variables no son iguales
+        return str(self).__eq__(str(other))
+#         if isinstance(other, FunctionSignal):
+#             return self._yexpr == other._yexpr
+#         d = self._yexpr - other
+#         if (sp.expand(d) == 0) or \
+#            (sp.simplify(d) == 0) or \
+#            (sp.trigsimp(d) == 0):
+#             return True
+#         else:
+#             return False
+
+    def dynamic_range(self, dB=False):
+        dr = self.max() - self.min()
+        if dB:
+            return 20*sp.log(dr, 10)
+        return dr
 
 
 class ConstantSignal(FunctionSignal):

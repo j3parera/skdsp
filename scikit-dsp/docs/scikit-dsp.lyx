@@ -941,6 +941,14 @@ Transformadas
 \end_layout
 
 \begin_layout Itemize
+Serie de Fourier continua: FS(x, omega, T)
+\end_layout
+
+\begin_layout Itemize
+Serie de Fourier discreta: DFS(x, k, N)
+\end_layout
+
+\begin_layout Itemize
 Transformada de Fourier en tiempo discreto: DTFT(x, omega), IDTFT(X, n)
 \end_layout
 

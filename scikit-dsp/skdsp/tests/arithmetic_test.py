@@ -142,6 +142,7 @@ class ArithmeticTest(unittest.TestCase):
         s = Constant(1)
         for shift in range(0, 6):
             s /= (Delta() >> shift)
+        print(s[-5:6])
         np.testing.assert_equal(s[-5:6], np.r_[[np.Inf]*11])
         self.assertNotIsInstance(s, Delta)
         self.assertNotIsInstance(s, Constant)
