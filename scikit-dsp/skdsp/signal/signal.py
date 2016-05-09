@@ -189,11 +189,11 @@ class FunctionSignal(Signal):
             # sympy no ha podido hacer una función lambda
             # así que se procesan los valores uno a uno
             y = np.zeros_like(x, self._dtype)
-            try:
-                for k, x0 in enumerate(x):
+            for k, x0 in enumerate(x):
+                try:
                     y[k] = self._yexpr.xreplace({self._xvar: x0})
-            except TypeError:
-                y[k] = np.nan
+                except TypeError:
+                    y[k] = np.nan
         if to_real:
             y = np.real_if_close(y)
         return y
