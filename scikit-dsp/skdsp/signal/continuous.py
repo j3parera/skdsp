@@ -244,15 +244,6 @@ class Constant(ContinuousFunctionSignal, ConstantSignal):
 
 class Delta(ContinuousFunctionSignal):
 
-    class _ContinuousDelta(sp.DiracDelta):
-
-        def simplify(self):
-            # ¿arreglillo? para poder preguntar si la función es
-            # constante, ya que es necesario especificar la variable
-            # respecto a la que se comprueba en DiracDelta
-            t = sp.symbols('t', real=True)
-            return super(sp.DiracDelta, self).simplify(t)
-
     @staticmethod
     def _factory(other):
         s = Delta()
@@ -261,11 +252,12 @@ class Delta(ContinuousFunctionSignal):
         return s
 
     def __init__(self, delay=0):
-        expr = Delta._ContinuousDelta(self._default_xvar())
+        expr = sp.DiracDelta(self._default_xvar())
         ContinuousFunctionSignal.__init__(self, expr)
         # delay
-        self._xexpr = ShiftOperator.apply(self._xvar, self._xexpr, delay)
-        self._yexpr = ShiftOperator.apply(self._xvar, self._yexpr, delay)
+        if delay != 0:
+            self._xexpr = ShiftOperator.apply(self._xvar, self._xexpr, delay)
+            self._yexpr = ShiftOperator.apply(self._xvar, self._yexpr, delay)
 
     def max(self):
         return sp.oo
@@ -275,3 +267,29 @@ class Delta(ContinuousFunctionSignal):
 
     def _print(self):
         return 'd({0})'.format(str(self._xexpr))
+
+
+class Step(ContinuousFunctionSignal):
+
+    @staticmethod
+    def _factory(other):
+        s = Step()
+        if other:
+            other._copy_to(s)
+        return s
+
+    def __init__(self, delay=0):
+        expr = sp.Heaviside(self._default_xvar())
+        ContinuousFunctionSignal.__init__(self, expr)
+        if delay != 0:
+            self._xexpr = ShiftOperator.apply(self._xvar, self._xexpr, delay)
+            self._yexpr = ShiftOperator.apply(self._xvar, self._yexpr, delay)
+
+    def max(self):
+        return 1
+
+    def min(self):
+        return 0
+
+    def _print(self):
+        return 'u({0})'.format(str(self._xexpr))

@@ -144,7 +144,7 @@ class DeltaTest(unittest.TestCase):
         self.assertEqual(d.name, 'z')
 
     def test_xvar(self):
-        ''' Delta (discrete/continuous): temporal variable '''
+        ''' Delta (discrete/continuous): free variable '''
         # delta discreta
         d = ds.Delta() >> 3
         self.assertEqual(d.name, 'x')

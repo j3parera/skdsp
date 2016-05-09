@@ -17,7 +17,7 @@ skdsp/signal/signal.py
 skdsp/signal/util.py
 skdsp/tests/__init__.py
 skdsp/tests/arithmetic_test.py
-skdsp/tests/complex_exp_test.py
+skdsp/tests/complex_sinusoid_test.py
 skdsp/tests/cosine_test.py
 skdsp/tests/delta_test.py
 skdsp/tests/exponential_test.py
