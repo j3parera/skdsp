@@ -135,7 +135,7 @@ class FunctionSignal(Signal):
         Signal.__init__(self)
         if not isinstance(expr, sp.Expr):
             raise TypeError("'expr' must be a sympy expression")
-        if expr.is_constant():
+        if expr.is_number:
             self._yexpr = expr
             self._xvar = self._default_xvar()
             self._xexpr = self._xvar
