@@ -293,3 +293,29 @@ class Step(ContinuousFunctionSignal):
 
     def _print(self):
         return 'u({0})'.format(str(self._xexpr))
+
+
+class Ramp(ContinuousFunctionSignal):
+
+    @staticmethod
+    def _factory(other):
+        s = Ramp()
+        if other:
+            other._copy_to(s)
+        return s
+
+    def __init__(self, delay=0):
+        expr = self._default_xvar()
+        ContinuousFunctionSignal.__init__(self, expr)
+        # delay
+        self._xexpr = ShiftOperator.apply(self._xvar, self._xexpr, delay)
+        self._yexpr = ShiftOperator.apply(self._xvar, self._yexpr, delay)
+
+    def _print(self):
+        return 'r({0})'.format(str(self._xexpr))
+
+    def max(self):
+        return np.inf
+
+    def min(self):
+        return -np.inf

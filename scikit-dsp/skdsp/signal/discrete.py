@@ -399,19 +399,6 @@ class Step(DiscreteFunctionSignal):
 
 class Ramp(DiscreteFunctionSignal):
 
-    class _DiscreteRamp(sp.Function):
-
-        @classmethod
-        def eval(cls, arg):
-            arg = sp.sympify(arg)
-            if arg is sp.S.NaN:
-                return sp.S.NaN
-            return arg
-
-        @staticmethod
-        def _imp_(n):
-            return n.astype(np.float_)
-
     @staticmethod
     def _factory(other):
         s = Ramp()
@@ -420,7 +407,7 @@ class Ramp(DiscreteFunctionSignal):
         return s
 
     def __init__(self, delay=0):
-        expr = Ramp._DiscreteRamp(self._default_xvar())
+        expr = self._default_xvar()
         DiscreteFunctionSignal.__init__(self, expr)
         # delay
         if not isinstance(delay, Integral):
