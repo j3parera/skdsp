@@ -1,9 +1,11 @@
 from numbers import Number
-from skdsp.operator.operator import ShiftOperator
+from skdsp.operator.operator import ShiftOperator, ScaleOperator
 from skdsp.signal.signal import FunctionSignal, ConstantSignal
 
 import numpy as np
 import sympy as sp
+from sympy.core.evaluate import evaluate
+
 
 __all__ = ['ContinuousFunctionSignal']
 
@@ -20,10 +22,35 @@ class ContinuousMixin(object):
     def _copy_to(self, other):
         pass
 
+    def _has_ramp(self):
+        # CUIDADITO, si esto da más problemas quizás sea mejor quitarlo
+        # aunque las rampas no se usan mucho que digamos
+        dohas = False
+        if isinstance(self, (Ramp, Ramp._ContinuousRamp)):
+            dohas = True
+        else:
+            for arg in sp.preorder_traversal(self._yexpr):
+                if isinstance(arg, Ramp._ContinuousRamp):
+                    dohas = True
+                    break
+        return dohas
+
+    def flip(self):
+        doeval = not self._has_ramp()
+        with evaluate(doeval):
+            s = FunctionSignal.flip(self)
+        return s
+
+    __reversed__ = flip
+
     def shift(self, tau):
         if not self._check_is_real(tau):
             raise TypeError('delay/advance must be real')
-        return FunctionSignal.shift(self, tau)
+        # esto evita que r(t-k) se convierta en t-k (sin la r)
+        doeval = not self._has_ramp()
+        with evaluate(doeval):
+            s = FunctionSignal.shift(self, tau)
+        return s
 
     def delay(self, tau):
         return self.shift(tau)
@@ -260,7 +287,7 @@ class Delta(ContinuousFunctionSignal):
             self._yexpr = ShiftOperator.apply(self._xvar, self._yexpr, delay)
 
     def max(self):
-        return sp.oo
+        raise ValueError("delta(t) hasn't maximum")
 
     def min(self):
         return 0
@@ -297,6 +324,20 @@ class Step(ContinuousFunctionSignal):
 
 class Ramp(ContinuousFunctionSignal):
 
+    # mantener esta clase, aparentemente inútil, para distinguir
+    # entre la función r(t) y la variable t
+    class _ContinuousRamp(sp.Function):
+
+        # en continuo hay que añadir esta función (y no eval, OJO)
+        # para hacer las sustituciones en expresiones que no puedan
+        # lambdificarse y aparezcan NaN, p.e r(t)u(t), porque u(0) = nan
+        def evalf(self, prec):
+            return self.args[0]
+
+        @staticmethod
+        def _imp_(t):
+            return t.astype(np.float_)
+
     @staticmethod
     def _factory(other):
         s = Ramp()
@@ -305,7 +346,7 @@ class Ramp(ContinuousFunctionSignal):
         return s
 
     def __init__(self, delay=0):
-        expr = self._default_xvar()
+        expr = Ramp._ContinuousRamp(self._default_xvar(), evaluate=False)
         ContinuousFunctionSignal.__init__(self, expr)
         # delay
         self._xexpr = ShiftOperator.apply(self._xvar, self._xexpr, delay)
@@ -319,3 +360,86 @@ class Ramp(ContinuousFunctionSignal):
 
     def min(self):
         return -np.inf
+
+
+class SinCosCExpMixin(object):
+
+    def __init__(self, omega0, phi0):
+        self._omega0 = sp.simplify(omega0)
+        self._phi0 = self._reduce_phase(phi0)
+
+    def _copy_to(self, other):
+        other._omega0 = self._omega0
+        other._phi0 = self._phi0
+
+    def _compute_period(self):
+        # si omega0 es cero, se puede considerar periodo N = 1
+        if self._omega0 == 0:
+            return sp.S.One
+        return 2*sp.S.Pi/self._omega0
+
+    def _reduce_phase(self, phi):
+        ''' Reduce la fase, módulo 2*pi en el intervalo [-pi, pi)
+        '''
+        phi0 = sp.Mod(phi, 2*sp.S.Pi)
+        if phi0 >= sp.S.Pi:
+            phi0 -= 2*sp.S.Pi
+        return phi0
+
+    @property
+    def angular_frequency(self):
+        return self._omega0
+
+    @property
+    def frequency(self):
+        return self._omega0/(2*sp.S.Pi)
+
+    @property
+    def phase_offset(self):
+        return self._phi0
+
+    @property
+    def period(self):
+        if self._period is not None:
+            return self._period
+        self._period = self._compute_period()
+        return self._period
+
+    def as_euler(self):
+        eu = ContinuousFunctionSignal(self._yexpr.rewrite(sp.exp))
+        eu._dtype = np.complex_
+        return eu
+
+
+class Cosine(SinCosCExpMixin, ContinuousFunctionSignal):
+
+    @staticmethod
+    def _factory(other):
+        s = Cosine()
+        if other:
+            other._copy_to(s)
+        return s
+
+    def __init__(self, omega0=1, phi0=0):
+        expr = sp.cos(self._default_xvar())
+        ContinuousFunctionSignal.__init__(self, expr)
+        SinCosCExpMixin.__init__(self, omega0, phi0)
+        # delay (negativo, OJO)
+        delay = -self._phi0
+        self._xexpr = ShiftOperator.apply(self._xvar, self._xexpr, delay)
+        self._yexpr = ShiftOperator.apply(self._xvar, self._yexpr, delay)
+        # escalado
+        self._xexpr = ScaleOperator.apply(self._xvar, self._xexpr,
+                                          self._omega0)
+        self._yexpr = ScaleOperator.apply(self._xvar, self._yexpr,
+                                          self._omega0)
+
+    def _copy_to(self, other):
+        ContinuousFunctionSignal._copy_to(self, other)
+        SinCosCExpMixin._copy_to(self, other)
+
+    def max(self):
+        return 1
+
+    def min(self):
+        return -1

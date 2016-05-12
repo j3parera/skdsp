@@ -399,6 +399,14 @@ class Step(DiscreteFunctionSignal):
 
 class Ramp(DiscreteFunctionSignal):
 
+    # mantener esta clase, aparentemente inútil, para distinguir
+    # entre la función r[n] y la variable n
+    class _DiscreteRamp(sp.Function):
+
+        @staticmethod
+        def _imp_(n):
+            return n.astype(np.float_)
+
     @staticmethod
     def _factory(other):
         s = Ramp()
@@ -407,7 +415,7 @@ class Ramp(DiscreteFunctionSignal):
         return s
 
     def __init__(self, delay=0):
-        expr = self._default_xvar()
+        expr = Ramp._DiscreteRamp(self._default_xvar(), evaluate=False)
         DiscreteFunctionSignal.__init__(self, expr)
         # delay
         if not isinstance(delay, Integral):
@@ -419,10 +427,10 @@ class Ramp(DiscreteFunctionSignal):
         return 'r[{0}]'.format(str(self._xexpr))
 
     def max(self):
-        return sp.oo
+        return np.inf
 
     def min(self):
-        return sp.S.Zero
+        return -np.inf
 
 
 class SinCosCExpMixin(object):
@@ -470,9 +478,9 @@ class SinCosCExpMixin(object):
         return self._period
 
     def as_euler(self):
-        dfs = DiscreteFunctionSignal(self._yexpr.rewrite(sp.exp))
-        dfs._dtype = np.complex_
-        return dfs
+        eu = DiscreteFunctionSignal(self._yexpr.rewrite(sp.exp))
+        eu._dtype = np.complex_
+        return eu
 
 
 class Cosine(SinCosCExpMixin, DiscreteFunctionSignal):

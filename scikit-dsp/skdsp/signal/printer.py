@@ -37,7 +37,14 @@ class CustomLatexPrinter(LatexPrinter):
             return r'r[{0}]'.format(self._print(e.args[0]))
         elif isinstance(e, ContinuousFunctionSignal):
             return r'r[{0}]'.format(self._print(e._xexpr))
-        return r'r[?]'
+        return r'u[?]'
+
+    def _print__ContinuousRamp(self, e):
+        if isinstance(e, sp.Expr):
+            return r'r\left({0}\right)'.format(self._print(e.args[0]))
+        elif isinstance(e, ContinuousFunctionSignal):
+            return r'r\left({0}\right)'.format(self._print(e._xexpr))
+        return r'r\left(?\right)'
 
     def _print_Heaviside(self, e):
         if isinstance(e, sp.Expr):

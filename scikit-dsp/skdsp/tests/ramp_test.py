@@ -9,6 +9,24 @@ import unittest
 
 class RampTest(unittest.TestCase):
 
+    def test_00(self):
+        import skdsp.signal.printer as pt
+        d = ds.Ramp().delay(3)
+        print(pt.latex(d, mode='inline'))
+        d = (ds.Ramp()*ds.Step()).delay(3)
+        print(pt.latex(d, mode='inline'))
+        print(d.eval(2))
+        d = cs.Ramp().delay(1.5)
+        print(pt.latex(d, mode='inline'))
+        d = (cs.Ramp()*cs.Step()).delay(1.5)
+        print(pt.latex(d, mode='inline'))
+        print(d.eval(1.3456))
+        d = cs.Ramp().shift(1.3).flip()
+        print(pt.latex(d, mode='inline'))
+        d = (cs.Ramp()*cs.Step()).flip().shift(1.3)
+        print(pt.latex(d, mode='inline'))
+        print(d.eval(1.3456))
+
     def test_constructor(self):
         ''' Ramp (discrete/continuous): constructors '''
         # rampa discreta
