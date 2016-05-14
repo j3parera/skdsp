@@ -433,6 +433,75 @@ class Ramp(DiscreteFunctionSignal):
         return -np.inf
 
 
+class Rect(DiscreteFunctionSignal):
+
+    @staticmethod
+    def _factory(other):
+        s = Rect()
+        if other:
+            other._copy_to(s)
+        return s
+
+    def __init__(self, width=16, delay=0):
+        n = self._default_xvar()
+        expr = sp.Piecewise((1, sp.Abs(n) <= width/2), (0, True))
+        DiscreteFunctionSignal.__init__(self, expr)
+        self._width = width
+        # delay
+        if not isinstance(delay, Integral):
+            raise TypeError('delay/advance must be integer')
+        self._xexpr = ShiftOperator.apply(self._xvar, self._xexpr, delay)
+        self._yexpr = ShiftOperator.apply(self._xvar, self._yexpr, delay)
+
+    @property
+    def width(self):
+        return self._width
+
+    def _print(self):
+        return 'Pi[{0}, {1}]'.format(str(self._xexpr), self._width)
+
+    def max(self):
+        return 1
+
+    def min(self):
+        return 0
+
+
+class Triang(DiscreteFunctionSignal):
+
+    @staticmethod
+    def _factory(other):
+        s = Triang()
+        if other:
+            other._copy_to(s)
+        return s
+
+    def __init__(self, width=16, delay=0):
+        n = self._default_xvar()
+        expr = sp.Piecewise((1.0 - 2.0*sp.Abs(n)/width, sp.Abs(n) < width/2),
+                            (0, True))
+        DiscreteFunctionSignal.__init__(self, expr)
+        self._width = width
+        # delay
+        if not isinstance(delay, Integral):
+            raise TypeError('delay/advance must be integer')
+        self._xexpr = ShiftOperator.apply(self._xvar, self._xexpr, delay)
+        self._yexpr = ShiftOperator.apply(self._xvar, self._yexpr, delay)
+
+    @property
+    def width(self):
+        return self._width
+
+    def _print(self):
+        return 'Delta[{0}, {1}]'.format(str(self._xexpr), self._width)
+
+    def max(self):
+        return 1
+
+    def min(self):
+        return 0
+
+
 class _SinCosCExpMixin(object):
 
     def __init__(self, omega0, phi0):
