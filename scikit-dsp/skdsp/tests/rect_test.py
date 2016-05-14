@@ -1,5 +1,6 @@
 import skdsp.signal.discrete as ds
 import skdsp.signal.continuous as cs
+import skdsp.signal.printer as pt
 import skdsp.signal.signal as sg
 from skdsp.signal.util import is_discrete, is_continuous, is_real, is_complex
 import numpy as np
@@ -148,6 +149,20 @@ class RectTest(unittest.TestCase):
         d.xvar = sp.symbols('x', real=True)
         self.assertEqual(d.name, 'x')
         self.assertEqual(str(d), 'Pi(x - 3, {0})'.format(d.width))
+
+    def test_latex(self):
+        d = ds.Rect()
+        self.assertEqual(pt.latex(d, mode='inline'),
+                         r'$\Pi\left[n/16\right]$')
+        d = ds.Rect(8, 3)
+        self.assertEqual(pt.latex(d, mode='inline'),
+                         r'$\Pi\left[(n - 3)/8\right]$')
+        d = cs.Rect()
+        self.assertEqual(pt.latex(d, mode='inline'),
+                         r'$\Pi\left(t/16\right)$')
+        d = cs.Rect(8, 3)
+        self.assertEqual(pt.latex(d, mode='inline'),
+                         r'$\Pi\left((t - 3)/8\right)$')
 
 if __name__ == "__main__":
     unittest.main()

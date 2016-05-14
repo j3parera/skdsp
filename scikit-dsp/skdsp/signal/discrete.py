@@ -442,7 +442,13 @@ class Rect(DiscreteFunctionSignal):
             other._copy_to(s)
         return s
 
+    def _copy_to(self, other):
+        DiscreteFunctionSignal._copy_to(self, other)
+        other._width = self._width
+
     def __init__(self, width=16, delay=0):
+        if not isinstance(width, Integral):
+            raise TypeError('width must be integer')
         n = self._default_xvar()
         expr = sp.Piecewise((1, sp.Abs(n) <= width/2), (0, True))
         DiscreteFunctionSignal.__init__(self, expr)
@@ -476,7 +482,13 @@ class Triang(DiscreteFunctionSignal):
             other._copy_to(s)
         return s
 
+    def _copy_to(self, other):
+        DiscreteFunctionSignal._copy_to(self, other)
+        other._width = self._width
+
     def __init__(self, width=16, delay=0):
+        if not isinstance(width, Integral):
+            raise TypeError('width must be integer')
         n = self._default_xvar()
         expr = sp.Piecewise((1.0 - 2.0*sp.Abs(n)/width, sp.Abs(n) < width/2),
                             (0, True))

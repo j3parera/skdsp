@@ -371,6 +371,10 @@ class Rect(ContinuousFunctionSignal):
             other._copy_to(s)
         return s
 
+    def _copy_to(self, other):
+        ContinuousFunctionSignal._copy_to(self, other)
+        other._width = self._width
+
     def __init__(self, width=16, delay=0):
         n = self._default_xvar()
         expr = sp.Piecewise((1, sp.Abs(n) < width/2), (0, True))
@@ -402,6 +406,10 @@ class Triang(ContinuousFunctionSignal):
         if other:
             other._copy_to(s)
         return s
+
+    def _copy_to(self, other):
+        ContinuousFunctionSignal._copy_to(self, other)
+        other._width = self._width
 
     def __init__(self, width=16, delay=0):
         n = self._default_xvar()
