@@ -12,7 +12,7 @@ __all__ = ['DiscreteFunctionSignal', 'DataSignal'
            'Sawtooth', 'Square', 'DeltaTrain']
 
 
-class DiscreteMixin(object):
+class _DiscreteMixin(object):
 
     @staticmethod
     def _check_indexes(x):
@@ -44,12 +44,12 @@ class DiscreteMixin(object):
         return o
 
     def __rshift__(self, k):
-        return DiscreteMixin.shift(self, k)
+        return _DiscreteMixin.shift(self, k)
 
     __irshift__ = __rshift__
 
     def __lshift__(self, k):
-        return DiscreteMixin.shift(self, -k)
+        return _DiscreteMixin.shift(self, -k)
 
     __ilshift__ = __lshift__
 
@@ -71,7 +71,7 @@ class DiscreteMixin(object):
 #         return Signal.cshift(self, k, N)
 
     def __add__(self, other):
-        if not isinstance(other, (DiscreteMixin, Number)):
+        if not isinstance(other, (_DiscreteMixin, Number)):
             raise TypeError("can't add {0}".format(str(other)))
         if other == 0 or other == Constant(0):
             return self
@@ -91,7 +91,7 @@ class DiscreteMixin(object):
     __iadd__ = __add__
 
     def __sub__(self, other):
-        if not isinstance(other, (DiscreteMixin, Number)):
+        if not isinstance(other, (_DiscreteMixin, Number)):
             raise TypeError("can't sub {0}".format(str(other)))
         if other == 0 or other == Constant(0):
             return self
@@ -108,7 +108,7 @@ class DiscreteMixin(object):
         return FunctionSignal.__sub__(s, o)
 
     def __rsub__(self, other):
-        if not isinstance(other, (DiscreteMixin, Number)):
+        if not isinstance(other, (_DiscreteMixin, Number)):
             raise TypeError("can't sub {0}".format(str(other)))
         if other == 0 or other == Constant(0):
             return -self
@@ -130,7 +130,7 @@ class DiscreteMixin(object):
         if isinstance(other, sp.Expr):
             if other.is_number:
                 other = Constant(other)
-        if not isinstance(other, (DiscreteMixin, Number)):
+        if not isinstance(other, (_DiscreteMixin, Number)):
             raise TypeError("can't multiply {0}".format(str(other)))
         if other == 0 or other == Constant(0):
             return Constant(0)
@@ -157,7 +157,7 @@ class DiscreteMixin(object):
     __imul__ = __mul__
 
     def __truediv__(self, other):
-        if not isinstance(other, (DiscreteMixin, Number)):
+        if not isinstance(other, (_DiscreteMixin, Number)):
             raise TypeError("can't divide {0}".format(str(other)))
         if other == 1 or other == Constant(1):
             return self
@@ -174,7 +174,7 @@ class DiscreteMixin(object):
     __itruediv__ = __truediv__
 
     def __rtruediv__(self, other):
-        if not isinstance(other, (DiscreteMixin, Number)):
+        if not isinstance(other, (_DiscreteMixin, Number)):
             raise TypeError("can't divide {0}".format(str(other)))
         if other == 1 or other == Constant(1):
             return Constant(1)/self
@@ -216,7 +216,7 @@ class DiscreteMixin(object):
         return X
 
 
-class DataSignal(Signal, DiscreteMixin):
+class DataSignal(Signal, _DiscreteMixin):
 
     def __init__(self, data, span):
         super.__init__()
@@ -224,7 +224,7 @@ class DataSignal(Signal, DiscreteMixin):
         self._span = span
 
 
-class DiscreteFunctionSignal(DiscreteMixin, FunctionSignal):
+class DiscreteFunctionSignal(_DiscreteMixin, FunctionSignal):
     # Las especializaciones discretas deben ir antes que las funcionales
     @staticmethod
     def _factory(other):
@@ -234,14 +234,14 @@ class DiscreteFunctionSignal(DiscreteMixin, FunctionSignal):
 
     def __init__(self, expr):
         FunctionSignal.__init__(self, expr)
-        DiscreteMixin.__init__(self)
+        _DiscreteMixin.__init__(self)
         self._z_transform = None
         self._dt_fourier_transform = None
 
     def _copy_to(self, other):
         other._z_transform = self._z_transform
         other._dt_fourier_transform = self._dt_fourier_transform
-        DiscreteMixin._copy_to(self, other)
+        _DiscreteMixin._copy_to(self, other)
         FunctionSignal._copy_to(self, other)
 
     @property
@@ -433,7 +433,7 @@ class Ramp(DiscreteFunctionSignal):
         return -np.inf
 
 
-class SinCosCExpMixin(object):
+class _SinCosCExpMixin(object):
 
     def __init__(self, omega0, phi0):
         self._omega0 = sp.simplify(omega0)
@@ -483,7 +483,7 @@ class SinCosCExpMixin(object):
         return eu
 
 
-class Cosine(SinCosCExpMixin, DiscreteFunctionSignal):
+class Cosine(_SinCosCExpMixin, DiscreteFunctionSignal):
 
     @staticmethod
     def _factory(other):
@@ -495,7 +495,7 @@ class Cosine(SinCosCExpMixin, DiscreteFunctionSignal):
     def __init__(self, omega0=1, phi0=0):
         expr = sp.cos(self._default_xvar())
         DiscreteFunctionSignal.__init__(self, expr)
-        SinCosCExpMixin.__init__(self, omega0, phi0)
+        _SinCosCExpMixin.__init__(self, omega0, phi0)
         # delay (negativo, OJO)
         delay = -self._phi0
         self._xexpr = ShiftOperator.apply(self._xvar, self._xexpr, delay)
@@ -508,7 +508,7 @@ class Cosine(SinCosCExpMixin, DiscreteFunctionSignal):
 
     def _copy_to(self, other):
         DiscreteFunctionSignal._copy_to(self, other)
-        SinCosCExpMixin._copy_to(self, other)
+        _SinCosCExpMixin._copy_to(self, other)
 
     def max(self):
         return 1
@@ -517,7 +517,7 @@ class Cosine(SinCosCExpMixin, DiscreteFunctionSignal):
         return -1
 
 
-class Sine(SinCosCExpMixin, DiscreteFunctionSignal):
+class Sine(_SinCosCExpMixin, DiscreteFunctionSignal):
 
     @staticmethod
     def _factory(other):
@@ -529,7 +529,7 @@ class Sine(SinCosCExpMixin, DiscreteFunctionSignal):
     def __init__(self, omega0=1, phi0=0):
         expr = sp.sin(self._default_xvar())
         DiscreteFunctionSignal.__init__(self, expr)
-        SinCosCExpMixin.__init__(self, omega0, phi0)
+        _SinCosCExpMixin.__init__(self, omega0, phi0)
         # delay (negativo, OJO)
         delay = -self._phi0
         self._xexpr = ShiftOperator.apply(self._xvar, self._xexpr, delay)
@@ -542,7 +542,7 @@ class Sine(SinCosCExpMixin, DiscreteFunctionSignal):
 
     def _copy_to(self, other):
         DiscreteFunctionSignal._copy_to(self, other)
-        SinCosCExpMixin._copy_to(self, other)
+        _SinCosCExpMixin._copy_to(self, other)
 
     def max(self):
         return 1
@@ -594,7 +594,7 @@ class Sinusoid(Cosine):
         return A2*Sine(self._omega0)
 
 
-class Exponential(SinCosCExpMixin, DiscreteFunctionSignal):
+class Exponential(_SinCosCExpMixin, DiscreteFunctionSignal):
 
     @staticmethod
     def _extract_omega(x):
@@ -637,7 +637,7 @@ class Exponential(SinCosCExpMixin, DiscreteFunctionSignal):
     def __init__(self, base=1):
         expr = sp.Pow(base, self._default_xvar())
         DiscreteFunctionSignal.__init__(self, expr)
-        SinCosCExpMixin.__init__(self, self._extract_omega(base), 0)
+        _SinCosCExpMixin.__init__(self, self._extract_omega(base), 0)
         self._base = sp.sympify(base)
         pb = sp.arg(self._base)
         if pb != sp.nan:
@@ -647,7 +647,7 @@ class Exponential(SinCosCExpMixin, DiscreteFunctionSignal):
     def _copy_to(self, other):
         other._base = self._base
         DiscreteFunctionSignal._copy_to(self, other)
-        SinCosCExpMixin._copy_to(self, other)
+        _SinCosCExpMixin._copy_to(self, other)
 
     @property
     def base(self):
@@ -658,7 +658,7 @@ class Exponential(SinCosCExpMixin, DiscreteFunctionSignal):
         return mod1 and Signal.is_periodic(self)
 
 
-class ComplexSinusoid(SinCosCExpMixin, DiscreteFunctionSignal):
+class ComplexSinusoid(_SinCosCExpMixin, DiscreteFunctionSignal):
 
     @staticmethod
     def _factory(other):
@@ -670,7 +670,7 @@ class ComplexSinusoid(SinCosCExpMixin, DiscreteFunctionSignal):
     def __init__(self, A=1, omega0=1, phi0=0):
         expr = A*sp.exp(sp.I*self._default_xvar())
         DiscreteFunctionSignal.__init__(self, expr)
-        SinCosCExpMixin.__init__(self, omega0, phi0)
+        _SinCosCExpMixin.__init__(self, omega0, phi0)
         self._dtype = np.complex_
         # delay (negativo, OJO)
         delay = -self._phi0
@@ -684,7 +684,7 @@ class ComplexSinusoid(SinCosCExpMixin, DiscreteFunctionSignal):
 
     def _copy_to(self, other):
         DiscreteFunctionSignal._copy_to(self, other)
-        SinCosCExpMixin._copy_to(self, other)
+        _SinCosCExpMixin._copy_to(self, other)
 
 
 class Sawtooth(DiscreteFunctionSignal):

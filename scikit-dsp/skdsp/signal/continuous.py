@@ -10,7 +10,7 @@ from sympy.core.evaluate import evaluate
 __all__ = ['ContinuousFunctionSignal']
 
 
-class ContinuousMixin(object):
+class _ContinuousMixin(object):
 
     @staticmethod
     def _default_xvar():
@@ -56,12 +56,12 @@ class ContinuousMixin(object):
         return self.shift(tau)
 
     def __rshift__(self, tau):
-        return ContinuousMixin.shift(self, tau)
+        return _ContinuousMixin.shift(self, tau)
 
     __irshift__ = __rshift__
 
     def __lshift__(self, tau):
-        return ContinuousMixin.shift(self, -tau)
+        return _ContinuousMixin.shift(self, -tau)
 
     __ilshift__ = __lshift__
 
@@ -72,7 +72,7 @@ class ContinuousMixin(object):
         return FunctionSignal.scale(self, alpha)
 
     def __add__(self, other):
-        if not isinstance(other, (ContinuousMixin, Number)):
+        if not isinstance(other, (_ContinuousMixin, Number)):
             raise TypeError("can't add {0}".format(str(other)))
         if other == 0 or other == Constant(0):
             return self
@@ -92,7 +92,7 @@ class ContinuousMixin(object):
     __iadd__ = __add__
 
     def __sub__(self, other):
-        if not isinstance(other, (ContinuousMixin, Number)):
+        if not isinstance(other, (_ContinuousMixin, Number)):
             raise TypeError("can't sub {0}".format(str(other)))
         if other == 0 or other == Constant(0):
             return self
@@ -109,7 +109,7 @@ class ContinuousMixin(object):
         return FunctionSignal.__sub__(s, o)
 
     def __rsub__(self, other):
-        if not isinstance(other, (ContinuousMixin, Number)):
+        if not isinstance(other, (_ContinuousMixin, Number)):
             raise TypeError("can't sub {0}".format(str(other)))
         if other == 0 or other == Constant(0):
             return -self
@@ -131,7 +131,7 @@ class ContinuousMixin(object):
         if isinstance(other, sp.Expr):
             if other.is_number:
                 other = Constant(other)
-        if not isinstance(other, (ContinuousMixin, Number)):
+        if not isinstance(other, (_ContinuousMixin, Number)):
             raise TypeError("can't multiply {0}".format(str(other)))
         if other == 0 or other == Constant(0):
             return Constant(0)
@@ -158,7 +158,7 @@ class ContinuousMixin(object):
     __imul__ = __mul__
 
     def __truediv__(self, other):
-        if not isinstance(other, (ContinuousMixin, Number)):
+        if not isinstance(other, (_ContinuousMixin, Number)):
             raise TypeError("can't divide {0}".format(str(other)))
         if other == 1 or other == Constant(1):
             return self
@@ -175,7 +175,7 @@ class ContinuousMixin(object):
     __itruediv__ = __truediv__
 
     def __rtruediv__(self, other):
-        if not isinstance(other, (ContinuousMixin, Number)):
+        if not isinstance(other, (_ContinuousMixin, Number)):
             raise TypeError("can't divide {0}".format(str(other)))
         if other == 1 or other == Constant(1):
             return Constant(1)/self
@@ -187,7 +187,7 @@ class ContinuousMixin(object):
         return FunctionSignal.__rtruediv__(o, s)
 
 
-class ContinuousFunctionSignal(ContinuousMixin, FunctionSignal):
+class ContinuousFunctionSignal(_ContinuousMixin, FunctionSignal):
     # Las especializaciones discretas deben ir antes que las funcionales
     @staticmethod
     def _factory(other):
@@ -197,14 +197,14 @@ class ContinuousFunctionSignal(ContinuousMixin, FunctionSignal):
 
     def __init__(self, expr):
         FunctionSignal.__init__(self, expr)
-        ContinuousMixin.__init__(self)
+        _ContinuousMixin.__init__(self)
         self._laplace_transform = None
         self._fourier_transform = None
 
     def _copy_to(self, other):
         other._laplace_transform = self._laplace_transform
         other._fourier_transform = self._fourier_transform
-        ContinuousMixin._copy_to(self, other)
+        _ContinuousMixin._copy_to(self, other)
         FunctionSignal._copy_to(self, other)
 
     @property
@@ -362,7 +362,7 @@ class Ramp(ContinuousFunctionSignal):
         return -np.inf
 
 
-class SinCosCExpMixin(object):
+class _SinCosCExpMixin(object):
 
     def __init__(self, omega0, phi0):
         self._omega0 = sp.simplify(omega0)
@@ -411,7 +411,7 @@ class SinCosCExpMixin(object):
         return eu
 
 
-class Cosine(SinCosCExpMixin, ContinuousFunctionSignal):
+class Cosine(_SinCosCExpMixin, ContinuousFunctionSignal):
 
     @staticmethod
     def _factory(other):
@@ -423,7 +423,7 @@ class Cosine(SinCosCExpMixin, ContinuousFunctionSignal):
     def __init__(self, omega0=1, phi0=0):
         expr = sp.cos(self._default_xvar())
         ContinuousFunctionSignal.__init__(self, expr)
-        SinCosCExpMixin.__init__(self, omega0, phi0)
+        _SinCosCExpMixin.__init__(self, omega0, phi0)
         # delay (negativo, OJO)
         delay = -self._phi0
         self._xexpr = ShiftOperator.apply(self._xvar, self._xexpr, delay)
@@ -436,7 +436,7 @@ class Cosine(SinCosCExpMixin, ContinuousFunctionSignal):
 
     def _copy_to(self, other):
         ContinuousFunctionSignal._copy_to(self, other)
-        SinCosCExpMixin._copy_to(self, other)
+        _SinCosCExpMixin._copy_to(self, other)
 
     def max(self):
         return 1
@@ -444,7 +444,7 @@ class Cosine(SinCosCExpMixin, ContinuousFunctionSignal):
     def min(self):
         return -1
 
-class Sine(SinCosCExpMixin, ContinuousFunctionSignal):
+class Sine(_SinCosCExpMixin, ContinuousFunctionSignal):
 
     @staticmethod
     def _factory(other):
@@ -456,7 +456,7 @@ class Sine(SinCosCExpMixin, ContinuousFunctionSignal):
     def __init__(self, omega0=1, phi0=0):
         expr = sp.sin(self._default_xvar())
         ContinuousFunctionSignal.__init__(self, expr)
-        SinCosCExpMixin.__init__(self, omega0, phi0)
+        _SinCosCExpMixin.__init__(self, omega0, phi0)
         # delay (negativo, OJO)
         delay = -self._phi0
         self._xexpr = ShiftOperator.apply(self._xvar, self._xexpr, delay)
@@ -469,7 +469,7 @@ class Sine(SinCosCExpMixin, ContinuousFunctionSignal):
 
     def _copy_to(self, other):
         ContinuousFunctionSignal._copy_to(self, other)
-        SinCosCExpMixin._copy_to(self, other)
+        _SinCosCExpMixin._copy_to(self, other)
 
     def max(self):
         return 1

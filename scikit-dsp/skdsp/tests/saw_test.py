@@ -1,5 +1,4 @@
-from skdsp.signal.discrete import Sawtooth, DiscreteFunctionSignal, \
-    DiscreteMixin
+from skdsp.signal.discrete import Sawtooth, DiscreteFunctionSignal
 from skdsp.signal.signal import Signal, FunctionSignal
 from skdsp.signal.util import is_discrete, is_continuous, is_real, is_complex
 
@@ -21,7 +20,6 @@ class SawtoothTest(unittest.TestCase):
         s = Sawtooth()
         self.assertIsInstance(s, Signal)
         self.assertIsInstance(s, FunctionSignal)
-        self.assertIsInstance(s, DiscreteMixin)
         self.assertIsInstance(s, DiscreteFunctionSignal)
         self.assertTrue(is_discrete(s))
         self.assertFalse(is_continuous(s))

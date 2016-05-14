@@ -1,6 +1,6 @@
 from cmath import rect
 from fractions import Fraction
-from skdsp.signal.discrete import DiscreteFunctionSignal, DiscreteMixin, \
+from skdsp.signal.discrete import DiscreteFunctionSignal, \
     ComplexSinusoid, Exponential
 from skdsp.signal.signal import Signal, FunctionSignal
 from skdsp.signal.util import is_discrete, is_continuous, is_complex
@@ -15,7 +15,6 @@ class ComplexSinusoidTest(unittest.TestCase):
         c = ComplexSinusoid()
         self.assertIsInstance(c, Signal)
         self.assertIsInstance(c, FunctionSignal)
-        self.assertIsInstance(c, DiscreteMixin)
         self.assertIsInstance(c, DiscreteFunctionSignal)
         self.assertTrue(is_discrete(c))
         self.assertFalse(is_continuous(c))

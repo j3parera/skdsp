@@ -1,6 +1,6 @@
 import math
 from fractions import Fraction
-from skdsp.signal.discrete import DiscreteFunctionSignal, DiscreteMixin, \
+from skdsp.signal.discrete import DiscreteFunctionSignal, \
     Exponential
 from skdsp.signal.signal import Signal, FunctionSignal
 from skdsp.signal.util import is_discrete, is_continuous, is_complex
@@ -25,7 +25,6 @@ class ExponentialTest(unittest.TestCase):
         c = Exponential()
         self.assertIsInstance(c, Signal)
         self.assertIsInstance(c, FunctionSignal)
-        self.assertIsInstance(c, DiscreteMixin)
         self.assertIsInstance(c, DiscreteFunctionSignal)
         self.assertIsInstance(c, Exponential)
         self.assertTrue(is_discrete(c))

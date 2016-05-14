@@ -1,16 +1,16 @@
 from numpy import float_, complex_
 
-from skdsp.signal.discrete import DiscreteMixin
+from skdsp.signal.discrete import _DiscreteMixin
 
 __all__ = ['is_discrete', 'is_continuous', 'is_real', 'is_complex']
 
 
 def is_discrete(s):
-    return isinstance(s, DiscreteMixin)
+    return isinstance(s, _DiscreteMixin)
 
 
 def is_continuous(s):
-    return not isinstance(s, DiscreteMixin)
+    return not isinstance(s, _DiscreteMixin)
 
 
 def is_real(s):
