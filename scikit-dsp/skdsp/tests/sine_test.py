@@ -1,5 +1,6 @@
 import skdsp.signal.discrete as ds
 import skdsp.signal.continuous as cs
+import skdsp.signal.printer as pt
 import skdsp.signal.signal as sg
 from skdsp.signal.util import is_discrete, is_continuous, is_real, is_complex
 import numpy as np
@@ -260,6 +261,29 @@ class SineTest(unittest.TestCase):
         self.assertEqual(c.phase_offset, 0)
         c = cs.Sine(sp.S.Pi/4, 3*sp.S.Pi)
         self.assertEqual(c.phase_offset, -sp.S.Pi)
+
+    def test_latex(self):
+        ''' Sine (discrete/continuous): latex '''
+        # seno discreto
+        d = ds.Sine()
+        self.assertEqual(pt.latex(d, mode='inline'),
+                         r'$\sin\left[n\right]$')
+        d = ds.Sine(sp.S.Pi/4)
+        self.assertEqual(pt.latex(d, mode='inline'),
+                         r'$\sin\left[\pi n / 4\right]$')
+        d = ds.Sine(sp.S.Pi/4, sp.S.Pi/8)
+        self.assertEqual(pt.latex(d, mode='inline'),
+                         r'$\sin\left[\pi n / 4 + \pi / 8\right]$')
+        # seno continuo
+        d = cs.Sine()
+        self.assertEqual(pt.latex(d, mode='inline'),
+                         r'$\sin\left(t\right)$')
+        d = cs.Sine(sp.S.Pi/4)
+        self.assertEqual(pt.latex(d, mode='inline'),
+                         r'$\sin\left(\pi t / 4\right)$')
+        d = cs.Sine(sp.S.Pi/4, sp.S.Pi/8)
+        self.assertEqual(pt.latex(d, mode='inline'),
+                         r'$\sin\left(\pi t / 4 + \pi / 8\right)$')
 
 if __name__ == "__main__":
     unittest.main()

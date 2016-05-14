@@ -151,12 +151,15 @@ class RectTest(unittest.TestCase):
         self.assertEqual(str(d), 'Pi(x - 3, {0})'.format(d.width))
 
     def test_latex(self):
+        ''' Rect (discrete/continuous): latex '''
+        # rectángulo discreto
         d = ds.Rect()
         self.assertEqual(pt.latex(d, mode='inline'),
                          r'$\Pi\left[n/16\right]$')
         d = ds.Rect(8, 3)
         self.assertEqual(pt.latex(d, mode='inline'),
                          r'$\Pi\left[(n - 3)/8\right]$')
+        # rectángulo continuo
         d = cs.Rect()
         self.assertEqual(pt.latex(d, mode='inline'),
                          r'$\Pi\left(t/16\right)$')

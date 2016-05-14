@@ -1,5 +1,6 @@
 import skdsp.signal.discrete as ds
 import skdsp.signal.continuous as cs
+import skdsp.signal.printer as pt
 import skdsp.signal.signal as sg
 from skdsp.signal.util import is_discrete, is_continuous, is_real, is_complex
 import numpy as np
@@ -260,6 +261,29 @@ class CosineTest(unittest.TestCase):
         self.assertEqual(c.phase_offset, 0)
         c = cs.Cosine(sp.S.Pi/4, 3*sp.S.Pi)
         self.assertEqual(c.phase_offset, -sp.S.Pi)
+
+    def test_latex(self):
+        ''' Cosine (discrete/continuous): latex '''
+        # coseno discreto
+        d = ds.Cosine()
+        self.assertEqual(pt.latex(d, mode='inline'),
+                         r'$\cos\left[n\right]$')
+        d = ds.Cosine(sp.S.Pi/4)
+        self.assertEqual(pt.latex(d, mode='inline'),
+                         r'$\cos\left[\pi n / 4\right]$')
+        d = ds.Cosine(sp.S.Pi/4, sp.S.Pi/8)
+        self.assertEqual(pt.latex(d, mode='inline'),
+                         r'$\cos\left[\pi n / 4 + \pi / 8\right]$')
+        # coseno continuo
+        d = cs.Cosine()
+        self.assertEqual(pt.latex(d, mode='inline'),
+                         r'$\cos\left(t\right)$')
+        d = cs.Cosine(sp.S.Pi/4)
+        self.assertEqual(pt.latex(d, mode='inline'),
+                         r'$\cos\left(\pi t / 4\right)$')
+        d = cs.Cosine(sp.S.Pi/4, sp.S.Pi/8)
+        self.assertEqual(pt.latex(d, mode='inline'),
+                         r'$\cos\left(\pi t / 4 + \pi / 8\right)$')
 
 if __name__ == "__main__":
     unittest.main()

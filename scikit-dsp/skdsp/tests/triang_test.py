@@ -153,12 +153,15 @@ class TriangTest(unittest.TestCase):
         self.assertEqual(str(d), 'Delta(x - 3, {0})'.format(d.width))
 
     def test_latex(self):
+        ''' Triang (discrete/continuous): latex '''
+        # triángulo discreto
         d = ds.Triang()
         self.assertEqual(pt.latex(d, mode='inline'),
                          r'$\Delta\left[n/16\right]$')
         d = ds.Triang(8, 3)
         self.assertEqual(pt.latex(d, mode='inline'),
                          r'$\Delta\left[(n - 3)/8\right]$')
+        # triángulo continuo
         d = cs.Triang()
         self.assertEqual(pt.latex(d, mode='inline'),
                          r'$\Delta\left(t/16\right)$')

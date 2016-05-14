@@ -54,41 +54,39 @@ class CustomLatexPrinter(LatexPrinter):
             return r'u\left({0}\right)'.format(self._print(e._xexpr))
         return r'u(?)'
 
-    def _print_Rect(self, e):
-        s = r'\Pi\left{0}{1}\right{2}'
-        s1 = r'{0}/{1}'
+    def _make_var(self, expr, simple=False):
+        if simple or isinstance(expr, sp.Symbol):
+            s1 = self._print(expr)
+        else:
+            s1 = '(' + self._print(expr) + ')'
+        return s1
+
+    def _make_s(self, pre, var, e, simple=False):
         if isinstance(e, DiscreteFunctionSignal):
-            s0 = '['
-            s2 = ']'
+            s = pre + r'\left[{}\right]'
         elif isinstance(e, ContinuousFunctionSignal):
-            s0 = '('
-            s2 = ')'
+            s = pre + r'\left({}\right)'
         else:
-            return '?'
-        if isinstance(e._xexpr, sp.Symbol):
-            s1 = s1.format(self._print(e._xexpr), self._print(e._width))
-        else:
-            s1 = s1.format('(' + self._print(e._xexpr) + ')',
-                           self._print(e._width))
-        return s.format(s0, s1, s2)
+            s = r'?{}'
+        return s.format(var)
+
+    def _print_Rect(self, e):
+        sv = r'{}/{}'.format(self._make_var(e._xexpr),
+                             self._print(e._width))
+        return self._make_s(r'\Pi', sv, e)
 
     def _print_Triang(self, e):
-        s = r'\Delta\left{0}{1}\right{2}'
-        s1 = r'{0}/{1}'
-        if isinstance(e, DiscreteFunctionSignal):
-            s0 = '['
-            s2 = ']'
-        elif isinstance(e, ContinuousFunctionSignal):
-            s0 = '('
-            s2 = ')'
-        else:
-            return '?'
-        if isinstance(e._xexpr, sp.Symbol):
-            s1 = s1.format(self._print(e._xexpr), self._print(e._width))
-        else:
-            s1 = s1.format('(' + self._print(e._xexpr) + ')',
-                           self._print(e._width))
-        return s.format(s0, s1, s2)
+        sv = r'{}/{}'.format(self._make_var(e._xexpr),
+                             self._print(e._width))
+        return self._make_s(r'\Delta', sv, e)
+
+    def _print_Cosine(self, e):
+        sv = r'{}'.format(self._make_var(e._xexpr, True))
+        return self._make_s(r'\cos', sv, e)
+
+    def _print_Sine(self, e):
+        sv = r'{}'.format(self._make_var(e._xexpr, True))
+        return self._make_s(r'\sin', sv, e)
 
 
 def latex(signal, **settings):
