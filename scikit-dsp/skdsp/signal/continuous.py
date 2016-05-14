@@ -443,3 +443,36 @@ class Cosine(SinCosCExpMixin, ContinuousFunctionSignal):
 
     def min(self):
         return -1
+
+class Sine(SinCosCExpMixin, ContinuousFunctionSignal):
+
+    @staticmethod
+    def _factory(other):
+        s = Sine()
+        if other:
+            other._copy_to(s)
+        return s
+
+    def __init__(self, omega0=1, phi0=0):
+        expr = sp.sin(self._default_xvar())
+        ContinuousFunctionSignal.__init__(self, expr)
+        SinCosCExpMixin.__init__(self, omega0, phi0)
+        # delay (negativo, OJO)
+        delay = -self._phi0
+        self._xexpr = ShiftOperator.apply(self._xvar, self._xexpr, delay)
+        self._yexpr = ShiftOperator.apply(self._xvar, self._yexpr, delay)
+        # escalado
+        self._xexpr = ScaleOperator.apply(self._xvar, self._xexpr,
+                                          self._omega0)
+        self._yexpr = ScaleOperator.apply(self._xvar, self._yexpr,
+                                          self._omega0)
+
+    def _copy_to(self, other):
+        ContinuousFunctionSignal._copy_to(self, other)
+        SinCosCExpMixin._copy_to(self, other)
+
+    def max(self):
+        return 1
+
+    def min(self):
+        return -1
