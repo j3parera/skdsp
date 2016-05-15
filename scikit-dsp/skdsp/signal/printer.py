@@ -70,6 +70,18 @@ class CustomLatexPrinter(LatexPrinter):
             s = r'?{}'
         return s.format(var)
 
+    def _print_Delta(self, e):
+        sv = r'{}'.format(self._make_var(e._xexpr, True))
+        return self._make_s(r'\delta', sv, e)
+
+    def _print_Step(self, e):
+        sv = r'{}'.format(self._make_var(e._xexpr, True))
+        return self._make_s(r'u', sv, e)
+
+    def _print_Ramp(self, e):
+        sv = r'{}'.format(self._make_var(e._xexpr, True))
+        return self._make_s(r'r', sv, e)
+
     def _print_Rect(self, e):
         sv = r'{}/{}'.format(self._make_var(e._xexpr),
                              self._print(e._width))
@@ -87,18 +99,6 @@ class CustomLatexPrinter(LatexPrinter):
     def _print_Sine(self, e):
         sv = r'{}'.format(self._make_var(e._xexpr, True))
         return self._make_s(r'\sin', sv, e)
-
-    def _print_Delta(self, e):
-        sv = r'{}'.format(self._make_var(e._xexpr, True))
-        return self._make_s(r'\delta', sv, e)
-
-    def _print_Ramp(self, e):
-        sv = r'{}'.format(self._make_var(e._xexpr, True))
-        return self._make_s(r'r', sv, e)
-
-    def _print_Step(self, e):
-        sv = r'{}'.format(self._make_var(e._xexpr, True))
-        return self._make_s(r'u', sv, e)
 
 
 def latex(signal, **settings):

@@ -550,3 +550,46 @@ class Sine(_SinCosCExpMixin, ContinuousFunctionSignal):
 
     def min(self):
         return -1
+
+
+class Sinusoid(Cosine):
+
+    @staticmethod
+    def _factory(other):
+        s = Sinusoid()
+        if other:
+            other._copy_to(s)
+        return s
+
+    def __init__(self, A=1, omega0=1, phi=0):
+        Cosine.__init__(self, omega0, phi)
+        self._peak_amplitude = A
+        self._yexpr *= A
+
+    def _copy_to(self, other):
+        other._peak_amplitude = self._peak_amplitude
+        Cosine._copy_to(self, other)
+
+    @property
+    def peak_amplitude(self):
+        return self._peak_amplitude
+
+    @peak_amplitude.setter
+    def peak_amplitude(self, value):
+        self._yexpr /= self._peak_amplitude
+        self._peak_amplitude = value
+        self._yexpr *= value
+
+    def max(self):
+        return self._peak_amplitude
+
+    def min(self):
+        return -self._peak_amplitude
+
+    def in_phase(self):
+        A1 = Constant(self._peak_amplitude * sp.cos(self._phi0))
+        return A1*Cosine(self._omega0)
+
+    def in_quadrature(self):
+        A2 = Constant(-self._peak_amplitude * sp.sin(self._phi0))
+        return A2*Sine(self._omega0)

@@ -6,6 +6,10 @@ from skdsp.signal.discrete import Delta, Step, Constant, DiscreteFunctionSignal
 
 class ArithmeticTest(unittest.TestCase):
 
+    def setUp(self):
+        unittest.TestCase.setUp(self)
+        np.seterr(all='ignore')
+
     def test_add1(self):
         s = Delta(-1) + Step()
         np.testing.assert_array_equal(s[-5:6], np.r_[[0]*4, [1]*7])
