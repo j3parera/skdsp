@@ -1,5 +1,6 @@
 import skdsp.signal.discrete as ds
 import skdsp.signal.continuous as cs
+import skdsp.signal.printer as pt
 import skdsp.signal.signal as sg
 from skdsp.signal.util import is_discrete, is_continuous, is_real, is_complex
 import numpy as np
@@ -148,6 +149,23 @@ class StepTest(unittest.TestCase):
         d.xvar = sp.symbols('x', real=True)
         self.assertEqual(d.name, 'x')
         self.assertEqual(str(d), 'u(x - 3)')
+
+    def test_latex(self):
+        ''' Step (discrete/continuous): latex '''
+        # escalón discreto
+        d = ds.Step()
+        self.assertEqual(pt.latex(d, mode='inline'),
+                         r'$u\left[n\right]$')
+        d = ds.Step(3)
+        self.assertEqual(pt.latex(d, mode='inline'),
+                         r'$u\left[n - 3\right]$')
+        # escalón continuo
+        d = cs.Step()
+        self.assertEqual(pt.latex(d, mode='inline'),
+                         r'$u\left(t\right)$')
+        d = cs.Step(1.5)
+        self.assertEqual(pt.latex(d, mode='inline'),
+                         r'$u\left(t - 1.5\right)$')
 
 if __name__ == "__main__":
     unittest.main()

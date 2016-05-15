@@ -1,5 +1,6 @@
 import skdsp.signal.discrete as ds
 import skdsp.signal.continuous as cs
+import skdsp.signal.printer as pt
 import skdsp.signal.signal as sg
 from skdsp.signal.util import is_discrete, is_continuous, is_real, is_complex
 import numpy as np
@@ -10,7 +11,6 @@ import unittest
 class RampTest(unittest.TestCase):
 
     def test_00(self):
-        import skdsp.signal.printer as pt
         d = ds.Ramp().delay(3)
         print(pt.latex(d, mode='inline'))
         d = (ds.Ramp()*ds.Step()).delay(3)
@@ -174,6 +174,23 @@ class RampTest(unittest.TestCase):
         d.xvar = sp.symbols('u', real=True)
         self.assertEqual(d.name, 'x')
         self.assertEqual(str(d), 'r(u - 3)')
+
+    def test_latex(self):
+        ''' Ramp (discrete/continuous): latex '''
+        # delta discreta
+        d = ds.Ramp()
+        self.assertEqual(pt.latex(d, mode='inline'),
+                         r'$r\left[n\right]$')
+        d = ds.Ramp(3)
+        self.assertEqual(pt.latex(d, mode='inline'),
+                         r'$r\left[n - 3\right]$')
+        # seno continuo
+        d = cs.Ramp()
+        self.assertEqual(pt.latex(d, mode='inline'),
+                         r'$r\left(t\right)$')
+        d = cs.Ramp(1.5)
+        self.assertEqual(pt.latex(d, mode='inline'),
+                         r'$r\left(t - 1.5\right)$')
 
 if __name__ == "__main__":
     unittest.main()

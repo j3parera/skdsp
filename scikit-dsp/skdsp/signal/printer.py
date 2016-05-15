@@ -21,24 +21,24 @@ class CustomLatexPrinter(LatexPrinter):
 
     def _print__DiscreteDelta(self, e):
         if isinstance(e, sp.Expr):
-            return r'\delta[{0}]'.format(self._print(e.args[0]))
+            return r'\delta\left[{0}\right]'.format(self._print(e.args[0]))
         elif isinstance(e, ContinuousFunctionSignal):
-            return r'\delta[{0}]'.format(self._print(e._xexpr))
-        return r'\delta[?]'
+            return r'\delta\left[{0}\right]'.format(self._print(e._xexpr))
+        return r'\delta[?\right]'
 
     def _print__DiscreteStep(self, e):
         if isinstance(e, sp.Expr):
-            return r'u[{0}]'.format(self._print(e.args[0]))
+            return r'u\left[{0}\right]'.format(self._print(e.args[0]))
         elif isinstance(e, ContinuousFunctionSignal):
-            return r'u[{0}]'.format(self._print(e._xexpr))
-        return r'u[?]'
+            return r'u\left[{0}\right]'.format(self._print(e._xexpr))
+        return r'u\left[?\right]'
 
     def _print__DiscreteRamp(self, e):
         if isinstance(e, sp.Expr):
-            return r'r[{0}]'.format(self._print(e.args[0]))
-        elif isinstance(e, ContinuousFunctionSignal):
-            return r'r[{0}]'.format(self._print(e._xexpr))
-        return r'u[?]'
+            return r'r\left[{0}\right]'.format(self._print(e.args[0]))
+        elif isinstance(e, DiscreteFunctionSignal):
+            return r'r\left[{0}\right]'.format(self._print(e._xexpr))
+        return r'r\left[?\right]'
 
     def _print__ContinuousRamp(self, e):
         if isinstance(e, sp.Expr):
@@ -88,6 +88,22 @@ class CustomLatexPrinter(LatexPrinter):
         sv = r'{}'.format(self._make_var(e._xexpr, True))
         return self._make_s(r'\sin', sv, e)
 
+    def _print_Delta(self, e):
+        sv = r'{}'.format(self._make_var(e._xexpr, True))
+        return self._make_s(r'\delta', sv, e)
+
+    def _print_Ramp(self, e):
+        sv = r'{}'.format(self._make_var(e._xexpr, True))
+        return self._make_s(r'r', sv, e)
+
+    def _print_Step(self, e):
+        sv = r'{}'.format(self._make_var(e._xexpr, True))
+        return self._make_s(r'u', sv, e)
+
 
 def latex(signal, **settings):
-    return CustomLatexPrinter(settings).doprint(signal)
+    toprint = signal
+    sc = signal.__class__
+    if sc == DiscreteFunctionSignal or sc == ContinuousFunctionSignal:
+        toprint = signal._yexpr
+    return CustomLatexPrinter(settings).doprint(toprint)

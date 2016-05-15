@@ -1,5 +1,6 @@
 import skdsp.signal.discrete as ds
 import skdsp.signal.continuous as cs
+import skdsp.signal.printer as pt
 import skdsp.signal.signal as sg
 from skdsp.signal.util import is_discrete, is_continuous, is_real, is_complex
 import numpy as np
@@ -157,6 +158,23 @@ class DeltaTest(unittest.TestCase):
         d.xvar = sp.symbols('u', real=True)
         self.assertEqual(d.name, 'x')
         self.assertEqual(str(d), 'd(u - 3)')
+
+    def test_latex(self):
+        ''' Delta (discrete/continuous): latex '''
+        # delta discreta
+        d = ds.Delta()
+        self.assertEqual(pt.latex(d, mode='inline'),
+                         r'$\delta\left[n\right]$')
+        d = ds.Delta(3)
+        self.assertEqual(pt.latex(d, mode='inline'),
+                         r'$\delta\left[n - 3\right]$')
+        # seno continuo
+        d = cs.Delta()
+        self.assertEqual(pt.latex(d, mode='inline'),
+                         r'$\delta\left(t\right)$')
+        d = cs.Delta(1.5)
+        self.assertEqual(pt.latex(d, mode='inline'),
+                         r'$\delta\left(t - 1.5\right)$')
 
 if __name__ == "__main__":
     unittest.main()
