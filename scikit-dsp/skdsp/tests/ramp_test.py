@@ -10,23 +10,6 @@ import unittest
 
 class RampTest(unittest.TestCase):
 
-    def test_00(self):
-        d = ds.Ramp().delay(3)
-        print(pt.latex(d, mode='inline'))
-        d = (ds.Ramp()*ds.Step()).delay(3)
-        print(pt.latex(d, mode='inline'))
-        print(d.eval(2))
-        d = cs.Ramp().delay(1.5)
-        print(pt.latex(d, mode='inline'))
-        d = (cs.Ramp()*cs.Step()).delay(1.5)
-        print(pt.latex(d, mode='inline'))
-        print(d.eval(1.3456))
-        d = cs.Ramp().shift(1.3).flip()
-        print(pt.latex(d, mode='inline'))
-        d = (cs.Ramp()*cs.Step()).flip().shift(1.3)
-        print(pt.latex(d, mode='inline'))
-        print(d.eval(1.3456))
-
     def test_constructor(self):
         ''' Ramp (discrete/continuous): constructors '''
         # rampa discreta
@@ -51,8 +34,8 @@ class RampTest(unittest.TestCase):
         self.assertEqual(d.eval(0), 0.0)
         self.assertEqual(d.eval(1), 1.0)
         self.assertEqual(d.eval(2), 2.0)
-        self.assertEqual(d.eval(-1), -1.0)
-        self.assertEqual(d.eval(-2), -2.0)
+        self.assertEqual(d.eval(-1), 0.0)
+        self.assertEqual(d.eval(-2), 0.0)
         with self.assertRaises(TypeError):
             d.eval(0.5)
         # rampa continua
@@ -60,8 +43,8 @@ class RampTest(unittest.TestCase):
         self.assertEqual(d.eval(0), 0.0)
         self.assertEqual(d.eval(1), 1.0)
         self.assertEqual(d.eval(2), 2.0)
-        self.assertEqual(d.eval(-1), -1.0)
-        self.assertEqual(d.eval(-2), -2.0)
+        self.assertEqual(d.eval(-1), 0.0)
+        self.assertEqual(d.eval(-2), 0.0)
 
     def test_eval_range(self):
         ''' Ramp (discrete/continuous): aval(array) '''
@@ -70,11 +53,11 @@ class RampTest(unittest.TestCase):
         np.testing.assert_array_equal(d.eval(np.arange(0, 3)),
                                       np.array([0.0, 1.0, 2.0]))
         np.testing.assert_array_equal(d.eval(np.arange(-1, 3)),
-                                      np.array([-1.0, 0.0, 1.0, 2.0]))
+                                      np.array([0.0, 0.0, 1.0, 2.0]))
         np.testing.assert_array_equal(d.eval(np.arange(-4, 3, 2)),
-                                      np.array([-4.0, -2.0, 0.0, 2.0]))
+                                      np.array([0.0, 0.0, 0.0, 2.0]))
         np.testing.assert_array_equal(d.eval(np.arange(3, -2, -2)),
-                                      np.array([3.0, 1.0, -1.0]))
+                                      np.array([3.0, 1.0, 0.0]))
         with self.assertRaises(TypeError):
             d.eval(np.arange(0, 2, 0.5))
         # rampa continua
@@ -82,11 +65,11 @@ class RampTest(unittest.TestCase):
         np.testing.assert_array_equal(d.eval(np.arange(0, 3)),
                                       np.array([0.0, 1.0, 2.0]))
         np.testing.assert_array_equal(d.eval(np.arange(-1, 3)),
-                                      np.array([-1.0, 0.0, 1.0, 2.0]))
+                                      np.array([0.0, 0.0, 1.0, 2.0]))
         np.testing.assert_array_equal(d.eval(np.arange(-4, 3, 2)),
-                                      np.array([-4.0, -2.0, 0.0, 2.0]))
+                                      np.array([0.0, 0.0, 0.0, 2.0]))
         np.testing.assert_array_equal(d.eval(np.arange(3, -2, -2)),
-                                      np.array([3.0, 1.0, -1.0]))
+                                      np.array([3.0, 1.0, 0.0]))
 
     def test_getitem_scalar(self):
         ''' Ramp (discrete/continuous): aval[scalar] '''
@@ -95,8 +78,8 @@ class RampTest(unittest.TestCase):
         self.assertEqual(d[0], 0.0)
         self.assertEqual(d[1], 1.0)
         self.assertEqual(d[2], 2.0)
-        self.assertEqual(d[-1], -1.0)
-        self.assertEqual(d[-2], -2.0)
+        self.assertEqual(d[-1], 0.0)
+        self.assertEqual(d[-2], 0.0)
         with self.assertRaises(TypeError):
             d[0.5]
         # rampa continua
@@ -104,25 +87,25 @@ class RampTest(unittest.TestCase):
         self.assertEqual(d[0], 0.0)
         self.assertEqual(d[1], 1.0)
         self.assertEqual(d[2], 2.0)
-        self.assertEqual(d[-1], -1.0)
-        self.assertEqual(d[-2], -2.0)
+        self.assertEqual(d[-1], 0.0)
+        self.assertEqual(d[-2], 0.0)
 
     def test_getitem_slice(self):
         ''' Ramp (discrete/continuous): aval[array] '''
         # rampa discreta
         d = ds.Ramp()
         np.testing.assert_array_equal(d[0:3], np.array([0.0, 1.0, 2.0]))
-        np.testing.assert_array_equal(d[-1:3], np.array([-1.0, 0.0, 1.0, 2.0]))
-        np.testing.assert_array_equal(d[-4:2:2], np.array([-4.0, -2.0, 0.0]))
-        np.testing.assert_array_equal(d[3:-2:-2], np.array([3.0, 1.0, -1.0]))
+        np.testing.assert_array_equal(d[-1:3], np.array([0.0, 0.0, 1.0, 2.0]))
+        np.testing.assert_array_equal(d[-4:2:2], np.array([0.0, 0.0, 0.0]))
+        np.testing.assert_array_equal(d[3:-2:-2], np.array([3.0, 1.0, 0.0]))
         with self.assertRaises(TypeError):
             d[0:2:0.5]
         # rampa continua
         d = cs.Ramp()
         np.testing.assert_array_equal(d[0:3], np.array([0.0, 1.0, 2.0]))
-        np.testing.assert_array_equal(d[-1:3], np.array([-1.0, 0.0, 1.0, 2.0]))
-        np.testing.assert_array_equal(d[-4:2:2], np.array([-4.0, -2.0, 0.0]))
-        np.testing.assert_array_equal(d[3:-2:-2], np.array([3.0, 1.0, -1.0]))
+        np.testing.assert_array_equal(d[-1:3], np.array([0.0, 0.0, 1.0, 2.0]))
+        np.testing.assert_array_equal(d[-4:2:2], np.array([0.0, 0.0, 0.0]))
+        np.testing.assert_array_equal(d[3:-2:-2], np.array([3.0, 1.0, 0.0]))
 
     def test_dtype(self):
         ''' Ramp (discrete/continuous): dtype '''

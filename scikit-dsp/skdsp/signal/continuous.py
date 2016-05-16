@@ -1,6 +1,6 @@
 from numbers import Number
 from skdsp.operator.operator import ShiftOperator, ScaleOperator
-from skdsp.signal.signal import FunctionSignal, ConstantSignal
+from skdsp.signal.signal import FunctionSignal, ConstantSignal, Signal
 
 import numpy as np
 import sympy as sp
@@ -22,18 +22,18 @@ class _ContinuousMixin(object):
     def _copy_to(self, other):
         pass
 
-    def _has_ramp(self):
-        # CUIDADITO, si esto da más problemas quizás sea mejor quitarlo
-        # aunque las rampas no se usan mucho que digamos
-        dohas = False
-        if isinstance(self, (Ramp, Ramp._ContinuousRamp)):
-            dohas = True
-        else:
-            for arg in sp.preorder_traversal(self._yexpr):
-                if isinstance(arg, Ramp._ContinuousRamp):
-                    dohas = True
-                    break
-        return dohas
+#     def _has_ramp(self):
+#         # CUIDADITO, si esto da más problemas quizás sea mejor quitarlo
+#         # aunque las rampas no se usan mucho que digamos
+#         dohas = False
+#         if isinstance(self, (Ramp, Ramp._ContinuousRamp)):
+#             dohas = True
+#         else:
+#             for arg in sp.preorder_traversal(self._yexpr):
+#                 if isinstance(arg, Ramp._ContinuousRamp):
+#                     dohas = True
+#                     break
+#         return dohas
 
     def flip(self):
         doeval = not self._has_ramp()
@@ -47,8 +47,9 @@ class _ContinuousMixin(object):
         if not self._check_is_real(tau):
             raise TypeError('delay/advance must be real')
         # esto evita que r(t-k) se convierta en t-k (sin la r)
-        doeval = not self._has_ramp()
-        with evaluate(doeval):
+        # doeval = not self._has_ramp()
+        # with evaluate(doeval):
+        with evaluate(True):
             s = FunctionSignal.shift(self, tau)
         return s
 
@@ -324,20 +325,6 @@ class Step(ContinuousFunctionSignal):
 
 class Ramp(ContinuousFunctionSignal):
 
-    # mantener esta clase, aparentemente inútil, para distinguir
-    # entre la función r(t) y la variable t
-    class _ContinuousRamp(sp.Function):
-
-        # en continuo hay que añadir esta función (y no eval, OJO)
-        # para hacer las sustituciones en expresiones que no puedan
-        # lambdificarse y aparezcan NaN, p.e r(t)u(t), porque u(0) = nan
-        def evalf(self, prec):
-            return self.args[0]
-
-        @staticmethod
-        def _imp_(t):
-            return t.astype(np.float_)
-
     @staticmethod
     def _factory(other):
         s = Ramp()
@@ -346,7 +333,8 @@ class Ramp(ContinuousFunctionSignal):
         return s
 
     def __init__(self, delay=0):
-        expr = Ramp._ContinuousRamp(self._default_xvar(), evaluate=False)
+        n = self._default_xvar()
+        expr = n*sp.Heaviside(n)
         ContinuousFunctionSignal.__init__(self, expr)
         # delay
         self._xexpr = ShiftOperator.apply(self._xvar, self._xexpr, delay)
@@ -359,7 +347,7 @@ class Ramp(ContinuousFunctionSignal):
         return np.inf
 
     def min(self):
-        return -np.inf
+        return 0
 
 
 class Rect(ContinuousFunctionSignal):
@@ -593,3 +581,36 @@ class Sinusoid(Cosine):
     def in_quadrature(self):
         A2 = Constant(-self._peak_amplitude * sp.sin(self._phi0))
         return A2*Sine(self._omega0)
+
+
+class Exponential(_SinCosCExpMixin, ContinuousFunctionSignal):
+
+    @staticmethod
+    def _factory(other):
+        s = Exponential()
+        if other:
+            other._copy_to(s)
+        return s
+
+    def __init__(self, base=1):
+        expr = sp.Pow(base, self._default_xvar())
+        ContinuousFunctionSignal.__init__(self, expr)
+        _SinCosCExpMixin.__init__(self, self._extract_omega(base), 0)
+        self._base = sp.sympify(base)
+        pb = sp.arg(self._base)
+        if pb != sp.nan:
+            if pb != 0:
+                self._dtype = np.complex_
+
+    def _copy_to(self, other):
+        other._base = self._base
+        ContinuousFunctionSignal._copy_to(self, other)
+        _SinCosCExpMixin._copy_to(self, other)
+
+    @property
+    def base(self):
+        return self._base
+
+    def is_periodic(self):
+        mod1 = sp.Abs(self._base) == 1
+        return mod1 and Signal.is_periodic(self)

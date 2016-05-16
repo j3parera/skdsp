@@ -3,7 +3,6 @@ from skdsp.operator.operator import ShiftOperator, ScaleOperator
 from skdsp.signal.signal import FunctionSignal, ConstantSignal, Signal
 import numpy as np
 import sympy as sp
-from sympy.functions.elementary.trigonometric import _pi_coeff
 
 __all__ = ['DiscreteFunctionSignal', 'DataSignal'
            'Constant', 'Delta', 'Step', 'Ramp',
@@ -399,13 +398,21 @@ class Step(DiscreteFunctionSignal):
 
 class Ramp(DiscreteFunctionSignal):
 
-    # mantener esta clase, aparentemente inútil, para distinguir
-    # entre la función r[n] y la variable n
     class _DiscreteRamp(sp.Function):
+
+        @classmethod
+        def eval(cls, arg):
+            arg = sp.sympify(arg)
+            if arg is sp.S.NaN:
+                return sp.S.NaN
+            elif arg.is_negative:
+                return sp.S.Zero
+            elif arg.is_zero or arg.is_positive:
+                return arg
 
         @staticmethod
         def _imp_(n):
-            return n.astype(np.float_)
+            return n*np.greater_equal(n, 0).astype(np.float_)
 
     @staticmethod
     def _factory(other):
@@ -415,7 +422,7 @@ class Ramp(DiscreteFunctionSignal):
         return s
 
     def __init__(self, delay=0):
-        expr = Ramp._DiscreteRamp(self._default_xvar(), evaluate=False)
+        expr = Ramp._DiscreteRamp(self._default_xvar())
         DiscreteFunctionSignal.__init__(self, expr)
         # delay
         if not isinstance(delay, Integral):
@@ -430,7 +437,7 @@ class Ramp(DiscreteFunctionSignal):
         return np.inf
 
     def min(self):
-        return -np.inf
+        return 0
 
 
 class Rect(DiscreteFunctionSignal):
@@ -676,37 +683,6 @@ class Sinusoid(Cosine):
 
 
 class Exponential(_SinCosCExpMixin, DiscreteFunctionSignal):
-
-    @staticmethod
-    def _extract_omega(x):
-        px = sp.arg(x)
-        pc = _pi_coeff(px)
-        if pc is not None:
-            return sp.S.Pi*pc
-        # última posibilidad para algunos caso raros
-        # siempre y cuando la fase quede como (pi +) atan(algo) y
-        # se haya pasado x como a*exp(sp.I*omega0)
-        pisub = False
-        if px.func == sp.Add:
-            pisub = True
-            if px.args[0].is_constant():
-                pisubarg = px.args[0]
-                px -= px.args[0]  # +- pi, supuestamente
-        if px.func == sp.atan:
-            if isinstance(x, sp.Expr):
-                exponent = None
-                if x.func == sp.exp:
-                    exponent = x.args[0]
-                elif x.func == sp.Mul and x.args[1].func == sp.exp:
-                    exponent = x.args[1].args[0]
-                if exponent is not None:
-                    expoverj = exponent/sp.I
-                    pc = _pi_coeff(expoverj)
-                    if pc is not None:
-                        return sp.S.Pi*pc
-        if pisub:
-            px += pisubarg
-        return px.evalf()
 
     @staticmethod
     def _factory(other):
