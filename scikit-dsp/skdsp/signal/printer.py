@@ -100,26 +100,33 @@ class CustomLatexPrinter(LatexPrinter):
         sv = r'{}'.format(self._make_var(e._xexpr, True))
         return self._make_s(r'\sin', sv, e)
 
+    def _print_complex_exponent(self, expr, sv):
+        sb = r'{{\rm{{e}}}}^{{{0}}}'
+        exponent = expr.args[0]
+        if exponent.is_complex:
+            exponent = sp.im(exponent)
+            if exponent.is_negative:
+                se = '-'
+                exponent = -exponent
+            else:
+                se = r'\,'
+            se += r'{{\rm{{j}}}}'
+            s1 = self._print(exponent)
+            if 'frac' in s1:
+                se += s1
+            else:
+                se += r'(' + s1 + ')'
+            se += sv
+        s = sb.format(se)
+        return s
+
     def _print_Exponential(self, e):
         sv = r'{}'.format(self._make_var(e._xexpr))
         if isinstance(e._base, sp.exp):
-            sb = r'{{\rm{{e}}}}^{{{0}}}'
-            exponent = e._base.args[0]
-            if exponent.is_complex:
-                exponent = sp.im(exponent)
-                if exponent.is_negative:
-                    se = '-'
-                    exponent = -exponent
-                else:
-                    se = r'\,'
-                se += r'{{\rm{{j}}}}'
-                s1 = self._print(exponent)
-                if 'frac' in s1:
-                    se += s1
-                else:
-                    se += r'(' + s1 + ')'
-                se += sv
-            s = sb.format(se)
+            s = self._print_complex_exponent(e._base, sv)
+        elif isinstance(e._base, sp.Mul):
+            s = self._print(e._base.args[0])
+            s += self._print_complex_exponent(e._base.args[1], sv)
         else:
             s = r'{0}^{1}'.format(e._base, sv)
         return s
