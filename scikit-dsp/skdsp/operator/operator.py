@@ -2,6 +2,10 @@ from numbers import Integral
 import sympy as sp
 
 
+__all__ = ['FlipOperator', 'ShiftOperator', 'ScaleOperator', 'GainOperator',
+           'AbsOperator', 'ConjugateOperator', 'HermitianOperator']
+
+
 class Operator(object):
     """ Clase base para todos los operadores.
     * Un operador está definido en un dominio entero (señales discretas,DFTs),
@@ -150,6 +154,33 @@ class AbsOperator(Operator, UnaryOperatorMixin):
         expr(var) -> abs(expr(var))
         """
         return sp.Abs(expr)
+
+
+class ConjugateOperator(Operator, UnaryOperatorMixin):
+
+    @staticmethod
+    def apply(var, expr, *args):
+        """ Devuelve el conjugado de la expresión:
+        expr(var) -> conj(expr(var))
+        """
+        if expr.is_real:
+            return expr
+        return sp.conjugate(expr)
+
+
+class HermitianOperator(Operator, UnaryOperatorMixin):
+
+    @staticmethod
+    def apply(var, expr, *args):
+        """ Devuelve el conjugado de la expresión invertida:
+        expr(var) -> conj(expr(-var))
+        """
+        if expr.is_real:
+            s = expr
+        else:
+            s = sp.conjugate(expr)
+        return s.xreplace({var: -var})
+
 
 # ==============================================================================
 #    Operadores binarios que NO cambian la variable independiente

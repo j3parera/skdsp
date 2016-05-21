@@ -1,5 +1,5 @@
 from numbers import Integral, Number
-from skdsp.operator.operator import ShiftOperator, ScaleOperator
+from skdsp.operator.operator import *
 from skdsp.signal.signal import FunctionSignal, ConstantSignal, Signal
 import numpy as np
 import sympy as sp

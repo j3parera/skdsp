@@ -1,11 +1,9 @@
 from abc import ABC
 from numbers import Integral, Number, Real
-
+from skdsp.operator.operator import *
+from sympy.functions.elementary.trigonometric import _pi_coeff
 import numpy as np
 import sympy as sp
-
-from skdsp.operator.operator import ShiftOperator, FlipOperator, \
-    ScaleOperator, GainOperator, AbsOperator
 
 
 __all__ = ['Signal', 'FunctionSignal', 'ConstantSignal']
@@ -35,6 +33,37 @@ class Signal(ABC):
         elif not isinstance(x, Integral):
             ok = False
         return ok
+
+    @staticmethod
+    def _extract_omega(x):
+        px = sp.arg(x)
+        pc = _pi_coeff(px)
+        if pc is not None:
+            return sp.S.Pi*pc
+        # última posibilidad para algunos caso raros
+        # siempre y cuando la fase quede como (pi +) atan(algo) y
+        # se haya pasado x como a*exp(sp.I*omega0)
+        pisub = False
+        if px.func == sp.Add:
+            pisub = True
+            if px.args[0].is_constant():
+                pisubarg = px.args[0]
+                px -= px.args[0]  # +- pi, supuestamente
+        if px.func == sp.atan:
+            if isinstance(x, sp.Expr):
+                exponent = None
+                if x.func == sp.exp:
+                    exponent = x.args[0]
+                elif x.func == sp.Mul and x.args[1].func == sp.exp:
+                    exponent = x.args[1].args[0]
+                if exponent is not None:
+                    expoverj = exponent/sp.I
+                    pc = _pi_coeff(expoverj)
+                    if pc is not None:
+                        return sp.S.Pi*pc
+        if pisub:
+            px += pisubarg
+        return px.evalf()
 
     def __init__(self):
         self._dtype = np.float_
@@ -158,7 +187,6 @@ class FunctionSignal(Signal):
         return self._yexpr
 
     def eval(self, x):
-        # TODO: cachear ylambda
         # Hay que ver si hay 'Pow'
         to_real = False
         pows = []
@@ -291,6 +319,20 @@ class FunctionSignal(Signal):
         if dB:
             return 20*sp.log(dr, 10)
         return dr
+
+    @property
+    def even(self):
+        s1 = self.__class__._factory(self)
+        s2 = self.__class__._factory(self)
+        s2._yexpr = HermitianOperator.apply(s2._xvar, s2._yexpr)
+        return sp.Rational(1, 2)*(s1 + s2)
+
+    @property
+    def odd(self):
+        s1 = self.__class__._factory(self)
+        s2 = self.__class__._factory(self)
+        s2._yexpr = HermitianOperator.apply(s2._xvar, s2._yexpr)
+        return sp.Rational(1, 2)*(s1 - s2)
 
 
 class ConstantSignal(FunctionSignal):

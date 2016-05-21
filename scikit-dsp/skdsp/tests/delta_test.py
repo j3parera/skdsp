@@ -168,7 +168,7 @@ class DeltaTest(unittest.TestCase):
         d = ds.Delta(3)
         self.assertEqual(pt.latex(d, mode='inline'),
                          r'$\delta\left[n - 3\right]$')
-        # seno continuo
+        # delta continua
         d = cs.Delta()
         self.assertEqual(pt.latex(d, mode='inline'),
                          r'$\delta\left(t\right)$')
