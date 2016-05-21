@@ -334,6 +334,12 @@ class FunctionSignal(Signal):
         s2._yexpr = HermitianOperator.apply(s2._xvar, s2._yexpr)
         return sp.Rational(1, 2)*(s1 - s2)
 
+    @property
+    def conjugate(self):
+        s = self.__class__._factory(self)
+        s._yexpr = ConjugateOperator.apply(s._xvar, s._yexpr)
+        return s
+
 
 class ConstantSignal(FunctionSignal):
 
