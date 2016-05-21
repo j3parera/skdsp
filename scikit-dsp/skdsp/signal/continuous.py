@@ -36,9 +36,7 @@ class _ContinuousMixin(object):
 #         return dohas
 
     def flip(self):
-        doeval = not self._has_ramp()
-        with evaluate(doeval):
-            s = FunctionSignal.flip(self)
+        s = FunctionSignal.flip(self)
         return s
 
     __reversed__ = flip
