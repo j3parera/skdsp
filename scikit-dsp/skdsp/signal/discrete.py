@@ -673,13 +673,23 @@ class Sinusoid(Cosine):
     def min(self):
         return -self._peak_amplitude
 
+    @property
     def in_phase(self):
         A1 = Constant(self._peak_amplitude * sp.cos(self._phi0))
         return A1*Cosine(self._omega0)
 
+    @property
+    def I(self):
+        return self.in_phase
+
+    @property
     def in_quadrature(self):
         A2 = Constant(-self._peak_amplitude * sp.sin(self._phi0))
         return A2*Sine(self._omega0)
+
+    @property
+    def Q(self):
+        return self.in_quadrature
 
 
 class Exponential(_SinCosCExpMixin, DiscreteFunctionSignal):

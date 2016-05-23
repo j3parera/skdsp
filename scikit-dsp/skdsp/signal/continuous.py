@@ -572,13 +572,24 @@ class Sinusoid(Cosine):
     def min(self):
         return -self._peak_amplitude
 
+    @property
     def in_phase(self):
         A1 = Constant(self._peak_amplitude * sp.cos(self._phi0))
         return A1*Cosine(self._omega0)
 
+    @property
+    def I(self):
+        return self.in_phase
+
+    @property
     def in_quadrature(self):
         A2 = Constant(-self._peak_amplitude * sp.sin(self._phi0))
         return A2*Sine(self._omega0)
+
+    @property
+    def Q(self):
+        return self.in_quadrature
+
 
 
 class Exponential(_SinCosCExpMixin, ContinuousFunctionSignal):
@@ -612,3 +623,32 @@ class Exponential(_SinCosCExpMixin, ContinuousFunctionSignal):
     def is_periodic(self):
         mod1 = sp.Abs(self._base) == 1
         return mod1 and Signal.is_periodic(self)
+
+
+class ComplexSinusoid(_SinCosCExpMixin, ContinuousFunctionSignal):
+
+    @staticmethod
+    def _factory(other):
+        s = ComplexSinusoid()
+        if other:
+            other._copy_to(s)
+        return s
+
+    def __init__(self, A=1, omega0=1, phi0=0):
+        expr = A*sp.exp(sp.I*self._default_xvar())
+        ContinuousFunctionSignal.__init__(self, expr)
+        _SinCosCExpMixin.__init__(self, omega0, phi0)
+        self._dtype = np.complex_
+        # delay (negativo, OJO)
+        delay = -self._phi0
+        self._xexpr = ShiftOperator.apply(self._xvar, self._xexpr, delay)
+        self._yexpr = ShiftOperator.apply(self._xvar, self._yexpr, delay)
+        # escalado
+        self._xexpr = ScaleOperator.apply(self._xvar, self._xexpr,
+                                          self._omega0)
+        self._yexpr = ScaleOperator.apply(self._xvar, self._yexpr,
+                                          self._omega0)
+
+    def _copy_to(self, other):
+        ContinuousFunctionSignal._copy_to(self, other)
+        _SinCosCExpMixin._copy_to(self, other)

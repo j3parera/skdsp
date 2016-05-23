@@ -124,28 +124,48 @@ class SinusoidTest(unittest.TestCase):
         ''' Sinusoid (discrete/continuous): components '''
         # sinusoide discreta
         s = ds.Sinusoid()
-        s0 = s.in_phase()
+        s0 = s.in_phase
         self.assertEqual(s0, ds.Cosine())
-        s1 = s.in_quadrature()
+        s0 = s.I
+        self.assertEqual(s0, ds.Cosine())
+        s1 = s.in_quadrature
+        self.assertEqual(s1, ds.Constant(0))
+        s1 = s.Q
         self.assertEqual(s1, ds.Constant(0))
         s = ds.Sinusoid(3, sp.S.Pi/8, sp.S.Pi/4)
-        s0 = s.in_phase()
+        s0 = s.in_phase
         self.assertEqual(s0, ds.Constant(3*sp.cos(sp.S.Pi/4)) *
                          ds.Cosine(sp.S.Pi/8, 0))
-        s1 = s.in_quadrature()
+        s0 = s.I
+        self.assertEqual(s0, ds.Constant(3*sp.cos(sp.S.Pi/4)) *
+                         ds.Cosine(sp.S.Pi/8, 0))
+        s1 = s.in_quadrature
+        self.assertEqual(s1, ds.Constant(-3*sp.sin(sp.S.Pi/4)) *
+                         ds.Sine(sp.S.Pi/8, 0))
+        s1 = s.Q
         self.assertEqual(s1, ds.Constant(-3*sp.sin(sp.S.Pi/4)) *
                          ds.Sine(sp.S.Pi/8, 0))
         # sinusoide continua
         s = cs.Sinusoid()
-        s0 = s.in_phase()
+        s0 = s.in_phase
         self.assertEqual(s0, cs.Cosine())
-        s1 = s.in_quadrature()
+        s0 = s.I
+        self.assertEqual(s0, cs.Cosine())
+        s1 = s.in_quadrature
+        self.assertEqual(s1, cs.Constant(0))
+        s1 = s.Q
         self.assertEqual(s1, cs.Constant(0))
         s = cs.Sinusoid(3, sp.S.Pi/8, sp.S.Pi/4)
-        s0 = s.in_phase()
+        s0 = s.in_phase
         self.assertEqual(s0, cs.Constant(3*sp.cos(sp.S.Pi/4)) *
                          cs.Cosine(sp.S.Pi/8, 0))
-        s1 = s.in_quadrature()
+        s0 = s.I
+        self.assertEqual(s0, cs.Constant(3*sp.cos(sp.S.Pi/4)) *
+                         cs.Cosine(sp.S.Pi/8, 0))
+        s1 = s.in_quadrature
+        self.assertEqual(s1, cs.Constant(-3*sp.sin(sp.S.Pi/4)) *
+                         cs.Sine(sp.S.Pi/8, 0))
+        s1 = s.Q
         self.assertEqual(s1, cs.Constant(-3*sp.sin(sp.S.Pi/4)) *
                          cs.Sine(sp.S.Pi/8, 0))
 
