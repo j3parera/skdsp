@@ -157,6 +157,26 @@ class Signal(ABC):
         s._xexpr = ScaleOperator.apply(s._xvar, s._xexpr, v)
         return s
 
+    def generate(self, s0=0, step=1, size=1, overlap=0):
+        ''' Generador de señal
+        devuelve trozos de señal de tamaño 'size', muestreados cada 'step'
+        unidades, empezando desde s0; cada trozo solapa 'overlap' muestras
+        con el anterior.
+        Ejemplos:
+        1) (s0=0, step=1, size=3, overlap=2) devuelve
+        (s[0], s[1], s[2]), (s[1], s[2], s[3]), (s[2], s[3], s[4]), ...
+        2) (s0=-1, step=1, size=2, overlap=0) devuelve
+        (s[-1], s[0]), (s[1], s[2]), (s[3], s[4]), ...
+        3) (s0=0, step=0.1, size=3, overlap=0.1) devuelve
+        (s[0], s[0.1], s[0.2]), (s[0.1], s[0.2], s[0.3)),
+        (s[0.2], s[0.3], s[0.4), ...
+        '''
+        s = s0
+        while True:
+            sl = np.linspace(s, s+(size*step), size, endpoint=False)
+            yield self[sl]
+            s += size*step - overlap
+
 
 class FunctionSignal(Signal):
 

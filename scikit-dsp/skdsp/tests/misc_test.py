@@ -2,6 +2,7 @@ import unittest
 
 import sympy as sp
 import numpy as np
+import skdsp.signal.continuous as cs
 from skdsp.signal.discrete import Delta, Step, Sinusoid, Sine, Cosine
 from skdsp.signal.util import is_discrete, is_continuous
 from copy import copy
@@ -9,7 +10,15 @@ from copy import copy
 
 class MiscTest(unittest.TestCase):
 
-    def test_0zero_cross(self):
+    def test_0gen(self):
+        f0 = 100
+        x = cs.Sinusoid(2, 2*sp.S.Pi*f0).generate(0, step=0.1, size=1000)
+        trozo = next(x)
+        print(trozo)
+        trozo = next(x)
+        print(trozo)
+
+    def test_zero_cross(self):
         s = Sinusoid(3, sp.S.Pi/8, -sp.S.Pi/4)
         se = s.yexpr
         sv = s.xvar

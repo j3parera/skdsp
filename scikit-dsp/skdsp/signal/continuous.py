@@ -227,7 +227,10 @@ class ContinuousFunctionSignal(_ContinuousMixin, FunctionSignal):
 
     def eval(self, x):
         is_scalar = False
-        if not isinstance(x, np.ndarray):
+        if isinstance(x, np.ndarray):
+            if x.size == 1:
+                is_scalar = True
+        else:
             is_scalar = True
             x = np.array([x])
         y = FunctionSignal.eval(self, x)
@@ -589,7 +592,6 @@ class Sinusoid(Cosine):
     @property
     def Q(self):
         return self.in_quadrature
-
 
 
 class Exponential(_SinCosCExpMixin, ContinuousFunctionSignal):

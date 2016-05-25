@@ -264,7 +264,10 @@ class DiscreteFunctionSignal(_DiscreteMixin, FunctionSignal):
 
     def eval(self, x, force=False):
         is_scalar = False
-        if not isinstance(x, np.ndarray):
+        if isinstance(x, np.ndarray):
+            if x.size == 1:
+                is_scalar = True
+        else:
             is_scalar = True
             x = np.array([x])
         if not force:
