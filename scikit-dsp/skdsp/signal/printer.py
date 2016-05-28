@@ -100,35 +100,61 @@ class CustomLatexPrinter(LatexPrinter):
         sv = r'{}'.format(self._make_var(e._xexpr, True))
         return self._make_s(r'\sin', sv, e)
 
-    def _print_complex_exponent(self, expr, sv):
+    def _print_exp(self, e):
         sb = r'{{\rm{{e}}}}^{{{0}}}'
-        exponent = expr.args[0]
-        if exponent.is_complex:
-            exponent = sp.im(exponent)
-            if exponent.is_negative:
-                se = '-'
-                exponent = -exponent
-            else:
-                se = r'\,'
-            se += r'{{\rm{{j}}}}'
-            s1 = self._print(exponent)
-            if 'frac' in s1:
-                se += s1
-            else:
-                se += r'(' + s1 + ')'
-            se += sv
+        se = ''
+        exponent = sp.im(e.args[0])
+        if exponent.is_negative:
+            se = '-'
+            exponent = -exponent
+        else:
+            se = r'\,'
+        se += r'{\rm{j}}'
+        s1 = self._print(exponent)
+        if 'frac' in s1:
+            se += s1
+        else:
+            se += r'(' + s1 + ')'
+        s = sb.format(se)
+        return s
+
+    def _print_complex_exponent(self, expr, xexpr):
+        sb = r'{{\rm{{e}}}}^{{{0}}}'
+        se = ''
+        exponent = sp.im(expr.args[0])
+        if isinstance(xexpr, sp.Mul) and (xexpr.args[0] == -1):
+            se = '-'
+            xexpr = -xexpr
+        else:
+            se = r'\,'
+        se += r'{\rm{j}}'
+        s1 = self._print(exponent)
+        if 'frac' in s1:
+            se += s1
+        else:
+            se += r'(' + s1 + ')'
+        se += self._print(xexpr)
         s = sb.format(se)
         return s
 
     def _print_Exponential(self, e):
-        sv = r'{}'.format(self._make_var(e._xexpr))
         if isinstance(e._base, sp.exp):
-            s = self._print_complex_exponent(e._base, sv)
+            s = self._print_complex_exponent(e._base, e._xexpr)
         elif isinstance(e._base, sp.Mul):
             s = self._print(e._base.args[0])
-            s += self._print_complex_exponent(e._base.args[1], sv)
+            s += self._print_complex_exponent(e._base.args[1], e._xexpr)
         else:
+            sv = r'{}'.format(self._make_var(e._xexpr))
             s = r'{0}^{1}'.format(e._base, sv)
+        return s
+
+    def _print_ComplexSinusoid(self, e):
+        s1 = self._print(e.phasor)
+        s2 = self._print(e.carrier)
+        if s1 == '1':
+            s = s2
+        else:
+            s = s1 + s2
         return s
 
 

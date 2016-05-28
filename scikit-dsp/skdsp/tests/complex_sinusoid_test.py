@@ -46,12 +46,13 @@ class ComplexSinusoidTest(unittest.TestCase):
         omega0n = np.pi/4
         phi0s = sp.S.Pi/6
         phi0n = np.pi/6
-        As = 3*sp.exp(sp.I*phi0s)
-        An = rect(3, phi0n)
-        c = ds.ComplexSinusoid(As, omega0s)
-        np.testing.assert_almost_equal(c.eval(0), An)
-        np.testing.assert_almost_equal(c.eval(1), An*(np.exp(1j*omega0n)))
-        np.testing.assert_almost_equal(c.eval(-1), An*(np.exp(-1j*omega0n)))
+        c = ds.ComplexSinusoid(3, omega0s, phi0s)
+        np.testing.assert_almost_equal(c.eval(0),
+                                       3*np.exp(1j*phi0n))
+        np.testing.assert_almost_equal(c.eval(1),
+                                       3*np.exp(1j*phi0n)*(np.exp(1j*omega0n)))
+        np.testing.assert_almost_equal(c.eval(-1),
+                                       3*np.exp(1j*phi0n)*(np.exp(-1j*omega0n)))
         c = ds.ComplexSinusoid(1, 0, sp.S.Pi/2)
         np.testing.assert_almost_equal(c.eval(0), 1j)
         # sinusoide compleja continua
@@ -310,34 +311,108 @@ class ComplexSinusoidTest(unittest.TestCase):
         c = cs.ComplexSinusoid(1, sp.S.Pi/4, 3*sp.S.Pi)
         self.assertEqual(c.phase_offset, -sp.S.Pi)
 
+    def test_pashor_and_carrier(self):
+        ''' Complex sinusoid (discrete/continuous): pashor and carrier '''
+        # sinusoide compleja discreta
+        omega0s = sp.S.Pi/4
+        phi0s = sp.S.Pi/6
+        phi0n = np.pi/6
+        c = ds.ComplexSinusoid(1, omega0s, phi0s)
+        self.assertAlmostEqual(c.phasor.evalf(), np.exp(1j*phi0n))
+        self.assertTrue(sp.Eq(ds.Exponential(sp.exp(sp.I*omega0s)).yexpr -
+                              c.carrier.yexpr))
+        c = ds.ComplexSinusoid(3, omega0s)
+        self.assertAlmostEqual(c.phasor.evalf(), 3)
+        self.assertTrue(sp.Eq(ds.Exponential(sp.exp(sp.I*omega0s)).yexpr -
+                              c.carrier.yexpr))
+        c = ds.ComplexSinusoid(3, omega0s, phi0s)
+        self.assertAlmostEqual(c.phasor.evalf(), 3*np.exp(1j*phi0n))
+        self.assertTrue(sp.Eq(ds.Exponential(sp.exp(sp.I*omega0s)).yexpr -
+                              c.carrier.yexpr))
+        # sinusoide compleja continua
+        omega0s = sp.S.Pi/4
+        phi0s = sp.S.Pi/6
+        phi0n = np.pi/6
+        An = rect(3, phi0n)
+        c = cs.ComplexSinusoid(1, omega0s, phi0s)
+        self.assertAlmostEqual(c.phasor.evalf(), np.exp(1j*phi0n))
+        self.assertTrue(sp.Eq(cs.Exponential(sp.exp(sp.I*omega0s)).yexpr -
+                              c.carrier.yexpr))
+        c = cs.ComplexSinusoid(An, omega0s)
+        self.assertAlmostEqual(c.phasor.evalf(), An)
+        self.assertTrue(sp.Eq(cs.Exponential(sp.exp(sp.I*omega0s)).yexpr -
+                              c.carrier.yexpr))
+        c = cs.ComplexSinusoid(An, omega0s, phi0s)
+        self.assertAlmostEqual(c.phasor.evalf(), rect(3, 2*phi0n))
+        self.assertTrue(sp.Eq(cs.Exponential(sp.exp(sp.I*omega0s)).yexpr -
+                              c.carrier.yexpr))
+
     def test_latex(self):
         ''' Complex sinusoid (discrete/continuous): latex '''
         # sinusoide compleja discreta
+        # TODO el signo de (-1) debería extraerse, pero ahora no quiero
         d = ds.ComplexSinusoid().flip()
         self.assertEqual(pt.latex(d, mode='inline'),
-                         r'$1^(- n)$')
+                         r'${\rm{e}}^{\,{\rm{j}}(-1)n}$')
         d = ds.ComplexSinusoid(3)
         self.assertEqual(pt.latex(d, mode='inline'),
-                         r'$3^n$')
+                         r'$3{\rm{e}}^{\,{\rm{j}}(1)n}$')
         d = ds.ComplexSinusoid(sp.exp(-sp.I*2*sp.S.Pi/3))
         self.assertEqual(pt.latex(d, mode='inline'),
-                         r'${\rm{e}}^{-{{\rm{{j}}}}(2 \pi / 3)n}$')
+                         r'${\rm{e}}^{-{\rm{j}}(2 \pi / 3)}' +
+                         r'{\rm{e}}^{\,{\rm{j}}(1)n}$')
         d = ds.ComplexSinusoid(sp.exp(sp.I*3/8))
         self.assertEqual(pt.latex(d, mode='inline'),
-                         r'${\rm{e}}^{\,{{\rm{{j}}}}\frac{3}{8}n}$')
+                         r'${\rm{e}}^{\,{\rm{j}}(0.375)}' +
+                         r'{\rm{e}}^{\,{\rm{j}}(1)n}$')
+        d = ds.ComplexSinusoid(sp.exp(sp.I*3/8), sp.S.Pi/4)
+        self.assertEqual(pt.latex(d, mode='inline'),
+                         r'${\rm{e}}^{\,{\rm{j}}(0.375)}' +
+                         r'{\rm{e}}^{\,{\rm{j}}(\pi / 4)n}$')
+        d = ds.ComplexSinusoid(sp.exp(sp.I*3/8), sp.S.Pi/4, sp.S.Pi/6)
+        self.assertEqual(pt.latex(d, mode='inline'),
+                         r'${\rm{e}}^{\,{\rm{j}}(0.375 + \pi / 6)}' +
+                         r'{\rm{e}}^{\,{\rm{j}}(\pi / 4)n}$')
+        d = ds.ComplexSinusoid(sp.exp(sp.I*sp.S.Pi/8), sp.S.Pi/4, sp.S.Pi/6)
+        self.assertEqual(pt.latex(d, mode='inline'),
+                         r'${\rm{e}}^{\,{\rm{j}}(7 \pi / 24)}' +
+                         r'{\rm{e}}^{\,{\rm{j}}(\pi / 4)n}$')
+        d = ds.ComplexSinusoid(3, sp.S.Pi/4, sp.S.Pi/6)
+        self.assertEqual(pt.latex(d, mode='inline'),
+                         r'$3 {\rm{e}}^{\,{\rm{j}}(\pi / 6)}' +
+                         r'{\rm{e}}^{\,{\rm{j}}(\pi / 4)n}$')
         # sinusoide compleja continua
+        # TODO el signo de (-1) debería extraerse, pero ahora no quiero
         d = cs.ComplexSinusoid().flip()
         self.assertEqual(pt.latex(d, mode='inline'),
-                         r'$1^(- t)$')
+                         r'${\rm{e}}^{\,{\rm{j}}(-1)t}$')
         d = cs.ComplexSinusoid(3)
         self.assertEqual(pt.latex(d, mode='inline'),
-                         r'$3^t$')
+                         r'$3{\rm{e}}^{\,{\rm{j}}(1)t}$')
         d = cs.ComplexSinusoid(sp.exp(-sp.I*2*sp.S.Pi/3))
         self.assertEqual(pt.latex(d, mode='inline'),
-                         r'${\rm{e}}^{-{{\rm{{j}}}}(2 \pi / 3)t}$')
+                         r'${\rm{e}}^{-{\rm{j}}(2 \pi / 3)}' +
+                         r'{\rm{e}}^{\,{\rm{j}}(1)t}$')
         d = cs.ComplexSinusoid(sp.exp(sp.I*3/8))
         self.assertEqual(pt.latex(d, mode='inline'),
-                         r'${\rm{e}}^{\,{{\rm{{j}}}}\frac{3}{8}t}$')
+                         r'${\rm{e}}^{\,{\rm{j}}(0.375)}' +
+                         r'{\rm{e}}^{\,{\rm{j}}(1)t}$')
+        d = cs.ComplexSinusoid(sp.exp(sp.I*3/8), sp.S.Pi/4)
+        self.assertEqual(pt.latex(d, mode='inline'),
+                         r'${\rm{e}}^{\,{\rm{j}}(0.375)}' +
+                         r'{\rm{e}}^{\,{\rm{j}}(\pi / 4)t}$')
+        d = cs.ComplexSinusoid(sp.exp(sp.I*3/8), sp.S.Pi/4, sp.S.Pi/6)
+        self.assertEqual(pt.latex(d, mode='inline'),
+                         r'${\rm{e}}^{\,{\rm{j}}(0.375 + \pi / 6)}' +
+                         r'{\rm{e}}^{\,{\rm{j}}(\pi / 4)t}$')
+        d = cs.ComplexSinusoid(sp.exp(sp.I*sp.S.Pi/8), sp.S.Pi/4, sp.S.Pi/6)
+        self.assertEqual(pt.latex(d, mode='inline'),
+                         r'${\rm{e}}^{\,{\rm{j}}(7 \pi / 24)}' +
+                         r'{\rm{e}}^{\,{\rm{j}}(\pi / 4)t}$')
+        d = cs.ComplexSinusoid(3, sp.S.Pi/4, sp.S.Pi/6)
+        self.assertEqual(pt.latex(d, mode='inline'),
+                         r'$3 {\rm{e}}^{\,{\rm{j}}(\pi / 6)}' +
+                         r'{\rm{e}}^{\,{\rm{j}}(\pi / 4)t}$')
 
 
 if __name__ == "__main__":

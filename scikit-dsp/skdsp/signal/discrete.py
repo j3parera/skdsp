@@ -738,9 +738,11 @@ class ComplexSinusoid(_SinCosCExpMixin, DiscreteFunctionSignal):
         return s
 
     def __init__(self, A=1, omega0=1, phi0=0):
-        expr = A*sp.exp(sp.I*self._default_xvar())
+        self._A = sp.Abs(A)
+        phi = phi0 + self._extract_omega(A)
+        expr = self._A*sp.exp(sp.I*self._default_xvar())
         DiscreteFunctionSignal.__init__(self, expr)
-        _SinCosCExpMixin.__init__(self, omega0, phi0)
+        _SinCosCExpMixin.__init__(self, omega0, phi)
         self._dtype = np.complex_
         # delay (negativo, OJO)
         delay = -self._phi0
@@ -755,6 +757,18 @@ class ComplexSinusoid(_SinCosCExpMixin, DiscreteFunctionSignal):
     def _copy_to(self, other):
         DiscreteFunctionSignal._copy_to(self, other)
         _SinCosCExpMixin._copy_to(self, other)
+
+    @property
+    def phasor(self):
+        return self._A*sp.exp(sp.I*self._phi0)
+
+    @property
+    def carrier(self):
+        o = self._omega0
+        if isinstance(self._xexpr, sp.Mul) and (self._xexpr.args[0] == -1):
+            o = -o
+        s = Exponential(sp.exp(sp.I*o))
+        return s
 
 
 class Sawtooth(DiscreteFunctionSignal):

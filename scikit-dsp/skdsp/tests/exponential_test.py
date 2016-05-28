@@ -354,10 +354,10 @@ class ExponentialTest(unittest.TestCase):
                          r'$3^n$')
         d = ds.Exponential(sp.exp(-sp.I*2*sp.S.Pi/3))
         self.assertEqual(pt.latex(d, mode='inline'),
-                         r'${\rm{e}}^{-{{\rm{{j}}}}(2 \pi / 3)n}$')
+                         r'${\rm{e}}^{\,{\rm{j}}(- 2 \pi / 3)n}$')
         d = ds.Exponential(sp.exp(sp.I*3/8))
         self.assertEqual(pt.latex(d, mode='inline'),
-                         r'${\rm{e}}^{\,{{\rm{{j}}}}\frac{3}{8}n}$')
+                         r'${\rm{e}}^{\,{\rm{j}}\frac{3}{8}n}$')
         # exponencial continua
         d = cs.Exponential().flip()
         self.assertEqual(pt.latex(d, mode='inline'),
@@ -367,10 +367,10 @@ class ExponentialTest(unittest.TestCase):
                          r'$3^t$')
         d = cs.Exponential(sp.exp(-sp.I*2*sp.S.Pi/3))
         self.assertEqual(pt.latex(d, mode='inline'),
-                         r'${\rm{e}}^{-{{\rm{{j}}}}(2 \pi / 3)t}$')
+                         r'${\rm{e}}^{\,{\rm{j}}(- 2 \pi / 3)t}$')
         d = cs.Exponential(sp.exp(sp.I*3/8))
         self.assertEqual(pt.latex(d, mode='inline'),
-                         r'${\rm{e}}^{\,{{\rm{{j}}}}\frac{3}{8}t}$')
+                         r'${\rm{e}}^{\,{\rm{j}}\frac{3}{8}t}$')
 
 if __name__ == "__main__":
     unittest.main()
