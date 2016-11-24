@@ -1,13 +1,16 @@
 from numbers import Number
 from skdsp.operator.operator import ShiftOperator, ScaleOperator
 from skdsp.signal.signal import FunctionSignal, ConstantSignal, Signal
-
+from sympy.core.evaluate import evaluate
 import numpy as np
 import sympy as sp
-from sympy.core.evaluate import evaluate
 
 
-__all__ = ['ContinuousFunctionSignal']
+__all__ = ['DiscreteFunctionSignal', 'DataSignal'
+           'Constant', 'Delta', 'Step', 'Ramp',
+           'Cosine', 'Sine', 'Sinusoid'
+           'ComplexSinusoid', 'Exponential',
+           'Sawtooth', 'Square', 'DeltaTrain']
 
 
 class _ContinuousMixin(object):
