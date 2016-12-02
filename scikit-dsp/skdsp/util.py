@@ -1,3 +1,4 @@
+
 from math import ceil
 from numbers import Integral, Number
 import numpy as np
@@ -8,30 +9,15 @@ def buffer(x, N, P=0, opt=None, order='C', *args):
     Pretende funcionar como buffer de matlab pero por filas en lugar de
     por columnas, salvo que order sea 'F'
 
-    Parameters
-    ----------
-    x : array_like
-        Input data, in any form that can be converted to an array.  This
-        includes lists, lists of tuples, tuples, tuples of tuples, tuples
-        of lists and ndarrays.
-    order : {'C', 'F'}, optional
-        Whether to use row-major (C-style) or
-        column-major (Fortran-style) memory representation.
-        Defaults to 'C'.
+    Args:
+    x (array_like): Input data, in any form that can be converted to an array.
+    This includes lists, lists of tuples, tuples, tuples of tuples, tuples of
+    of lists and ndarrays.
+    order (str): {'C', 'F'}, optional. Whether to use row-major (C-style) or
+    column-major (Fortran-style) memory representation. Defaults to 'C'.
 
-    Returns
-    -------
-    out : ndarray
-        Array interpretation of `a`.  No copy is performed if the input
-        is already an ndarray.  If `a` is a subclass of ndarray, a base
-        class ndarray is returned.
-
-    Examples
-    --------
-    Convert a list into an array:
-    >>> a = [1, 2]
-    >>> np.asarray(a)
-    array([1, 2])
+    Returns:
+    str: bla, bla
 
     """
     if not isinstance(N, Integral):
