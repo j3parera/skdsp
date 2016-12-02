@@ -6,6 +6,11 @@ __all__ = ['is_discrete', 'is_continuous', 'is_real', 'is_complex']
 
 
 def is_discrete(s):
+    '''
+    Checks if `s` is a discrete signal
+    :param s: signal to check
+    :return: True if `s` is a discrete signal
+    '''
     return isinstance(s, _DiscreteMixin)
 
 
