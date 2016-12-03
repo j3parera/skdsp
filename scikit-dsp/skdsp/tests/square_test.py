@@ -1,5 +1,5 @@
 from skdsp.signal.discrete import Square, DiscreteFunctionSignal
-from skdsp.signal.signal import Signal, FunctionSignal
+from skdsp.signal.signals import Signal, FunctionSignal
 from skdsp.signal.util import is_discrete, is_continuous, is_real, is_complex
 
 import numpy as np

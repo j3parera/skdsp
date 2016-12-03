@@ -1,6 +1,6 @@
 from numbers import Integral, Number
 from skdsp.operator.operator import ScaleOperator, ShiftOperator
-from skdsp.signal.signal import FunctionSignal, ConstantSignal, Signal
+from skdsp.signal.signals import FunctionSignal, ConstantSignal, Signal
 import numpy as np
 import sympy as sp
 

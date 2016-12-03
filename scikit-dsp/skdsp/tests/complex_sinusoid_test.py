@@ -2,7 +2,7 @@ from cmath import rect
 import skdsp.signal.discrete as ds
 import skdsp.signal.continuous as cs
 import skdsp.signal.printer as pt
-import skdsp.signal.signal as sg
+import skdsp.signal.signals as sg
 from skdsp.signal.util import is_discrete, is_continuous, is_complex
 import numpy as np
 import sympy as sp

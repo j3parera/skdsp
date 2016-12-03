@@ -1,7 +1,7 @@
 import skdsp.signal.discrete as ds
 import skdsp.signal.continuous as cs
 import skdsp.signal.printer as pt
-import skdsp.signal.signal as sg
+import skdsp.signal.signals as sg
 import numpy as np
 import sympy as sp
 import unittest
