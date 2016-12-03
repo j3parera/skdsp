@@ -33,6 +33,7 @@ Todo:
 
 """
 
+# TODO(Zeke): Change this to use relations.
 module_level_variable1 = 12345
 
 module_level_variable2 = 98765

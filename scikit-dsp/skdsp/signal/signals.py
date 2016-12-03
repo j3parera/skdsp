@@ -1,12 +1,17 @@
+"""
+This module defines an abstract base class for a `signal`.
+This class implements all the common methods of signals.
+
+Attributes:
+
+"""
+
 from abc import ABC
 from numbers import Integral, Number, Real
 from skdsp.operator.operator import *
 from sympy.functions.elementary.trigonometric import _pi_coeff
 import numpy as np
 import sympy as sp
-
-
-__all__ = ['Signal', 'FunctionSignal', 'ConstantSignal']
 
 
 class Signal(ABC):
@@ -75,6 +80,7 @@ class Signal(ABC):
 
     @property
     def dtype(self):
+        """ Signal values type. One of *float* or *complex*."""
         return self._dtype
 
     @dtype.setter
@@ -85,10 +91,13 @@ class Signal(ABC):
 
     @property
     def xexpr(self):
+        """ Symbolic *time* expression."""
         return self._xexpr
 
     @property
     def xvar(self):
+        """ Symbolic *time* variable used in the symbolic expression
+        `xexpr`."""
         return self._xvar
 
     @xvar.setter
@@ -99,16 +108,22 @@ class Signal(ABC):
         self._xvar = newvar
 
     def is_real(self):
+        """ Tests weather the signal is real valued."""
         return self._dtype == np.float_
 
     def is_complex(self):
+        """ Tests weather the signal is complex valued."""
         return self._dtype == np.complex_
 
     def is_periodic(self):
+        """ Tests weather the signal is periodic."""
         return self.period != np.Inf and self._period is not None
 
     @property
     def period(self):
+        """ Period of the signal. One of *value* (if signal is periodic),
+        *inf* (if signal is not periodic) or *None* (if signal periodicity
+        could not be determined)."""
         # Calcular el periodo de una señal genérica es difícil
         # Si se intenta hacer con sympy solve(expr(var)-expr(var+T), T)
         # se obtienen resultados raros
@@ -127,6 +142,9 @@ class Signal(ABC):
 
     # --- eval wrappers -------------------------------------------------------
     def __getitem__(self, idx):
+        """
+        getitemmmm
+        """
         if isinstance(idx, slice):
             return self.eval(np.arange(idx.start, idx.stop, idx.step))
         elif isinstance(idx, np.ndarray):

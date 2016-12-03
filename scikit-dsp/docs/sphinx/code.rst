@@ -1,10 +1,12 @@
-Code documentation
-******************
+Signals
+=======
+.. automodule:: signals
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Google
+======
 .. automodule:: example_google
    :members:
 
-.. automodule:: version
-   :members:
-
-.. automodule:: util
-   :members:
