@@ -7,8 +7,11 @@ Attributes:
 """
 
 from abc import ABC
-from numbers import Integral, Number, Real
-from skdsp.operator.operator import *
+from numbers import Number
+from skdsp.operator.operator import FlipOperator, ShiftOperator
+from skdsp.operator.operator import ScaleOperator, GainOperator
+from skdsp.operator.operator import AbsOperator, HermitianOperator
+from skdsp.operator.operator import ConjugateOperator
 from sympy.functions.elementary.trigonometric import _pi_coeff
 import numpy as np
 import sympy as sp
@@ -17,28 +20,6 @@ import sympy as sp
 class Signal(ABC):
     ''' Signal is the abstract base class
     '''
-    @staticmethod
-    def _check_is_real(x):
-        ok = True
-        if isinstance(x, sp.Expr):
-            x = x.evalf()
-            if not isinstance(x, sp.Float):
-                ok = False
-        elif not isinstance(x, Real):
-            ok = False
-        return ok
-
-    @staticmethod
-    def _check_is_integer(x):
-        ok = True
-        if isinstance(x, sp.Expr):
-            x = x.evalf()
-            if not isinstance(x, sp.Integer):
-                ok = False
-        elif not isinstance(x, Integral):
-            ok = False
-        return ok
-
     @staticmethod
     def _extract_omega(x):
         px = sp.arg(x)
@@ -80,13 +61,13 @@ class Signal(ABC):
 
     @property
     def dtype(self):
-        """ Signal values type. One of *float* or *complex*."""
+        """ Type of the signal values. One of *float* or *complex*."""
         return self._dtype
 
     @dtype.setter
     def dtype(self, dtype):
         if dtype not in (np.float_, np.complex_):
-            raise ValueError('signal types float or complex allowed')
+            raise ValueError('only signal types float or complex allowed')
         self._dtype = dtype
 
     @property
@@ -352,7 +333,7 @@ class FunctionSignal(Signal):
 #         else:
 #             return False
 
-    def dynamic_range(self, dB=False):
+    def range(self, dB=False):
         dr = self.max() - self.min()
         if dB:
             return 20*sp.log(dr, 10)

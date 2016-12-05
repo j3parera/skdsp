@@ -4,6 +4,7 @@ from skdsp.signal.signals import FunctionSignal, ConstantSignal, Signal
 from sympy.core.evaluate import evaluate
 import numpy as np
 import sympy as sp
+from skdsp.signal.util import is_real_scalar
 
 
 __all__ = ['DiscreteFunctionSignal', 'DataSignal'
@@ -45,7 +46,7 @@ class _ContinuousMixin(object):
     __reversed__ = flip
 
     def shift(self, tau):
-        if not self._check_is_real(tau):
+        if not is_real_scalar(tau):
             raise TypeError('delay/advance must be real')
         # esto evita que r(t-k) se convierta en t-k (sin la r)
         # doeval = not self._has_ramp()
@@ -69,7 +70,7 @@ class _ContinuousMixin(object):
 
     def scale(self, alpha):
         # Scale permite cualquier valor de alpha, no necesariamente entero
-        if not self._check_is_real(alpha):
+        if not is_real_scalar(alpha):
             raise TypeError('scale must be real')
         return FunctionSignal.scale(self, alpha)
 
