@@ -5,18 +5,35 @@
 
 scikit-dsp's documentation!
 ===========================
-
-Contents:
-
 .. toctree::
    :maxdepth: 2
    
-   intro
-   tutorial
-   code
+   scikit-dsp.rst
+   intro.rst
+
+What's new
+----------
+
+.. toctree::
+   :maxdepth: 2
+
+Tutorials
+---------
+
+.. toctree::
+   :maxdepth: 2
+
+   tutorial.rst
+
+Reference
+---------
+.. toctree::
+   :maxdepth: 2
+
+   code.rst
    
 Indices and tables
-==================
+------------------
 
 * :ref:`genindex`
 * :ref:`modindex`
