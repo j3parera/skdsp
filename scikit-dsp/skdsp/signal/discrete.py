@@ -1,9 +1,10 @@
 from numbers import Integral, Number
 from skdsp.operator.operator import ScaleOperator, ShiftOperator
-from skdsp.signal.signals import FunctionSignal, ConstantSignal, Signal
+from skdsp.signal.signals import FunctionSignal, ConstantSignal, Signal,\
+    is_real_scalar, is_integer_scalar
 import numpy as np
 import sympy as sp
-from skdsp.signal.util import is_real_scalar, is_integer_scalar
+
 
 __all__ = ['DiscreteFunctionSignal', 'DataSignal'
            'Constant', 'Delta', 'Step', 'Ramp',
@@ -31,8 +32,8 @@ class _DiscreteMixin(object):
         pass
 
     def shift(self, k):
-        if not is_integer_scalar(k):
-            raise TypeError('delay/advance must be integer')
+        # if not is_integer_scalar(k):
+        #    raise TypeError('delay/advance must be integer')
         o = FunctionSignal.shift(self, k)
         return o
 

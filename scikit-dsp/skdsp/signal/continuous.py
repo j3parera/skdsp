@@ -1,10 +1,10 @@
 from numbers import Number
 from skdsp.operator.operator import ShiftOperator, ScaleOperator
-from skdsp.signal.signals import FunctionSignal, ConstantSignal, Signal
+from skdsp.signal.signals import FunctionSignal, ConstantSignal, Signal,\
+    is_real_scalar
 from sympy.core.evaluate import evaluate
 import numpy as np
 import sympy as sp
-from skdsp.signal.util import is_real_scalar
 
 
 __all__ = ['DiscreteFunctionSignal', 'DataSignal'
