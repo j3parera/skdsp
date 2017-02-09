@@ -62,10 +62,10 @@ class CustomLatexPrinter(LatexPrinter):
         return s1
 
     def _make_s(self, pre, var, e, simple=False):
-        if isinstance(e, DiscreteFunctionSignal):
-            s = pre + r'\left[{}\right]'
-        elif isinstance(e, ContinuousFunctionSignal):
+        if simple or isinstance(e, ContinuousFunctionSignal):
             s = pre + r'\left({}\right)'
+        elif isinstance(e, DiscreteFunctionSignal):
+            s = pre + r'\left[{}\right]'
         else:
             s = r'?{}'
         return s.format(var)
@@ -94,11 +94,11 @@ class CustomLatexPrinter(LatexPrinter):
 
     def _print_Cosine(self, e):
         sv = r'{}'.format(self._make_var(e._xexpr, True))
-        return self._make_s(r'\cos', sv, e)
+        return self._make_s(r'\cos', sv, e, True)
 
     def _print_Sine(self, e):
         sv = r'{}'.format(self._make_var(e._xexpr, True))
-        return self._make_s(r'\sin', sv, e)
+        return self._make_s(r'\sin', sv, e, True)
 
     def _print_exp(self, e):
         sb = r'{{\rm{{e}}}}^{{{0}}}'
