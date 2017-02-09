@@ -2,8 +2,6 @@
 This module defines an abstract base class for a `signal`.
 This class implements all the common methods of signals.
 
-Attributes:
-
 """
 
 from abc import ABC
@@ -88,6 +86,8 @@ class Signal(ABC):
         return px.evalf()
 
     def __init__(self):
+        """Common *__init__* method for all signals.
+        """
         self._dtype = np.float_
         self.name = 'x'
         self._period = None
@@ -97,7 +97,7 @@ class Signal(ABC):
 
     @property
     def dtype(self):
-        """ Type of the signal values. One of *float* or *complex*."""
+        """ Type of the signal values. One of *np.float_* or *np.complex_*."""
         return self._dtype
 
     @dtype.setter

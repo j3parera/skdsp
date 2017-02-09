@@ -4,7 +4,15 @@ import numpy as np
 __all__ = ['is_discrete',
            'is_continuous',
            'is_real',
-           'is_complex']
+           'is_complex',
+           'xvar']
+
+
+def discrete_xvar():
+    '''
+    Return the deafult xvar for discrete signals
+    '''
+    return _DiscreteMixin._default_xvar()
 
 
 def is_discrete(s):
