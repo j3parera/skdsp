@@ -32,8 +32,10 @@ class _DiscreteMixin(object):
         pass
 
     def shift(self, k):
-        # if not is_integer_scalar(k):
-        #    raise TypeError('delay/advance must be integer')
+        if isinstance(self, ConstantSignal):
+            return self
+        if not is_integer_scalar(k):
+            raise TypeError('delay/advance must be integer')
         o = FunctionSignal.shift(self, k)
         return o
 
@@ -827,10 +829,10 @@ class Square(DiscreteFunctionSignal):
         other._width = self._width
 
     def __init__(self, N=16, width=None):
-        if width is None:
-            width = N
         if N <= 0:
             raise ValueError('N must be greater than 0')
+        if width is None:
+            width = N//2
         if width > N:
             raise ValueError('width must be less than N')
         nm = sp.Mod(self._default_xvar(), N)
