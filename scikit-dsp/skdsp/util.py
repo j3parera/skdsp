@@ -1,7 +1,56 @@
-
 from math import ceil
 from numbers import Integral, Number
 import numpy as np
+import matplotlib as plt
+
+
+__all__ = ['buffer', 'stem_init', 'stem_update']
+
+
+def stem_init(x, y, iax=None, color='navy', yaxis=False, grid=True, xlim=True,
+              ylim=True, xlabel=r'$n$', ylabel=None, title=None):
+    """
+    Representa los pares (x, y) con stem
+    """
+    if iax is None:
+        ax = plt.pyplot.gca()
+    else:
+        ax = iax
+    lines = ax.stem(x, y, markerfmt='o', linefmt='-', basefmt='-')
+    lines[0].set_color(color)
+    lines[2].set_color(color)
+    for l in lines[1]:
+        l.set_color(color)
+    ax.axhline(0, color=color, lw=1.5)
+    if yaxis:
+        ax.axvline(0, color=color, lw=1.5)
+    if xlim:
+        ax.set_xlim(x[0]-0.75, x[-1]+0.75)
+    if ylim:
+        max_ = np.max(y)
+        min_ = np.min(y)
+        d = (max_ - min_)*0.1
+        ax.set_ylim(min_-d, max_+d)
+    ax.grid(grid)
+    if xlabel is not None:
+        ax.set_xlabel(xlabel, fontsize=14, position=(1, 1), labelpad=-10,
+                      horizontalalignment='right')
+    if ylabel is not None:
+        ax.set_ylabel(ylabel, fontsize=14)
+    if title is not None:
+        txt = ax.set_title(title, fontsize=14, loc='left')
+    return lines, ax, txt
+
+
+def stem_update(st, y, title=None):
+    """
+    Actualiza los datos de una representación stem
+    """
+    st[0][0].set_ydata(y)
+    for k, line in enumerate(st[0][1]):
+        line.set_ydata([0, y[k]])
+    if title is not None:
+        st[2].set_text(title)
 
 
 def buffer(x, N, P=0, opt=None, order='C', *args):
