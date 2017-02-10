@@ -25,7 +25,7 @@ def stem_init(x, y, iax=None, color='navy', yaxis=False, grid=True, xlim=True,
     if yaxis:
         ax.axvline(0, color=color, lw=1.5)
     if xlim:
-        ax.set_xlim(x[0]-0.75, x[-1]+0.75)
+        ax.set_xlim(x[0]-0.5, x[-1]+0.5)
     if ylim:
         max_ = np.max(y)
         min_ = np.min(y)
