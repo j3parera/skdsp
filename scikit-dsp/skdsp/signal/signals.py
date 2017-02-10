@@ -33,6 +33,17 @@ def is_real_scalar(x):
     return ok
 
 
+def is_integer_obj(x):
+    try:
+        dtype = x.dtype
+    except AttributeError:
+        dtype = np.asarray(x).dtype
+    try:
+        return issubclass(dtype.type, np.integer)
+    except AttributeError:
+        return False
+
+
 def is_integer_scalar(x):
     """ Checks if argument is an integer valued scalar.
 
@@ -47,7 +58,7 @@ def is_integer_scalar(x):
     if isinstance(x, sp.Expr):
         ok = x.is_number and x.is_integer
     else:
-        ok = np.isscalar(x) and isinstance(x, np.integer)
+        ok = np.isscalar(x) and is_integer_obj(x)
     return ok
 
 
