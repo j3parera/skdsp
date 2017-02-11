@@ -1,7 +1,7 @@
 from numbers import Integral, Number
 from skdsp.operator.operator import ScaleOperator, ShiftOperator
-from skdsp.signal.signals import FunctionSignal, ConstantSignal, Signal,\
-    is_real_scalar, is_integer_scalar
+from skdsp.signal.signals import FunctionSignal, ConstantSignal
+from skdsp.signal.signals import Signal, is_real_scalar, is_integer_scalar
 import numpy as np
 import sympy as sp
 

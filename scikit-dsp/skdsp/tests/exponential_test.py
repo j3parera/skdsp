@@ -1,12 +1,12 @@
-import skdsp.signal.discrete as ds
-import skdsp.signal.continuous as cs
-import skdsp.signal.printer as pt
-import skdsp.signal.signals as sg
+from fractions import Fraction
 from skdsp.signal.util import is_discrete, is_continuous, is_complex
 import numpy as np
+import skdsp.signal.continuous as cs
+import skdsp.signal.discrete as ds
+import skdsp.signal.printer as pt
+import skdsp.signal.signals as sg
 import sympy as sp
 import unittest
-from fractions import Fraction
 
 
 class ExponentialTest(unittest.TestCase):
@@ -86,15 +86,15 @@ class ExponentialTest(unittest.TestCase):
         actual = c.eval(n)
         np.testing.assert_array_almost_equal(expected, actual)
         n = np.arange(-1, 2)
-        expected = np.power(2, n)
+        expected = np.power(2.0, n)
         actual = c.eval(n)
         np.testing.assert_array_almost_equal(expected, actual)
         n = np.arange(-4, 1, 2)
-        expected = np.power(2, n)
+        expected = np.power(2.0, n)
         actual = c.eval(n)
         np.testing.assert_array_almost_equal(expected, actual)
         n = np.arange(3, -2, -2)
-        expected = np.power(2, n)
+        expected = np.power(2.0, n)
         actual = c.eval(n)
         np.testing.assert_array_almost_equal(expected, actual)
         # exponencial continua
@@ -104,15 +104,15 @@ class ExponentialTest(unittest.TestCase):
         actual = c.eval(n)
         np.testing.assert_array_almost_equal(expected, actual)
         n = np.arange(-1, 2)
-        expected = np.power(2, n)
+        expected = np.power(2.0, n)
         actual = c.eval(n)
         np.testing.assert_array_almost_equal(expected, actual)
         n = np.arange(-4, 1, 2)
-        expected = np.power(2, n)
+        expected = np.power(2.0, n)
         actual = c.eval(n)
         np.testing.assert_array_almost_equal(expected, actual)
         n = np.arange(3, -2, -2)
-        expected = np.power(2, n)
+        expected = np.power(2.0, n)
         actual = c.eval(n)
         np.testing.assert_array_almost_equal(expected, actual)
 
@@ -154,33 +154,33 @@ class ExponentialTest(unittest.TestCase):
         actual = c[n]
         np.testing.assert_array_almost_equal(expected, actual)
         n = np.arange(-1, 2)
-        expected = np.power(2, n)
+        expected = np.power(2.0, n)
         actual = c[n]
         np.testing.assert_array_almost_equal(expected, actual)
         n = np.arange(-4, 1, 2)
-        expected = np.power(2, n)
+        expected = np.power(2.0, n)
         actual = c[n]
         np.testing.assert_array_almost_equal(expected, actual)
         n = np.arange(3, -2, -2)
-        expected = np.power(2, n)
+        expected = np.power(2.0, n)
         actual = c[n]
         np.testing.assert_array_almost_equal(expected, actual)
         # exponencial continua
         c = cs.Exponential(2)
         n = np.arange(0, 2)
-        expected = np.power(2, n)
+        expected = np.power(2.0, n)
         actual = c[n]
         np.testing.assert_array_almost_equal(expected, actual)
         n = np.arange(-1, 2)
-        expected = np.power(2, n)
+        expected = np.power(2.0, n)
         actual = c[n]
         np.testing.assert_array_almost_equal(expected, actual)
         n = np.arange(-4, 1, 2)
-        expected = np.power(2, n)
+        expected = np.power(2.0, n)
         actual = c[n]
         np.testing.assert_array_almost_equal(expected, actual)
         n = np.arange(3, -2, -2)
-        expected = np.power(2, n)
+        expected = np.power(2.0, n)
         actual = c[n]
         np.testing.assert_array_almost_equal(expected, actual)
 
@@ -346,6 +346,9 @@ class ExponentialTest(unittest.TestCase):
     def test_latex(self):
         ''' Exponential (discrete/continuous): latex '''
         # exponencial discreta
+        d = ds.Exponential(-0.25)
+        self.assertEqual(pt.latex(d, mode='inline'),
+                         r'$\left(- \frac{1}{4}\right)^n$')
         d = ds.Exponential().flip()
         self.assertEqual(pt.latex(d, mode='inline'),
                          r'$1^(- n)$')
@@ -359,6 +362,9 @@ class ExponentialTest(unittest.TestCase):
         self.assertEqual(pt.latex(d, mode='inline'),
                          r'${\rm{e}}^{\,{\rm{j}}\frac{3}{8}n}$')
         # exponencial continua
+        d = cs.Exponential(-0.25)
+        self.assertEqual(pt.latex(d, mode='inline'),
+                         r'$\left(- \frac{1}{4}\right)^t$')
         d = cs.Exponential().flip()
         self.assertEqual(pt.latex(d, mode='inline'),
                          r'$1^(- t)$')

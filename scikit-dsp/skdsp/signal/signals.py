@@ -268,7 +268,7 @@ class FunctionSignal(Signal):
                     x = x.astype(np.complex_)
                     self._dtype = np.complex_
                     to_real = True
-                    break
+                    # break # ??
         try:
             ylambda = sp.lambdify(self._xvar, self._yexpr, 'numpy')
             y = ylambda(x)
@@ -279,8 +279,9 @@ class FunctionSignal(Signal):
                 y = np.full(x.shape, y, self._dtype)
             if not to_real:
                 y = y.astype(self._dtype)
-        except NameError:
+        except (NameError, ValueError):
             # sympy no ha podido hacer una función lambda
+            # (o hay algún problema de cálculo, p.e 2^(-1) enteros)
             # así que se procesan los valores uno a uno
             y = np.zeros_like(x, self._dtype)
             for k, x0 in enumerate(x):

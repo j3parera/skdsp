@@ -1,8 +1,8 @@
-from sympy.printing.str import StrPrinter
-from sympy.printing.latex import LatexPrinter
 from skdsp.signal.continuous import ContinuousFunctionSignal
-import sympy as sp
 from skdsp.signal.discrete import DiscreteFunctionSignal
+from sympy.printing.latex import LatexPrinter
+from sympy.printing.str import StrPrinter
+import sympy as sp
 
 
 class CustomStrPrinter(StrPrinter):
@@ -145,7 +145,11 @@ class CustomLatexPrinter(LatexPrinter):
             s += self._print_complex_exponent(e._base.args[1], e._xexpr)
         else:
             sv = r'{}'.format(self._make_var(e._xexpr))
-            s = r'{0}^{1}'.format(e._base, sv)
+            sb = self._print(sp.nsimplify(e._base))
+            if e._base < 0 or 'frac' in sb:
+                s = r'\left({0}\right)^{1}'.format(sb, sv)
+            else:
+                s = r'{0}^{1}'.format(sb, sv)
         return s
 
     def _print_ComplexSinusoid(self, e):
