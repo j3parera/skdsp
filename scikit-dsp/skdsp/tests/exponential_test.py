@@ -346,12 +346,17 @@ class ExponentialTest(unittest.TestCase):
     def test_latex(self):
         ''' Exponential (discrete/continuous): latex '''
         # exponencial discreta
+        # d = ds.Delta() + ds.Delta(1)
+        d = ds.Exponential(-0.25) * ds.Step()
+        self.assertEqual(pt.latex(d.delay(1), mode='inline'),
+                         r'$\left(- \frac{1}{4}\right)^{(n - 1)}' +
+                         r' u\left[n - 1\right]$')
         d = ds.Exponential(-0.25)
         self.assertEqual(pt.latex(d, mode='inline'),
                          r'$\left(- \frac{1}{4}\right)^n$')
         d = ds.Exponential().flip()
         self.assertEqual(pt.latex(d, mode='inline'),
-                         r'$1^(- n)$')
+                         r'$1^{(- n)}$')
         d = ds.Exponential(3)
         self.assertEqual(pt.latex(d, mode='inline'),
                          r'$3^n$')
@@ -367,7 +372,7 @@ class ExponentialTest(unittest.TestCase):
                          r'$\left(- \frac{1}{4}\right)^t$')
         d = cs.Exponential().flip()
         self.assertEqual(pt.latex(d, mode='inline'),
-                         r'$1^(- t)$')
+                         r'$1^{(- t)}$')
         d = cs.Exponential(3)
         self.assertEqual(pt.latex(d, mode='inline'),
                          r'$3^t$')

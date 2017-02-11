@@ -1,5 +1,5 @@
 from skdsp.signal.continuous import ContinuousFunctionSignal
-from skdsp.signal.discrete import DiscreteFunctionSignal
+from skdsp.signal.discrete import DiscreteFunctionSignal, Exponential
 from sympy.printing.latex import LatexPrinter
 from sympy.printing.str import StrPrinter
 import sympy as sp
@@ -144,13 +144,22 @@ class CustomLatexPrinter(LatexPrinter):
             s = self._print(e._base.args[0])
             s += self._print_complex_exponent(e._base.args[1], e._xexpr)
         else:
-            sv = r'{}'.format(self._make_var(e._xexpr))
+            sv = r'{0}'.format(self._make_var(e._xexpr))
+            if len(sv) != 1:
+                sv = '{' + sv + '}'
             sb = self._print(sp.nsimplify(e._base))
             if e._base < 0 or 'frac' in sb:
                 s = r'\left({0}\right)^{1}'.format(sb, sv)
             else:
                 s = r'{0}^{1}'.format(sb, sv)
         return s
+
+    def _print_Pow(self, e):
+        exp = Exponential(e.args[0])
+        exp._xexpr = e.args[1]
+        exp._yexpr = e
+        exp._xvar = e.free_symbols.pop()
+        return self._print_Exponential(exp)
 
     def _print_ComplexSinusoid(self, e):
         s1 = self._print(e.phasor)
