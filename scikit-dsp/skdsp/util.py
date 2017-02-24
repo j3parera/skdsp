@@ -33,8 +33,8 @@ def stem_init(x, y, iax=None, color='navy', yaxis=False, grid=True, xlim=True,
         ax.set_ylim(min_-d, max_+d)
     ax.grid(grid)
     if xlabel is not None:
-        ax.set_xlabel(xlabel, fontsize=14, position=(1, 1), labelpad=-10,
-                      horizontalalignment='right')
+        ax.set_xlabel(xlabel, fontsize=14, position=(1.01, 1), labelpad=-30,
+                      horizontalalignment='left')
     if ylabel is not None:
         ax.set_ylabel(ylabel, fontsize=14)
     if title is not None:

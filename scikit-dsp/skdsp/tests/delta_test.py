@@ -10,6 +10,10 @@ import unittest
 
 class DeltaTest(unittest.TestCase):
 
+    def test_00(self):
+        d = ds.Delta()
+        print(d.tolatex(mode='inline'))
+
     def test_constructor(self):
         ''' Delta (discrete/continuous): constructors '''
         # delta discreta
@@ -162,6 +166,9 @@ class DeltaTest(unittest.TestCase):
     def test_latex(self):
         ''' Delta (discrete/continuous): latex '''
         # delta discreta
+        d = 2 + ds.Delta() + 0.5*ds.Delta(1) - 0.25*ds.Delta(2)
+        self.assertEqual(pt.latex(d, mode='inline'),
+                         r'$\delta\left[n\right]$')
         d = ds.Delta()
         self.assertEqual(pt.latex(d, mode='inline'),
                          r'$\delta\left[n\right]$')

@@ -10,7 +10,7 @@ from copy import copy
 
 class MiscTest(unittest.TestCase):
 
-#     def test_0gen(self):
+#    def test_0gen(self):
 #         f0 = 100
 #         n = ds._DiscreteMixin._default_xvar()
 #         x = ds.Sinusoid(2, 2*sp.S.Pi*f0, 10*sp.S.Pi*n)
@@ -19,6 +19,11 @@ class MiscTest(unittest.TestCase):
 #         print(trozo)
 #         trozo = next(x)
 #         print(trozo)
+
+    def test_00(self):
+        sg = ds.DeltaTrain(8) * ds.Step()
+        sgv = sg[np.arange(-10, 10)]
+        print(sgv[11])
 
     def test_zero_cross(self):
         s = Sinusoid(3, sp.S.Pi/8, -sp.S.Pi/4)

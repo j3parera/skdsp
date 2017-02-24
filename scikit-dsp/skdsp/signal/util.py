@@ -1,5 +1,6 @@
 from skdsp.signal.discrete import _DiscreteMixin
 import numpy as np
+import sympy as sp
 
 __all__ = ['is_discrete',
            'is_continuous',

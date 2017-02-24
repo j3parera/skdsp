@@ -1,50 +1,131 @@
+from ..operator.operator import ScaleOperator, ShiftOperator
+from .signals import Signal, FunctionSignal, ConstantSignal
 from numbers import Integral, Number
-from skdsp.operator.operator import ScaleOperator, ShiftOperator
-from skdsp.signal.signals import FunctionSignal, ConstantSignal
-from skdsp.signal.signals import Signal, is_real_scalar, is_integer_scalar
 import numpy as np
 import sympy as sp
 
 
-__all__ = ['DiscreteFunctionSignal', 'DataSignal'
-           'Constant', 'Delta', 'Step', 'Ramp',
-           'Cosine', 'Sine', 'Sinusoid'
-           'ComplexSinusoid', 'Exponential',
-           'Sawtooth', 'Square', 'DeltaTrain']
+__all__ = ['_DiscreteMixin',
+           'DiscreteFunctionSignal',
+           'DataSignal',
+           'Delta',
+           'Step',
+           'RectangularPulse',
+           'Exponential',
+           'Sinusoid'
+           'DeltaTrain',
+           'Sawtooth',
+           'Square']
+
+
+def is_real_scalar(x):
+    """ Checks if argument is a real valued scalar.
+
+    Args:
+        x (Python scalar, numpy scalar or sympy scalar expression):
+            object to be checked.
+
+    Returns:
+        bool: True for success, False otherwise.
+    """
+    ok = True
+    if isinstance(x, sp.Expr):
+        ok = x.is_number and x.is_real
+    else:
+        ok = np.isscalar(x) and np.isrealobj(x)
+    return ok
+
+
+def is_integer_obj(x):
+    try:
+        dtype = x.dtype
+    except AttributeError:
+        dtype = np.asarray(x).dtype
+    try:
+        return issubclass(dtype.type, np.integer)
+    except AttributeError:
+        return False
+
+
+def is_integer_scalar(x):
+    """ Checks if argument is an integer valued scalar.
+
+    Args:
+        x (Python scalar, numpy scalar or sympy scalar expression):
+            object to be checked.
+
+    Returns:
+        bool: True for success, False otherwise.
+    """
+    ok = True
+    if isinstance(x, sp.Expr):
+        ok = x.is_number and x.is_integer
+    else:
+        ok = np.isscalar(x) and is_integer_obj(x)
+    return ok
+
+
+def latex_mode(s, mode):
+    if 'mode' == 'inline':
+        return r'$' + s + '$'
+    else:
+        return s
 
 
 class _DiscreteMixin(object):
+    """
+    Base mixin class for discrete signals.
+    Defines all common operations for this kind of signals
+    and other useful stuff.
+    """
 
     @staticmethod
     def _check_indexes(x):
-        if not np.all(np.equal(np.mod(x, 1), 0)):
+        """
+        Checks if all values in x are integers (including floats
+        without fractional part (e.g. 1.0, 2.0).
+        """
+        if not np.all(np.equal(np.mod(np.asanyarray(x), 1), 0)):
             raise TypeError('discrete signals are only defined' +
                             'for integer indexes')
 
     @staticmethod
     def _default_xvar():
+        """
+        Default discrete time variable: n
+        """
         return sp.symbols('n', integer=True)
 
     def __init__(self):
+        """
+        Mixin class initialization.
+        """
         pass
 
     def _copy_to(self, other):
+        """
+        Copy class variables.
+        """
         pass
 
     def shift(self, k):
-        if isinstance(self, ConstantSignal):
-            return self
+        """
+        Delays (or advances) the signal k (integer) units.
+        """
         if not is_integer_scalar(k):
             raise TypeError('delay/advance must be integer')
-        o = FunctionSignal.shift(self, k)
+        if isinstance(self, FunctionSignal):
+            o = FunctionSignal.shift(self, k)
+        elif isinstance(self, DataSignal):
+            o = DataSignal.shift(self, k)
         return o
 
-    def delay(self, d):
-        # versión de retardo no necesariamente entero
-        if not is_real_scalar(d):
-            raise TypeError('delay/advance must be real')
-        o = FunctionSignal.shift(self, d)
-        return o
+#     def delay(self, d):
+#         # versión de retardo no necesariamente entero
+#         if not is_real_scalar(d):
+#             raise TypeError('delay/advance must be real')
+#         o = FunctionSignal.shift(self, d)
+#         return o
 
     def __rshift__(self, k):
         return _DiscreteMixin.shift(self, k)
@@ -330,7 +411,6 @@ class Delta(DiscreteFunctionSignal):
 
         @staticmethod
         def _imp_(n):
-            # i es 0, siempre
             return np.equal(n, 0).astype(np.float_)
 
     @staticmethod
@@ -357,6 +437,10 @@ class Delta(DiscreteFunctionSignal):
 
     def _print(self):
         return 'd[{0}]'.format(str(self._xexpr))
+
+    def tolatex(self, mode):
+        s = r'\delta\left[{0}\right]'.format(sp.latex(self._xexpr))
+        return latex_mode(s, mode='inline')
 
 
 class Step(DiscreteFunctionSignal):
@@ -580,6 +664,12 @@ class _SinCosCExpMixin(object):
 
 class Cosine(_SinCosCExpMixin, DiscreteFunctionSignal):
 
+    class _DiscreteCosine(sp.cos):
+
+        @staticmethod
+        def _imp_(n):
+            return np.cos(n)
+
     @staticmethod
     def _factory(other):
         s = Cosine()
@@ -588,7 +678,7 @@ class Cosine(_SinCosCExpMixin, DiscreteFunctionSignal):
         return s
 
     def __init__(self, omega0=1, phi0=0):
-        expr = sp.cos(self._default_xvar())
+        expr = Cosine._DiscreteCosine(self._default_xvar())
         DiscreteFunctionSignal.__init__(self, expr)
         _SinCosCExpMixin.__init__(self, omega0, phi0)
         # delay (negativo, OJO)
@@ -854,6 +944,23 @@ class Square(DiscreteFunctionSignal):
 
 class DeltaTrain(DiscreteFunctionSignal):
 
+    class _DiscreteDeltaTrain(sp.Function):
+
+        @classmethod
+        def eval(cls, arg):
+            arg = sp.sympify(arg)
+            if arg is sp.S.NaN:
+                return sp.S.NaN
+            elif arg.is_negative or arg.is_positive:
+                return sp.S.Zero
+            elif arg.is_zero:
+                return sp.S.One
+
+        @staticmethod
+        def _imp_(n):
+            # i es 0, siempre
+            return np.equal(n, 0).astype(np.float_)
+
     @staticmethod
     def _factory(other):
         s = DeltaTrain()
@@ -861,15 +968,11 @@ class DeltaTrain(DiscreteFunctionSignal):
             other._copy_to(s)
         return s
 
-    def _copy_to(self, other):
-        DiscreteFunctionSignal._copy_to(self, other)
-        other._period = self._period
-
     def __init__(self, N=16):
         if N <= 0:
             raise ValueError('N must be greater than 0')
-        nm = sp.Mod(self._default_xvar(), N)
-        expr = Delta._DiscreteDelta(nm)
+        # nm = sp.Mod(self._default_xvar(), N)
+        expr = DeltaTrain._DiscreteDeltaTrain(sp.Mod(self._default_xvar(), N))
         DiscreteFunctionSignal.__init__(self, expr)
         self._period = N
 

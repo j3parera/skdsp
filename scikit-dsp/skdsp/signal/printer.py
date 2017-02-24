@@ -3,6 +3,7 @@ from skdsp.signal.discrete import DiscreteFunctionSignal, Exponential
 from sympy.printing.latex import LatexPrinter
 from sympy.printing.str import StrPrinter
 import sympy as sp
+from skdsp.signal.signals import FunctionSignal
 
 
 class CustomStrPrinter(StrPrinter):
@@ -26,6 +27,9 @@ class CustomLatexPrinter(LatexPrinter):
             return r'\delta\left[{0}\right]'.format(self._print(e._xexpr))
         return r'\delta[?\right]'
 
+    def _print__DiscreteDeltaTrain(self, e):
+        return self._print__DiscreteDelta(e)
+
     def _print__DiscreteStep(self, e):
         if isinstance(e, sp.Expr):
             return r'u\left[{0}\right]'.format(self._print(e.args[0]))
@@ -39,6 +43,12 @@ class CustomLatexPrinter(LatexPrinter):
         elif isinstance(e, DiscreteFunctionSignal):
             return r'r\left[{0}\right]'.format(self._print(e._xexpr))
         return r'r\left[?\right]'
+
+    def _print__DiscreteCosine(self, e):
+        sv = r'{}'.format(self._make_var(e._xexpr, True))
+        return self._make_s(r'\cos', sv, e, True)
+
+
 
     def _print__ContinuousRamp(self, e):
         if isinstance(e, sp.Expr):
@@ -70,6 +80,9 @@ class CustomLatexPrinter(LatexPrinter):
             s = r'?{}'
         return s.format(var)
 
+    def _print_Mod(self, e):
+        return '(({0}))_{{{1}}}'.format(e.args[0], e.args[1])
+
     def _print_Delta(self, e):
         sv = r'{}'.format(self._make_var(e._xexpr, True))
         return self._make_s(r'\delta', sv, e)
@@ -92,7 +105,7 @@ class CustomLatexPrinter(LatexPrinter):
                              self._print(e._width))
         return self._make_s(r'\Delta', sv, e)
 
-    def _print_Cosine(self, e):
+    def _print_cos(self, e):
         sv = r'{}'.format(self._make_var(e._xexpr, True))
         return self._make_s(r'\cos', sv, e, True)
 
@@ -170,10 +183,33 @@ class CustomLatexPrinter(LatexPrinter):
             s = s1 + s2
         return s
 
+#     def _print_Add(self, expr, order=None):
+#         # TODO or not
+#         unordered_terms = list(expr.args)
+#         terms = []
+#         for term in unordered_terms:
+#             terms.append(term)
+# 
+#         tex = ""
+#         for i, term in enumerate(terms):
+#             if i == 0:
+#                 pass
+#             elif self._coeff_isneg(term):
+#                 tex += " - "
+#                 term = -term
+#             else:
+#                 tex += " + "
+#             term_tex = self._print(term)
+#             if self._needs_add_brackets(term):
+#                 term_tex = r"\left(%s\right)" % term_tex
+#             tex += term_tex
+# 
+#         return tex
+    
 
 def latex(signal, **settings):
-    toprint = signal
-    sc = signal.__class__
-    if sc == DiscreteFunctionSignal or sc == ContinuousFunctionSignal:
+    toprint = r'{0}\left[{1}\right]'.format(signal.name, signal._xexpr)
+    if isinstance(signal, FunctionSignal):
         toprint = signal._yexpr
-    return CustomLatexPrinter(settings).doprint(toprint)
+    clp = CustomLatexPrinter(settings)
+    return clp.doprint(toprint)

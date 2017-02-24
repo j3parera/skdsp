@@ -267,13 +267,16 @@ class CosineTest(unittest.TestCase):
         # coseno discreto
         d = ds.Cosine()
         self.assertEqual(pt.latex(d, mode='inline'),
-                         r'$\cos\left[n\right]$')
+                         r'$\cos\left(n\right)$')
         d = ds.Cosine(sp.S.Pi/4)
         self.assertEqual(pt.latex(d, mode='inline'),
-                         r'$\cos\left[\pi n / 4\right]$')
+                         r'$\cos\left(\pi n / 4\right)$')
         d = ds.Cosine(sp.S.Pi/4, sp.S.Pi/8)
         self.assertEqual(pt.latex(d, mode='inline'),
-                         r'$\cos\left[\pi n / 4 + \pi / 8\right]$')
+                         r'$\cos\left(\pi n / 4 + \pi / 8\right)$')
+        d = 3*ds.Cosine(sp.S.Pi/4, sp.S.Pi/8)
+        self.assertEqual(pt.latex(d, mode='inline'),
+                         r'$3*\cos\left(\pi n / 4 + \pi / 8\right)$')
         # coseno continuo
         d = cs.Cosine()
         self.assertEqual(pt.latex(d, mode='inline'),
@@ -284,6 +287,7 @@ class CosineTest(unittest.TestCase):
         d = cs.Cosine(sp.S.Pi/4, sp.S.Pi/8)
         self.assertEqual(pt.latex(d, mode='inline'),
                          r'$\cos\left(\pi t / 4 + \pi / 8\right)$')
+
 
 if __name__ == "__main__":
     unittest.main()

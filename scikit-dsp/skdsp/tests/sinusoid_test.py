@@ -1,7 +1,6 @@
 import skdsp.signal.discrete as ds
 import skdsp.signal.continuous as cs
 import skdsp.signal.printer as pt
-import skdsp.signal.signals as sg
 import numpy as np
 import sympy as sp
 import unittest
@@ -168,6 +167,10 @@ class SinusoidTest(unittest.TestCase):
         s1 = s.Q
         self.assertEqual(s1, cs.Constant(-3*sp.sin(sp.S.Pi/4)) *
                          cs.Sine(sp.S.Pi/8, 0))
+
+    def test_latex(self):
+        s = ds.Sinusoid(3, sp.S.Pi/4, sp.S.Pi/12)
+        print(pt.latex(s))
 
 if __name__ == "__main__":
     unittest.main()

@@ -6,60 +6,13 @@ This class implements all the common methods of signals.
 
 from abc import ABC
 from numbers import Number
-from skdsp.operator.operator import FlipOperator, ShiftOperator
-from skdsp.operator.operator import ScaleOperator, GainOperator
-from skdsp.operator.operator import AbsOperator, HermitianOperator
-from skdsp.operator.operator import ConjugateOperator
+from ..operator.operator import AbsOperator, HermitianOperator
+from ..operator.operator import ConjugateOperator
+from ..operator.operator import FlipOperator, ShiftOperator
+from ..operator.operator import ScaleOperator, GainOperator
 from sympy.functions.elementary.trigonometric import _pi_coeff
 import numpy as np
 import sympy as sp
-
-
-def is_real_scalar(x):
-    """ Checks if argument is a real valued scalar.
-
-    Args:
-        x (Python scalar, numpy scalar or sympy scalar expression):
-            object to be checked.
-
-    Returns:
-        bool: True for success, False otherwise.
-    """
-    ok = True
-    if isinstance(x, sp.Expr):
-        ok = x.is_number and x.is_real
-    else:
-        ok = np.isscalar(x) and np.isrealobj(x)
-    return ok
-
-
-def is_integer_obj(x):
-    try:
-        dtype = x.dtype
-    except AttributeError:
-        dtype = np.asarray(x).dtype
-    try:
-        return issubclass(dtype.type, np.integer)
-    except AttributeError:
-        return False
-
-
-def is_integer_scalar(x):
-    """ Checks if argument is an integer valued scalar.
-
-    Args:
-        x (Python scalar, numpy scalar or sympy scalar expression):
-            object to be checked.
-
-    Returns:
-        bool: True for success, False otherwise.
-    """
-    ok = True
-    if isinstance(x, sp.Expr):
-        ok = x.is_number and x.is_integer
-    else:
-        ok = np.isscalar(x) and is_integer_obj(x)
-    return ok
 
 
 class Signal(ABC):
@@ -105,6 +58,8 @@ class Signal(ABC):
 
     def _copy_to(self, other):
         other._dtype = self._dtype
+        other._name = self.name
+        other._period = self._period
 
     @property
     def dtype(self):

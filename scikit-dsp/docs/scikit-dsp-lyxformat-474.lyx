@@ -1,9 +1,7 @@
-#LyX 2.2 created this file. For more info see http://www.lyx.org/
-\lyxformat 508
+#LyX 2.1 created this file. For more info see http://www.lyx.org/
+\lyxformat 474
 \begin_document
 \begin_header
-\save_transient_properties true
-\origin unavailable
 \textclass scrartcl
 \begin_preamble
 \pagestyle{empty}
@@ -21,16 +19,16 @@
 \language_package default
 \inputencoding utf8
 \fontencoding global
-\font_roman "libertine" "default"
-\font_sans "biolinum" "default"
-\font_typewriter "libertine-mono" "default"
-\font_math "libertine-ntxm" "auto"
+\font_roman libertine
+\font_sans biolinum
+\font_typewriter libertine-mono
+\font_math libertine-ntxm
 \font_default_family default
 \use_non_tex_fonts false
 \font_sc false
 \font_osf false
-\font_sf_scale 100 100
-\font_tt_scale 85 100
+\font_sf_scale 100
+\font_tt_scale 100
 \graphics default
 \default_output_format pdf2
 \output_sync 0
@@ -121,10 +119,6 @@ Simbólico
  Se puede intentar un esquema mixto simbólico-numérico, más numérico que
  simbólico, pero que tenga en cuenta, aunque sea de manera lateral, a éste
  último.
-\begin_inset Separator latexpar
-\end_inset
-
-
 \end_layout
 
 \begin_deeper
@@ -210,640 +204,20 @@ Clase Señal
 \end_layout
 
 \begin_layout Subsection
-Tipos de Señales
+Atributos
 \end_layout
 
 \begin_layout Itemize
-Discretas / Continuas
-\end_layout
-
-\begin_deeper
-\begin_layout Itemize
-C/D: Muestreo, D/C: Interpolación (no solo pasobajo)
+data: numpy.array para los datos de la señal (si definida por datos) o una
+ cache (cuando se define por una función)
 \end_layout
 
 \begin_layout Itemize
-Discretas: DTFT, 
-\begin_inset Formula $z$
-\end_inset
-
--Transform, DFT
+range: python range para los datos de la señal
 \end_layout
 
 \begin_layout Itemize
-Continuas: CTFT, Laplace-Transform
-\end_layout
-
-\end_deeper
-\begin_layout Itemize
-Funcionales / definidas por datos
-\end_layout
-
-\begin_deeper
-\begin_layout Itemize
-Funcionales: definidas por una función matemática
-\end_layout
-
-\begin_layout Itemize
-Definidas por datos: solo discretas y admiten la expresión 
-\begin_inset Formula $\sum_{k=-\infty}^{\infty}x[k]\delta[n-k]$
-\end_inset
-
-
-\end_layout
-
-\end_deeper
-\begin_layout Itemize
-Longitud finita / infinita
-\end_layout
-
-\begin_layout Itemize
-Periódicas / No periódicas
-\end_layout
-
-\begin_deeper
-\begin_layout Itemize
-Las no periódicas pueden suponerse que tienen periodo 
-\begin_inset Formula $\infty$
-\end_inset
-
-
-\end_layout
-
-\begin_layout Itemize
-Periódicas: CFS (Continuas), DFS (Discretas)
-\end_layout
-
-\begin_layout Itemize
-Hay señales funcionales que en discreto pueden ser o no periódicas
-\end_layout
-
-\end_deeper
-\begin_layout Itemize
-Reales / Complejas
-\end_layout
-
-\begin_deeper
-\begin_layout Itemize
-No se consideran otros tipos (binarias, enteras...)
-\end_layout
-
-\begin_layout Itemize
-Por defecto son reales
-\end_layout
-
-\end_deeper
-\begin_layout Itemize
-Simples / Compuestas
-\end_layout
-
-\begin_deeper
-\begin_layout Itemize
-Simples: delta, step, ...
- (una única función con posibles cambios es amplitud, eje temporal...
- 
-\begin_inset Formula $A\delta[nM-k]$
-\end_inset
-
- es una 'delta')
-\end_layout
-
-\begin_layout Itemize
-Compuestas: operaciones con distintas señales: 
-\begin_inset Formula $3\delta[n]+4\delta[n]$
-\end_inset
-
-, 
-\begin_inset Formula $\delta[n]+u[n],$
-\end_inset
-
-
-\begin_inset Formula $a[n]u[n]$
-\end_inset
-
- (
-\begin_inset Formula $a[n]$
-\end_inset
-
- señal de datos)...
-\end_layout
-
-\end_deeper
-\begin_layout Subsection
-Jerarquía de señales
-\end_layout
-
-\begin_layout Itemize
-Clase base abstracta: Signal
-\end_layout
-
-\begin_deeper
-\begin_layout Itemize
-Propiedades:
-\end_layout
-
-\begin_deeper
-\begin_layout Itemize
-
-\family typewriter
-dtype
-\family default
-: tipo de datos (real o complejo)
-\end_layout
-
-\begin_layout Itemize
-
-\family typewriter
-name
-\family default
-: nombre de la señal
-\end_layout
-
-\begin_layout Itemize
-
-\family typewriter
-period
-\family default
-: periodo de la señal (
-\family typewriter
-None
-\family default
-, si no se sabe, flotante si se ha calculado, 
-\family typewriter
-np.inf
-\family default
- si no es periódica)
-\end_layout
-
-\end_deeper
-\end_deeper
-\begin_layout Subsection
-Señales discretas funcionales simples
-\end_layout
-
-\begin_layout Standard
-\noindent
-\align center
-\begin_inset Tabular
-<lyxtabular version="3" rows="12" columns="3">
-<features tabularvalignment="middle">
-<column alignment="left" valignment="top">
-<column alignment="left" valignment="top">
-<column alignment="left" valignment="top">
-<row>
-<cell alignment="left" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
-\begin_inset Text
-
-\begin_layout Plain Layout
-Nombre
-\end_layout
-
-\end_inset
-</cell>
-<cell alignment="left" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
-\begin_inset Text
-
-\begin_layout Plain Layout
-Expresión
-\end_layout
-
-\end_inset
-</cell>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" rightline="true" usebox="none">
-\begin_inset Text
-
-\begin_layout Plain Layout
-Notas
-\end_layout
-
-\end_inset
-</cell>
-</row>
-<row>
-<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
-\begin_inset Text
-
-\begin_layout Plain Layout
-delta
-\end_layout
-
-\end_inset
-</cell>
-<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
-\begin_inset Text
-
-\begin_layout Plain Layout
-\begin_inset Formula $\delta[n]$
-\end_inset
-
-
-\end_layout
-
-\end_inset
-</cell>
-<cell alignment="center" valignment="top" topline="true" rightline="true" usebox="none">
-\begin_inset Text
-
-\begin_layout Plain Layout
-
-\end_layout
-
-\end_inset
-</cell>
-</row>
-<row>
-<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
-\begin_inset Text
-
-\begin_layout Plain Layout
-escalón unitario
-\end_layout
-
-\end_inset
-</cell>
-<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
-\begin_inset Text
-
-\begin_layout Plain Layout
-\begin_inset Formula $u[n]$
-\end_inset
-
-
-\end_layout
-
-\end_inset
-</cell>
-<cell alignment="center" valignment="top" topline="true" rightline="true" usebox="none">
-\begin_inset Text
-
-\begin_layout Plain Layout
-
-\end_layout
-
-\end_inset
-</cell>
-</row>
-<row>
-<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
-\begin_inset Text
-
-\begin_layout Plain Layout
-pulso rectangular
-\end_layout
-
-\end_inset
-</cell>
-<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
-\begin_inset Text
-
-\begin_layout Plain Layout
-\begin_inset Formula $\Pi[n/L]=u[n]-u[n-L]$
-\end_inset
-
-, 
-\begin_inset Formula $L>0$
-\end_inset
-
-
-\end_layout
-
-\end_inset
-</cell>
-<cell alignment="center" valignment="top" topline="true" rightline="true" usebox="none">
-\begin_inset Text
-
-\begin_layout Plain Layout
-Ventana rectangular, boxcar
-\end_layout
-
-\end_inset
-</cell>
-</row>
-<row>
-<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
-\begin_inset Text
-
-\begin_layout Plain Layout
-exponencial
-\end_layout
-
-\end_inset
-</cell>
-<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
-\begin_inset Text
-
-\begin_layout Plain Layout
-\begin_inset Formula $A\alpha^{n}$
-\end_inset
-
-, 
-\begin_inset Formula $A\in\mathbb{C}$
-\end_inset
-
-, 
-\begin_inset Formula $\alpha\in\mathbb{C}$
-\end_inset
-
-
-\end_layout
-
-\end_inset
-</cell>
-<cell alignment="center" valignment="top" topline="true" rightline="true" usebox="none">
-\begin_inset Text
-
-\begin_layout Plain Layout
-
-\end_layout
-
-\end_inset
-</cell>
-</row>
-<row>
-<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
-\begin_inset Text
-
-\begin_layout Plain Layout
-
-\end_layout
-
-\end_inset
-</cell>
-<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
-\begin_inset Text
-
-\begin_layout Plain Layout
-exponencial real: 
-\begin_inset Formula $A\in\mathbb{R}$
-\end_inset
-
-, 
-\begin_inset Formula $\alpha\in\mathbb{R}$
-\end_inset
-
-
-\end_layout
-
-\end_inset
-</cell>
-<cell alignment="center" valignment="top" topline="true" rightline="true" usebox="none">
-\begin_inset Text
-
-\begin_layout Plain Layout
-
-\end_layout
-
-\end_inset
-</cell>
-</row>
-<row>
-<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
-\begin_inset Text
-
-\begin_layout Plain Layout
-
-\end_layout
-
-\end_inset
-</cell>
-<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
-\begin_inset Text
-
-\begin_layout Plain Layout
-exponencial compleja: 
-\begin_inset Formula $\left|A\right|\left|\alpha\right|^{n}\mathrm{e}^{\mathrm{j}(\omega_{0}n+\phi)}$
-\end_inset
-
-, 
-\begin_inset Formula $A=\left|A\right|\mathrm{e}^{\mathrm{j}\phi}\in\mathbb{C}$
-\end_inset
-
-, 
-\begin_inset Formula $\alpha=\left|\alpha\right|\mathrm{e}^{\mathrm{j}\omega_{0}}\in\mathbb{C}$
-\end_inset
-
-
-\end_layout
-
-\end_inset
-</cell>
-<cell alignment="center" valignment="top" topline="true" rightline="true" usebox="none">
-\begin_inset Text
-
-\begin_layout Plain Layout
-
-\end_layout
-
-\end_inset
-</cell>
-</row>
-<row>
-<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
-\begin_inset Text
-
-\begin_layout Plain Layout
-sinusoide
-\end_layout
-
-\end_inset
-</cell>
-<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
-\begin_inset Text
-
-\begin_layout Plain Layout
-\begin_inset Formula $A\cos(\omega_{0}n+\phi)$
-\end_inset
-
-, 
-\begin_inset Formula $A\in\mathbb{C}$
-\end_inset
-
- (aunque generalmente 
-\begin_inset Formula $A\in\mathbb{R}$
-\end_inset
-
-)
-\end_layout
-
-\end_inset
-</cell>
-<cell alignment="center" valignment="top" topline="true" rightline="true" usebox="none">
-\begin_inset Text
-
-\begin_layout Plain Layout
-Más genérica que el coseno
-\end_layout
-
-\end_inset
-</cell>
-</row>
-<row>
-<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
-\begin_inset Text
-
-\begin_layout Plain Layout
-
-\end_layout
-
-\end_inset
-</cell>
-<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
-\begin_inset Text
-
-\begin_layout Plain Layout
-constante 
-\begin_inset Formula $A$
-\end_inset
-
-, 
-\begin_inset Formula $\forall n$
-\end_inset
-
-, 
-\begin_inset Formula $A\in\mathbb{C}$
-\end_inset
-
-
-\end_layout
-
-\end_inset
-</cell>
-<cell alignment="center" valignment="top" topline="true" rightline="true" usebox="none">
-\begin_inset Text
-
-\begin_layout Plain Layout
-\begin_inset Formula $\omega_{0}=0$
-\end_inset
-
-, 
-\begin_inset Formula $\phi=0$
-\end_inset
-
-
-\end_layout
-
-\end_inset
-</cell>
-</row>
-<row>
-<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
-\begin_inset Text
-
-\begin_layout Plain Layout
-tren de deltas
-\end_layout
-
-\end_inset
-</cell>
-<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
-\begin_inset Text
-
-\begin_layout Plain Layout
-\begin_inset Formula $\delta\left[((n))_{N}\right]=\sum_{k=-\infty}^{\infty}\delta[n-kN]$
-\end_inset
-
-
-\end_layout
-
-\end_inset
-</cell>
-<cell alignment="center" valignment="top" topline="true" rightline="true" usebox="none">
-\begin_inset Text
-
-\begin_layout Plain Layout
-Periodo 
-\begin_inset Formula $N$
-\end_inset
-
-
-\end_layout
-
-\end_inset
-</cell>
-</row>
-<row>
-<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
-\begin_inset Text
-
-\begin_layout Plain Layout
-diente de sierra
-\end_layout
-
-\end_inset
-</cell>
-<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
-\begin_inset Text
-
-\begin_layout Plain Layout
-\begin_inset Formula $saw\left[((n))_{N}/w\right]=\begin{cases}
--1+\frac{{2m}}{w} & 0\le m<w\\
-1-2\frac{(m-w)}{(N-w)} & w\le m<N
-\end{cases}\quad m=((n))_{N}$
-\end_inset
-
-
-\end_layout
-
-\end_inset
-</cell>
-<cell alignment="center" valignment="top" topline="true" rightline="true" usebox="none">
-\begin_inset Text
-
-\begin_layout Plain Layout
-Periodo 
-\begin_inset Formula $N$
-\end_inset
-
-
-\end_layout
-
-\end_inset
-</cell>
-</row>
-<row>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
-\begin_inset Text
-
-\begin_layout Plain Layout
-cuadrada
-\end_layout
-
-\end_inset
-</cell>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
-\begin_inset Text
-
-\begin_layout Plain Layout
-\begin_inset Formula $square\left[((n))_{N}/w\right]=\begin{cases}
-1 & 0\le m<w\\
--1 & w\le m<N
-\end{cases}\quad m=((n))_{N}$
-\end_inset
-
-
-\end_layout
-
-\end_inset
-</cell>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" rightline="true" usebox="none">
-\begin_inset Text
-
-\begin_layout Plain Layout
-Periodo 
-\begin_inset Formula $N$
-\end_inset
-
-
-\end_layout
-
-\end_inset
-</cell>
-</row>
-</lyxtabular>
-
-\end_inset
-
-
+real, imag
 \end_layout
 
 \begin_layout Subsection
@@ -856,10 +230,6 @@ Para algunos métodos hay funciones cuyo primer parámetro es la señal
 
 \begin_layout Itemize
 Métodos numpy.ndarray interesantes:
-\begin_inset Separator latexpar
-\end_inset
-
-
 \end_layout
 
 \begin_deeper
@@ -875,10 +245,6 @@ min, max, ptp (peak-to-peak), clip, conj, round, sum, cumsum, prod, cumprod,
 \end_deeper
 \begin_layout Itemize
 Operadores como funciones:
-\begin_inset Separator latexpar
-\end_inset
-
-
 \end_layout
 
 \begin_deeper
@@ -890,12 +256,6 @@ __pos__
 , 
 \family typewriter
 __abs__
-\family default
-
-\begin_inset Separator latexpar
-\end_inset
-
-
 \end_layout
 
 \begin_deeper
@@ -910,12 +270,6 @@ __neg__
 operadores binarios: 
 \family typewriter
 __(i)pow__
-\family default
-
-\begin_inset Separator latexpar
-\end_inset
-
-
 \end_layout
 
 \begin_deeper
@@ -1014,10 +368,6 @@ indexado con
 __getitem__
 \family default
  funciona de dos formas:
-\begin_inset Separator latexpar
-\end_inset
-
-
 \end_layout
 
 \begin_deeper
@@ -1084,10 +434,6 @@ step
 \end_deeper
 \begin_layout Itemize
 representación:
-\begin_inset Separator latexpar
-\end_inset
-
-
 \end_layout
 
 \begin_deeper
@@ -1127,10 +473,6 @@ Las señales son vectores de un espacio de Hilbert
 
 \begin_layout Itemize
 Una señal es (o tiene):
-\begin_inset Separator latexpar
-\end_inset
-
-
 \end_layout
 
 \begin_deeper
@@ -1149,10 +491,6 @@ una función en el dominio complejo X(s) o X(z)
 \end_deeper
 \begin_layout Itemize
 Como función
-\begin_inset Separator latexpar
-\end_inset
-
-
 \end_layout
 
 \begin_deeper
@@ -1178,10 +516,6 @@ la longitud puede estar limitada (valores en los que es no-nula, sin ceros
 \begin_layout Itemize
 Se debería poder (si procede, según existencia, convergencia, etc) pasar
  una función a otra:
-\begin_inset Separator latexpar
-\end_inset
-
-
 \end_layout
 
 \begin_deeper
@@ -1205,10 +539,6 @@ Podrían existir expansiones en serie de bases natural, ...
 
 \begin_layout Itemize
 Las señales tienen propiedades: (true/false)
-\begin_inset Separator latexpar
-\end_inset
-
-
 \end_layout
 
 \begin_deeper
@@ -1261,10 +591,6 @@ Un operador en el dominio del tiempo se corresponde con otro operador en
 \begin_layout Itemize
 Los operadores pueden escribirse como funciones o como métodos; en cualquier
  caso el resultado es una señal distinta:
-\begin_inset Separator latexpar
-\end_inset
-
-
 \end_layout
 
 \begin_deeper
@@ -1345,10 +671,6 @@ fluent interface
 \end_deeper
 \begin_layout Itemize
 La expresión como métodos permite escribir cosas como:
-\begin_inset Separator latexpar
-\end_inset
-
-
 \end_layout
 
 \begin_deeper
@@ -1359,7 +681,7 @@ x = 3*Delta().shift(-2) + 2*(Delta() << 1) + (2+2j)*Delta().shift(2) + 3*(Delta(
  >> 4)
 \family default
 , para formar la señal que responde a la expresión 
-\begin_inset Formula $x[n]=3\delta[n+2]+2\delta[n+1]+(2+2\mathrm{j})\delta[n-2]+3\delta[n-4]$
+\begin_inset Formula $x[n]=3\delta[n+2]+2\delta[n+1]+(2+2{\rm {j}})\delta[n-2]+3\delta[n-4]$
 \end_inset
 
 .
@@ -1384,7 +706,7 @@ Step
 x = 3*Delta(-2) + 2*Delta(-1) + (2+2j)*Delta(2) + 3*Delta(4)
 \family default
 , es 
-\begin_inset Formula $x[n]=3\delta[n+2]+2\delta[n+1]+(2+2\mathrm{j})\delta[n-2]+3\delta[n-4]$
+\begin_inset Formula $x[n]=3\delta[n+2]+2\delta[n+1]+(2+2{\rm {j}})\delta[n-2]+3\delta[n-4]$
 \end_inset
 
 .
@@ -1416,10 +738,6 @@ Unitarios 'reduce': x(n) → número
 
 \begin_layout Itemize
 norma 1, 2, oo, genérica (p)
-\begin_inset Separator latexpar
-\end_inset
-
-
 \end_layout
 
 \begin_deeper
@@ -1489,18 +807,18 @@ si las señales son discretas,
 \end_layout
 
 \begin_layout Itemize
-\begin_inset Formula $\mathrm{flip}(x[n])=x[-n]$
+\begin_inset Formula ${\rm {flip}}(x[n])=x[-n]$
 \end_inset
 
 , 
-\begin_inset Formula $\mathrm{flip}(x(t))=x(-t)$
+\begin_inset Formula ${\rm {flip}}(x(t))=x(-t)$
 \end_inset
 
 
 \end_layout
 
 \begin_layout Itemize
-\begin_inset Formula $\mathrm{compress}(x[n],\alpha)=x[\alpha n]$
+\begin_inset Formula ${\rm {compress}}(x[n],\alpha)=x[\alpha n]$
 \end_inset
 
 ; si 
@@ -1508,14 +826,14 @@ si las señales son discretas,
 \end_inset
 
  no entero, excepción, 
-\begin_inset Formula $\mathrm{compress}(x(t),\alpha)=x(\alpha t)$
+\begin_inset Formula ${\rm {compress}}(x(t),\alpha)=x(\alpha t)$
 \end_inset
 
 
 \end_layout
 
 \begin_layout Itemize
-\begin_inset Formula $\mathrm{expand}(x[n],\beta)=x[n/\beta]$
+\begin_inset Formula ${\rm {expand}}(x[n],\beta)=x[n/\beta]$
 \end_inset
 
 ; si 
@@ -1523,14 +841,14 @@ si las señales son discretas,
 \end_inset
 
  no entero, excepción, 
-\begin_inset Formula $\mathrm{expand}(x(t),\beta)=x(t/\beta)$
+\begin_inset Formula ${\rm {expand}}(x(t),\beta)=x(t/\beta)$
 \end_inset
 
 
 \end_layout
 
 \begin_layout Itemize
-\begin_inset Formula $\mathrm{shift}(x[n],k)=x[n-k]$
+\begin_inset Formula ${\rm {shift}}(x[n],k)=x[n-k]$
 \end_inset
 
 ; si 
@@ -1538,7 +856,7 @@ si las señales son discretas,
 \end_inset
 
  no entero, excepción, 
-\begin_inset Formula $\mathrm{shift}(x(t),t_{0})=x(t-t_{0})$
+\begin_inset Formula ${\rm {shift}}(x(t),t_{0})=x(t-t_{0})$
 \end_inset
 
 
@@ -1558,7 +876,7 @@ producto por escalar:
 
 \begin_layout Itemize
 desplazamiento circular: 
-\begin_inset Formula $\mathrm{cshift}(x[n],n_{0},N)=x\left[((n-n0))_{N}\right]$
+\begin_inset Formula ${\rm {cshift}}(x[n],n_{0},N)=x((n-n0)_{N})$
 \end_inset
 
 
@@ -1566,11 +884,11 @@ desplazamiento circular:
 
 \begin_layout Itemize
 conjugación: 
-\begin_inset Formula $\mathrm{conj}(x[n])=x^{*}[n]$
+\begin_inset Formula ${\rm {conj}(x[n])=x^{*}[n]}$
 \end_inset
 
 , 
-\begin_inset Formula $\mathrm{conj}(x(t))=x^{*}(t)$
+\begin_inset Formula ${\rm {conj}}(x(t))=x^{*}(t)$
 \end_inset
 
 
@@ -1582,10 +900,6 @@ potencia instantánea
 
 \begin_layout Itemize
 otras funciones no lineales:
-\begin_inset Separator latexpar
-\end_inset
-
-
 \end_layout
 
 \begin_deeper
