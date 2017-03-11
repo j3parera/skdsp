@@ -1,7 +1,7 @@
 import skdsp.signal.discrete as ds
 import skdsp.signal.continuous as cs
 import skdsp.signal.printer as pt
-import skdsp.signal.signals as sg
+import skdsp.signal._signal as sg
 from skdsp.signal.util import is_discrete, is_continuous, is_real, is_complex
 import numpy as np
 import sympy as sp
@@ -14,15 +14,15 @@ class RectTest(unittest.TestCase):
         ''' Rect (discrete/continuous): constructors '''
         # rectángulo discreto
         d = ds.Rect(3)
-        self.assertIsInstance(d, sg.Signal)
-        self.assertIsInstance(d, sg.FunctionSignal)
+        self.assertIsInstance(d, sg._Signal)
+        self.assertIsInstance(d, sg._FunctionSignal)
         self.assertIsInstance(d, ds.DiscreteFunctionSignal)
         self.assertTrue(is_discrete(d))
         self.assertFalse(is_continuous(d))
         # rectángulo continuo
         d = cs.Rect(3)
-        self.assertIsInstance(d, sg.Signal)
-        self.assertIsInstance(d, sg.FunctionSignal)
+        self.assertIsInstance(d, sg._Signal)
+        self.assertIsInstance(d, sg._FunctionSignal)
         self.assertIsInstance(d, cs.ContinuousFunctionSignal)
         self.assertFalse(is_discrete(d))
         self.assertTrue(is_continuous(d))

@@ -1,16 +1,13 @@
-from numbers import Number
 from ..operator.operator import ShiftOperator, ScaleOperator
-from .signals import FunctionSignal, ConstantSignal, Signal
+from skdsp.signal._signal import _FunctionSignal, _Signal
+from ._util import _is_real_scalar
+from numbers import Number
 from sympy.core.evaluate import evaluate
 import numpy as np
 import sympy as sp
 
 
-__all__ = ['DiscreteFunctionSignal', 'DataSignal'
-           'Constant', 'Delta', 'Step', 'Ramp',
-           'Cosine', 'Sine', 'Sinusoid'
-           'ComplexSinusoid', 'Exponential',
-           'Sawtooth', 'Square', 'DeltaTrain']
+__all__ = [s for s in dir() if not s.startswith('_')]
 
 
 class _ContinuousMixin(object):
@@ -39,19 +36,19 @@ class _ContinuousMixin(object):
 #         return dohas
 
     def flip(self):
-        s = FunctionSignal.flip(self)
+        s = _FunctionSignal.flip(self)
         return s
 
     __reversed__ = flip
 
     def shift(self, tau):
-        if not is_real_scalar(tau):
+        if not _is_real_scalar(tau):
             raise TypeError('delay/advance must be real')
         # esto evita que r(t-k) se convierta en t-k (sin la r)
         # doeval = not self._has_ramp()
         # with evaluate(doeval):
         with evaluate(True):
-            s = FunctionSignal.shift(self, tau)
+            s = _FunctionSignal.shift(self, tau)
         return s
 
     def delay(self, tau):
@@ -69,9 +66,9 @@ class _ContinuousMixin(object):
 
     def scale(self, alpha):
         # Scale permite cualquier valor de alpha, no necesariamente entero
-        if not is_real_scalar(alpha):
+        if not _is_real_scalar(alpha):
             raise TypeError('scale must be real')
-        return FunctionSignal.scale(self, alpha)
+        return _FunctionSignal.scale(self, alpha)
 
     def __add__(self, other):
         if not isinstance(other, (_ContinuousMixin, Number)):
@@ -88,7 +85,7 @@ class _ContinuousMixin(object):
             o = Constant(other)
         else:
             o = other
-        return FunctionSignal.__add__(s, o)
+        return _FunctionSignal.__add__(s, o)
 
     __radd__ = __add__
     __iadd__ = __add__
@@ -108,7 +105,7 @@ class _ContinuousMixin(object):
             o = Constant(other)
         else:
             o = other
-        return FunctionSignal.__sub__(s, o)
+        return _FunctionSignal.__sub__(s, o)
 
     def __rsub__(self, other):
         if not isinstance(other, (_ContinuousMixin, Number)):
@@ -125,7 +122,7 @@ class _ContinuousMixin(object):
             o = Constant(other)
         else:
             o = other
-        return FunctionSignal.__rsub__(o, s)
+        return _FunctionSignal.__rsub__(o, s)
 
     __isub__ = __sub__
 
@@ -154,7 +151,7 @@ class _ContinuousMixin(object):
             o = Constant(other)
         else:
             o = other
-        return FunctionSignal.__mul__(s, o)
+        return _FunctionSignal.__mul__(s, o)
 
     __rmul__ = __mul__
     __imul__ = __mul__
@@ -172,7 +169,7 @@ class _ContinuousMixin(object):
             o = Constant(other)
         else:
             o = other
-        return FunctionSignal.__truediv__(s, o)
+        return _FunctionSignal.__truediv__(s, o)
 
     __itruediv__ = __truediv__
 
@@ -186,10 +183,10 @@ class _ContinuousMixin(object):
             o = Constant(other)
         else:
             o = other
-        return FunctionSignal.__rtruediv__(o, s)
+        return _FunctionSignal.__rtruediv__(o, s)
 
 
-class ContinuousFunctionSignal(_ContinuousMixin, FunctionSignal):
+class ContinuousFunctionSignal(_ContinuousMixin, _FunctionSignal):
     # Las especializaciones discretas deben ir antes que las funcionales
     @staticmethod
     def _factory(other):
@@ -198,7 +195,7 @@ class ContinuousFunctionSignal(_ContinuousMixin, FunctionSignal):
         return s
 
     def __init__(self, expr):
-        FunctionSignal.__init__(self, expr)
+        _FunctionSignal.__init__(self, expr)
         _ContinuousMixin.__init__(self)
         self._laplace_transform = None
         self._fourier_transform = None
@@ -207,7 +204,7 @@ class ContinuousFunctionSignal(_ContinuousMixin, FunctionSignal):
         other._laplace_transform = self._laplace_transform
         other._fourier_transform = self._fourier_transform
         _ContinuousMixin._copy_to(self, other)
-        FunctionSignal._copy_to(self, other)
+        _FunctionSignal._copy_to(self, other)
 
     @property
     def laplace(self):
@@ -236,14 +233,14 @@ class ContinuousFunctionSignal(_ContinuousMixin, FunctionSignal):
         else:
             is_scalar = True
             x = np.array([x])
-        y = FunctionSignal.eval(self, x)
+        y = _FunctionSignal.eval(self, x)
         if is_scalar:
             y = np.asscalar(y)
         return y
 
     def __abs__(self):
         s = ContinuousFunctionSignal._factory(self)
-        return FunctionSignal.__abs__(s)
+        return _FunctionSignal.__abs__(s)
 
     def magnitude(self, dB=False):
         m = abs(self)
@@ -254,7 +251,7 @@ class ContinuousFunctionSignal(_ContinuousMixin, FunctionSignal):
         return m
 
 
-class Constant(ContinuousFunctionSignal, ConstantSignal):
+class Constant(ContinuousFunctionSignal):
 
     @staticmethod
     def _factory(other, cte):
@@ -263,9 +260,11 @@ class Constant(ContinuousFunctionSignal, ConstantSignal):
             other._copy_to(s)
         return s
 
-    def __init__(self, c):
-        ContinuousFunctionSignal.__init__(self, sp.sympify(c))
-        ConstantSignal.__init__(self, c, self._xvar)
+    def __init__(self, const):
+        sc = sp.sympify(const)
+        ContinuousFunctionSignal.__init__(self, sc)
+        if sc.is_complex:
+            self.dtype = np.complex_
 
     def max(self):
         return self._yexpr
@@ -465,14 +464,14 @@ class _SinCosCExpMixin(object):
 
     @property
     def period(self):
-        if self._period is not None:
-            return self._period
-        self._period = self._compute_period()
-        return self._period
+        if self.period is not None:
+            return self.period
+        self.period = self._compute_period()
+        return self.period
 
     def as_euler(self):
         eu = ContinuousFunctionSignal(self._yexpr.rewrite(sp.exp))
-        eu._dtype = np.complex_
+        eu.dtype = np.complex_
         return eu
 
 
@@ -614,7 +613,7 @@ class Exponential(_SinCosCExpMixin, ContinuousFunctionSignal):
         pb = sp.arg(self._base)
         if pb != sp.nan:
             if pb != 0:
-                self._dtype = np.complex_
+                self.dtype = np.complex_
 
     def _copy_to(self, other):
         other._base = self._base
@@ -627,7 +626,7 @@ class Exponential(_SinCosCExpMixin, ContinuousFunctionSignal):
 
     def is_periodic(self):
         mod1 = sp.Abs(self._base) == 1
-        return mod1 and Signal.is_periodic(self)
+        return mod1 and _Signal.is_periodic(self)
 
 
 class ComplexSinusoid(_SinCosCExpMixin, ContinuousFunctionSignal):
@@ -645,7 +644,7 @@ class ComplexSinusoid(_SinCosCExpMixin, ContinuousFunctionSignal):
         expr = self._A*sp.exp(sp.I*self._default_xvar())
         ContinuousFunctionSignal.__init__(self, expr)
         _SinCosCExpMixin.__init__(self, omega0, phi)
-        self._dtype = np.complex_
+        self.dtype = np.complex_
         # delay (negativo, OJO)
         delay = -self._phi0
         self._xexpr = ShiftOperator.apply(self._xvar, self._xexpr, delay)

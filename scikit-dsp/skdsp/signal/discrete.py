@@ -1,75 +1,13 @@
 from ..operator.operator import ScaleOperator, ShiftOperator
-from .signals import Signal, FunctionSignal, ConstantSignal
+from ._util import _is_integer_scalar, _latex_mode
+from skdsp.signal._signal import _Signal, _FunctionSignal
 from numbers import Integral, Number
 import numpy as np
 import sympy as sp
+from skdsp.signal._util import _is_real_scalar, _is_complex_scalar
 
 
-__all__ = ['_DiscreteMixin',
-           'DiscreteFunctionSignal',
-           'DataSignal',
-           'Delta',
-           'Step',
-           'RectangularPulse',
-           'Exponential',
-           'Sinusoid'
-           'DeltaTrain',
-           'Sawtooth',
-           'Square']
-
-
-def is_real_scalar(x):
-    """ Checks if argument is a real valued scalar.
-
-    Args:
-        x (Python scalar, numpy scalar or sympy scalar expression):
-            object to be checked.
-
-    Returns:
-        bool: True for success, False otherwise.
-    """
-    ok = True
-    if isinstance(x, sp.Expr):
-        ok = x.is_number and x.is_real
-    else:
-        ok = np.isscalar(x) and np.isrealobj(x)
-    return ok
-
-
-def is_integer_obj(x):
-    try:
-        dtype = x.dtype
-    except AttributeError:
-        dtype = np.asarray(x).dtype
-    try:
-        return issubclass(dtype.type, np.integer)
-    except AttributeError:
-        return False
-
-
-def is_integer_scalar(x):
-    """ Checks if argument is an integer valued scalar.
-
-    Args:
-        x (Python scalar, numpy scalar or sympy scalar expression):
-            object to be checked.
-
-    Returns:
-        bool: True for success, False otherwise.
-    """
-    ok = True
-    if isinstance(x, sp.Expr):
-        ok = x.is_number and x.is_integer
-    else:
-        ok = np.isscalar(x) and is_integer_obj(x)
-    return ok
-
-
-def latex_mode(s, mode):
-    if 'mode' == 'inline':
-        return r'$' + s + '$'
-    else:
-        return s
+__all__ = [s for s in dir() if not s.startswith('_')]
 
 
 class _DiscreteMixin(object):
@@ -78,6 +16,26 @@ class _DiscreteMixin(object):
     Defines all common operations for this kind of signals
     and other useful stuff.
     """
+
+    @property
+    def is_continuous(self):
+        return False
+
+    @property
+    def is_discrete(self):
+        return True
+
+    @property
+    def period(self):
+        return super().period
+
+    @period.setter
+    def period(self, value):
+        v = sp.sympify(value)
+        if _is_integer_scalar(v) or v.equals(sp.oo):
+            self._period = v
+        else:
+            raise TypeError('`period` must be an integer scalar')
 
     @staticmethod
     def _check_indexes(x):
@@ -112,10 +70,10 @@ class _DiscreteMixin(object):
         """
         Delays (or advances) the signal k (integer) units.
         """
-        if not is_integer_scalar(k):
+        if not _is_integer_scalar(k):
             raise TypeError('delay/advance must be integer')
-        if isinstance(self, FunctionSignal):
-            o = FunctionSignal.shift(self, k)
+        if isinstance(self, _FunctionSignal):
+            o = _FunctionSignal.shift(self, k)
         elif isinstance(self, DataSignal):
             o = DataSignal.shift(self, k)
         return o
@@ -124,7 +82,7 @@ class _DiscreteMixin(object):
 #         # versión de retardo no necesariamente entero
 #         if not is_real_scalar(d):
 #             raise TypeError('delay/advance must be real')
-#         o = FunctionSignal.shift(self, d)
+#         o = _FunctionSignal.shift(self, d)
 #         return o
 
     def __rshift__(self, k):
@@ -140,19 +98,19 @@ class _DiscreteMixin(object):
 #     def compress(self, alpha):
 #         if not isinstance(alpha, Integral):
 #             raise TypeError('compress factor must be integer')
-#         return Signal.compress(self, alpha)
+#         return _Signal.compress(self, alpha)
 #
 #     def expand(self, beta):
 #         if not isinstance(beta, Integral):
 #             raise TypeError('expand factor must be integer')
-#         return Signal.expand(self, beta)
+#         return _Signal.expand(self, beta)
 #
 #     def ccshift(self, k, N):
 #         if not isinstance(k, Integral):
 #             raise TypeError('delay/advance must be integer')
 #         if not isinstance(N, Integral):
 #             raise TypeError('modulo length must be integer')
-#         return Signal.cshift(self, k, N)
+#         return _Signal.cshift(self, k, N)
 
     def __add__(self, other):
         if not isinstance(other, (_DiscreteMixin, Number)):
@@ -169,7 +127,7 @@ class _DiscreteMixin(object):
             o = Constant(other)
         else:
             o = other
-        return FunctionSignal.__add__(s, o)
+        return _FunctionSignal.__add__(s, o)
 
     __radd__ = __add__
     __iadd__ = __add__
@@ -189,7 +147,7 @@ class _DiscreteMixin(object):
             o = Constant(other)
         else:
             o = other
-        return FunctionSignal.__sub__(s, o)
+        return _FunctionSignal.__sub__(s, o)
 
     def __rsub__(self, other):
         if not isinstance(other, (_DiscreteMixin, Number)):
@@ -206,7 +164,7 @@ class _DiscreteMixin(object):
             o = Constant(other)
         else:
             o = other
-        return FunctionSignal.__rsub__(o, s)
+        return _FunctionSignal.__rsub__(o, s)
 
     __isub__ = __sub__
 
@@ -235,7 +193,7 @@ class _DiscreteMixin(object):
             o = Constant(other)
         else:
             o = other
-        return FunctionSignal.__mul__(s, o)
+        return _FunctionSignal.__mul__(s, o)
 
     __rmul__ = __mul__
     __imul__ = __mul__
@@ -253,7 +211,7 @@ class _DiscreteMixin(object):
             o = Constant(other)
         else:
             o = other
-        return FunctionSignal.__truediv__(s, o)
+        return _FunctionSignal.__truediv__(s, o)
 
     __itruediv__ = __truediv__
 
@@ -267,7 +225,7 @@ class _DiscreteMixin(object):
             o = Constant(other)
         else:
             o = other
-        return FunctionSignal.__rtruediv__(o, s)
+        return _FunctionSignal.__rtruediv__(o, s)
 
     def dfs(self, P=None, force=False, symbolic=False):
         if not force and not self.is_periodic():
@@ -279,7 +237,7 @@ class _DiscreteMixin(object):
             N = P
         else:
             # periodo de la señal
-            N = int(self._period)
+            N = int(self.period)
             if P is not None:
                 # P debe ser un múltiplo de N
                 if P % N != 0:
@@ -300,7 +258,7 @@ class _DiscreteMixin(object):
         return X
 
 
-class DataSignal(Signal, _DiscreteMixin):
+class DataSignal(_Signal, _DiscreteMixin):
 
     def __init__(self, data, span):
         super.__init__()
@@ -308,7 +266,7 @@ class DataSignal(Signal, _DiscreteMixin):
         self._span = span
 
 
-class DiscreteFunctionSignal(_DiscreteMixin, FunctionSignal):
+class DiscreteFunctionSignal(_DiscreteMixin, _FunctionSignal):
     # Las especializaciones discretas deben ir antes que las funcionales
     @staticmethod
     def _factory(other):
@@ -317,7 +275,7 @@ class DiscreteFunctionSignal(_DiscreteMixin, FunctionSignal):
         return s
 
     def __init__(self, expr):
-        FunctionSignal.__init__(self, expr)
+        _FunctionSignal.__init__(self, expr)
         _DiscreteMixin.__init__(self)
         self._z_transform = None
         self._dt_fourier_transform = None
@@ -326,7 +284,7 @@ class DiscreteFunctionSignal(_DiscreteMixin, FunctionSignal):
         other._z_transform = self._z_transform
         other._dt_fourier_transform = self._dt_fourier_transform
         _DiscreteMixin._copy_to(self, other)
-        FunctionSignal._copy_to(self, other)
+        _FunctionSignal._copy_to(self, other)
 
     @property
     def z_transform(self):
@@ -357,14 +315,14 @@ class DiscreteFunctionSignal(_DiscreteMixin, FunctionSignal):
             x = np.array([x])
         if not force:
             self._check_indexes(x)
-        y = FunctionSignal.eval(self, x)
+        y = _FunctionSignal.eval(self, x)
         if is_scalar:
             y = np.asscalar(y)
         return y
 
     def __abs__(self):
         s = DiscreteFunctionSignal._factory(self)
-        return FunctionSignal.__abs__(s)
+        return _FunctionSignal.__abs__(s)
 
     def magnitude(self, dB=False):
         m = abs(self)
@@ -375,18 +333,21 @@ class DiscreteFunctionSignal(_DiscreteMixin, FunctionSignal):
         return m
 
 
-class Constant(DiscreteFunctionSignal, ConstantSignal):
+class Constant(DiscreteFunctionSignal):
 
     @staticmethod
-    def _factory(other, cte):
-        s = Constant(cte)
+    def _factory(other):
+        s = Constant()
         if other:
             other._copy_to(s)
         return s
 
-    def __init__(self, c):
-        DiscreteFunctionSignal.__init__(self, sp.sympify(c))
-        ConstantSignal.__init__(self, c, self._xvar)
+    def __init__(self, const=0):
+        sc = sp.sympify(const)
+        DiscreteFunctionSignal.__init__(self, sc)
+        if _is_complex_scalar(const):
+            self.dtype = np.complex_
+        self.period = sp.oo
 
     def max(self):
         return self._yexpr
@@ -440,7 +401,7 @@ class Delta(DiscreteFunctionSignal):
 
     def tolatex(self, mode):
         s = r'\delta\left[{0}\right]'.format(sp.latex(self._xexpr))
-        return latex_mode(s, mode='inline')
+        return _latex_mode(s, mode='inline')
 
 
 class Step(DiscreteFunctionSignal):
@@ -651,14 +612,14 @@ class _SinCosCExpMixin(object):
 
     @property
     def period(self):
-        if self._period is not None:
-            return self._period
-        self._period = self._compute_period()
-        return self._period
+        if self.period is not None:
+            return self.period
+        self.period = self._compute_period()
+        return self.period
 
     def as_euler(self):
         eu = DiscreteFunctionSignal(self._yexpr.rewrite(sp.exp))
-        eu._dtype = np.complex_
+        eu.dtype = np.complex_
         return eu
 
 
@@ -806,7 +767,7 @@ class Exponential(_SinCosCExpMixin, DiscreteFunctionSignal):
         pb = sp.arg(self._base)
         if pb != sp.nan:
             if pb != 0:
-                self._dtype = np.complex_
+                self.dtype = np.complex_
 
     def _copy_to(self, other):
         other._base = self._base
@@ -819,7 +780,7 @@ class Exponential(_SinCosCExpMixin, DiscreteFunctionSignal):
 
     def is_periodic(self):
         mod1 = sp.Abs(self._base) == 1
-        return mod1 and Signal.is_periodic(self)
+        return mod1 and _Signal.is_periodic(self)
 
 
 class ComplexSinusoid(_SinCosCExpMixin, DiscreteFunctionSignal):
@@ -837,7 +798,7 @@ class ComplexSinusoid(_SinCosCExpMixin, DiscreteFunctionSignal):
         expr = self._A*sp.exp(sp.I*self._default_xvar())
         DiscreteFunctionSignal.__init__(self, expr)
         _SinCosCExpMixin.__init__(self, omega0, phi)
-        self._dtype = np.complex_
+        self.dtype = np.complex_
         # delay (negativo, OJO)
         delay = -self._phi0
         self._xexpr = ShiftOperator.apply(self._xvar, self._xexpr, delay)
@@ -876,7 +837,7 @@ class Sawtooth(DiscreteFunctionSignal):
 
     def _copy_to(self, other):
         DiscreteFunctionSignal._copy_to(self, other)
-        other._period = self._period
+        other.period = self.period
         other._width = self._width
 
     def __init__(self, N=16, width=None):
@@ -890,7 +851,7 @@ class Sawtooth(DiscreteFunctionSignal):
         expr = sp.Piecewise((-1+(2*nm)/width, nm < width),
                             (1-2*(nm-width)/(N-width), nm < N))
         DiscreteFunctionSignal.__init__(self, expr)
-        self._period = N
+        self.period = N
         self._width = width
 
     def max(self):
@@ -900,7 +861,7 @@ class Sawtooth(DiscreteFunctionSignal):
         return -1
 
     def _print(self):
-        return 'saw[{0}, {1}, {2}]'.format(str(self._xexpr), self._period,
+        return 'saw[{0}, {1}, {2}]'.format(str(self._xexpr), self.period,
                                            self._width)
 
 
@@ -915,7 +876,7 @@ class Square(DiscreteFunctionSignal):
 
     def _copy_to(self, other):
         DiscreteFunctionSignal._copy_to(self, other)
-        other._period = self._period
+        other.period = self.period
         other._width = self._width
 
     def __init__(self, N=16, width=None):
@@ -928,7 +889,7 @@ class Square(DiscreteFunctionSignal):
         nm = sp.Mod(self._default_xvar(), N)
         expr = sp.Piecewise((1, nm < width), (-1, nm < N))
         DiscreteFunctionSignal.__init__(self, expr)
-        self._period = N
+        self.period = N
         self._width = width
 
     def max(self):
@@ -938,7 +899,7 @@ class Square(DiscreteFunctionSignal):
         return -1
 
     def _print(self):
-        return 'square[{0}, {1}, {2}]'.format(str(self._xexpr), self._period,
+        return 'square[{0}, {1}, {2}]'.format(str(self._xexpr), self.period,
                                               self._width)
 
 
@@ -974,7 +935,7 @@ class DeltaTrain(DiscreteFunctionSignal):
         # nm = sp.Mod(self._default_xvar(), N)
         expr = DeltaTrain._DiscreteDeltaTrain(sp.Mod(self._default_xvar(), N))
         DiscreteFunctionSignal.__init__(self, expr)
-        self._period = N
+        self.period = N
 
     def max(self):
         return 1
@@ -983,4 +944,4 @@ class DeltaTrain(DiscreteFunctionSignal):
         return 0
 
     def _print(self):
-        return 'III[{0},{1}]'.format(str(self._xexpr), self._period)
+        return 'III[{0},{1}]'.format(str(self._xexpr), self.period)

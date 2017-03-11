@@ -4,7 +4,7 @@ import numpy as np
 import skdsp.signal.continuous as cs
 import skdsp.signal.discrete as ds
 import skdsp.signal.printer as pt
-import skdsp.signal.signals as sg
+import skdsp.signal._signal as sg
 import sympy as sp
 import unittest
 
@@ -19,8 +19,8 @@ class ExponentialTest(unittest.TestCase):
         ''' Exponential (discrete/continuous): constructors '''
         # exponencial discreta
         c = ds.Exponential()
-        self.assertIsInstance(c, sg.Signal)
-        self.assertIsInstance(c, sg.FunctionSignal)
+        self.assertIsInstance(c, sg._Signal)
+        self.assertIsInstance(c, sg._FunctionSignal)
         self.assertIsInstance(c, ds.DiscreteFunctionSignal)
         self.assertIsInstance(c, ds.Exponential)
         self.assertTrue(is_discrete(c))
@@ -34,8 +34,8 @@ class ExponentialTest(unittest.TestCase):
         self.assertEqual(c, sp.sympify((1+1j)**n))
         # exponencial continua
         c = cs.Exponential()
-        self.assertIsInstance(c, sg.Signal)
-        self.assertIsInstance(c, sg.FunctionSignal)
+        self.assertIsInstance(c, sg._Signal)
+        self.assertIsInstance(c, sg._FunctionSignal)
         self.assertIsInstance(c, cs.ContinuousFunctionSignal)
         self.assertIsInstance(c, cs.Exponential)
         self.assertFalse(is_discrete(c))

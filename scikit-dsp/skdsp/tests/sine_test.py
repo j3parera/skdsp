@@ -1,7 +1,7 @@
 import skdsp.signal.discrete as ds
 import skdsp.signal.continuous as cs
 import skdsp.signal.printer as pt
-import skdsp.signal.signals as sg
+import skdsp.signal._signal as sg
 from skdsp.signal.util import is_discrete, is_continuous, is_real, is_complex
 import numpy as np
 import sympy as sp
@@ -15,8 +15,8 @@ class SineTest(unittest.TestCase):
         ''' Sine (discrete/continuous): constructors '''
         # seno discreto
         c = ds.Sine()
-        self.assertIsInstance(c, sg.Signal)
-        self.assertIsInstance(c, sg.FunctionSignal)
+        self.assertIsInstance(c, sg._Signal)
+        self.assertIsInstance(c, sg._FunctionSignal)
         self.assertIsInstance(c, ds.DiscreteFunctionSignal)
         self.assertTrue(is_discrete(c))
         self.assertFalse(is_continuous(c))
@@ -25,8 +25,8 @@ class SineTest(unittest.TestCase):
         self.assertEqual(c1, c2)
         # seno continuo
         c = cs.Sine()
-        self.assertIsInstance(c, sg.Signal)
-        self.assertIsInstance(c, sg.FunctionSignal)
+        self.assertIsInstance(c, sg._Signal)
+        self.assertIsInstance(c, sg._FunctionSignal)
         self.assertIsInstance(c, cs.ContinuousFunctionSignal)
         self.assertFalse(is_discrete(c))
         self.assertTrue(is_continuous(c))

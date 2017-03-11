@@ -4,62 +4,35 @@ This class implements all the common methods of signals.
 
 """
 
-from abc import ABC
-from numbers import Number
 from ..operator.operator import AbsOperator, HermitianOperator
 from ..operator.operator import ConjugateOperator
 from ..operator.operator import FlipOperator, ShiftOperator
 from ..operator.operator import ScaleOperator, GainOperator
-from sympy.functions.elementary.trigonometric import _pi_coeff
+from ._util import _is_real_scalar
+from abc import ABC, abstractproperty
+from numbers import Number
 import numpy as np
 import sympy as sp
 
 
-class Signal(ABC):
-    ''' Signal is the abstract base class
+class _Signal(ABC):
+    ''' _Signal is the abstract base class
     '''
-    @staticmethod
-    def _extract_omega(x):
-        px = sp.arg(x)
-        pc = _pi_coeff(px)
-        if pc is not None:
-            return sp.S.Pi*pc
-        # última posibilidad para algunos caso raros
-        # siempre y cuando la fase quede como (pi +) atan(algo) y
-        # se haya pasado x como a*exp(sp.I*omega0)
-        pisub = False
-        if px.func == sp.Add:
-            pisub = True
-            if px.args[0].is_constant():
-                pisubarg = px.args[0]
-                px -= px.args[0]  # +- pi, supuestamente
-        if px.func == sp.atan:
-            if isinstance(x, sp.Expr):
-                exponent = None
-                if x.func == sp.exp:
-                    exponent = x.args[0]
-                elif x.func == sp.Mul and x.args[1].func == sp.exp:
-                    exponent = x.args[1].args[0]
-                if exponent is not None:
-                    expoverj = exponent/sp.I
-                    pc = _pi_coeff(expoverj)
-                    if pc is not None:
-                        return sp.S.Pi*pc
-        if pisub:
-            px += pisubarg
-        return px.evalf()
-
     def __init__(self):
         """Common *__init__* method for all signals.
         """
         self._dtype = np.float_
-        self.name = 'x'
         self._period = None
+        self._xexpr = None
+        self._xvar = None
+        self.name = 'x'
 
     def _copy_to(self, other):
         other._dtype = self._dtype
-        other._name = self.name
         other._period = self._period
+        other._xexpr = self._xexpr
+        other._xvar
+        other._name = self.name
 
     @property
     def dtype(self):
@@ -67,10 +40,10 @@ class Signal(ABC):
         return self._dtype
 
     @dtype.setter
-    def dtype(self, dtype):
-        if dtype not in (np.float_, np.complex_):
+    def dtype(self, value):
+        if value not in (np.float_, np.complex_):
             raise ValueError('only signal types float or complex allowed')
-        self._dtype = dtype
+        self._dtype = value
 
     @property
     def xexpr(self):
@@ -90,17 +63,30 @@ class Signal(ABC):
         self._yexpr = self._yexpr.xreplace(vmap)
         self._xvar = newvar
 
+    @property
     def is_real(self):
         """ Tests weather the signal is real valued."""
-        return self._dtype == np.float_
+        return self.dtype == np.float_
 
+    @property
     def is_complex(self):
         """ Tests weather the signal is complex valued."""
-        return self._dtype == np.complex_
+        return self.dtype == np.complex_
 
+    @abstractproperty
+    def is_discrete(self):
+        """ Tests weather the signal is discrete."""
+        pass
+
+    @abstractproperty
+    def is_continuous(self):
+        """ Tests weather the signal is continuous."""
+        pass
+
+    @property
     def is_periodic(self):
         """ Tests weather the signal is periodic."""
-        return self.period != np.Inf and self._period is not None
+        return self._period is not None and self._period != sp.oo
 
     @property
     def period(self):
@@ -111,6 +97,14 @@ class Signal(ABC):
         # Si se intenta hacer con sympy solve(expr(var)-expr(var+T), T)
         # se obtienen resultados raros
         return self._period
+
+    @period.setter
+    def period(self, value):
+        v = sp.sympify(value)
+        if _is_real_scalar(v):
+            self._period = v
+        else:
+            raise TypeError('`period` must be a real scalar')
 
     def eval(self, r):
         pass
@@ -135,7 +129,7 @@ class Signal(ABC):
         else:
             return self.eval(idx)
 
-    # -- operadores temporales ------------------------------------------------
+    # --- operadores temporales -----------------------------------------------
     def flip(self):
         s = self.__class__._factory(self)
         s._xexpr = FlipOperator.apply(s._xvar, s._xexpr)
@@ -179,16 +173,17 @@ class Signal(ABC):
             s += size*step - overlap
 
 
-class FunctionSignal(Signal):
+class _FunctionSignal(_Signal):
 
     def __init__(self, expr):
-        Signal.__init__(self)
+        _Signal.__init__(self)
         if not isinstance(expr, sp.Expr):
             raise TypeError("'expr' must be a sympy expression")
         if expr.is_number:
-            self._yexpr = expr
+            # just in case is a symbol or constant
+            self._yexpr = sp.Expr(expr)
             self._xvar = self._default_xvar()
-            self._xexpr = self._xvar
+            self._xexpr = sp.Expr(self._xvar)
         else:
             fs = expr.free_symbols
             if len(fs) != 1:
@@ -201,7 +196,7 @@ class FunctionSignal(Signal):
         other._yexpr = self._yexpr
         other._xexpr = self._xexpr
         other._xvar = self._xvar
-        Signal._copy_to(self, other)
+        _Signal._copy_to(self, other)
 
     @property
     def yexpr(self):
@@ -221,7 +216,7 @@ class FunctionSignal(Signal):
                     # base negativa, los exponentes deben ser complejos
                     # por si acaso no son enteros
                     x = x.astype(np.complex_)
-                    self._dtype = np.complex_
+                    self.dtype = np.complex_
                     to_real = True
                     # break # ??
         try:
@@ -231,14 +226,14 @@ class FunctionSignal(Signal):
                 # workaround para issue #5642 de sympy. Cuando yexpr es una
                 # constante, se devuelve un escalar aunque la entrada sea un
                 # array
-                y = np.full(x.shape, y, self._dtype)
+                y = np.full(x.shape, y, self.dtype)
             if not to_real:
-                y = y.astype(self._dtype)
+                y = y.astype(self.dtype)
         except (NameError, ValueError):
             # sympy no ha podido hacer una función lambda
             # (o hay algún problema de cálculo, p.e 2^(-1) enteros)
             # así que se procesan los valores uno a uno
-            y = np.zeros_like(x, self._dtype)
+            y = np.zeros_like(x, self.dtype)
             for k, x0 in enumerate(x):
                 try:
                     y[k] = self._yexpr.xreplace({self._xvar: x0})
@@ -249,29 +244,29 @@ class FunctionSignal(Signal):
         return y
 
     # -- operadores temporales ----------------------------------------------
-    #    Signal.xxxx hace la copia de señal y aplica el operador a xexpr
+    #    _Signal.xxxx hace la copia de señal y aplica el operador a xexpr
 
     def flip(self):
-        s = Signal.flip(self)
+        s = _Signal.flip(self)
         s._yexpr = FlipOperator.apply(s._xvar, s._yexpr)
         return s
 
     __reversed__ = flip
 
     def shift(self, k):
-        s = Signal.shift(self, k)
+        s = _Signal.shift(self, k)
         s._yexpr = ShiftOperator.apply(s._xvar, s._yexpr, k)
         return s
 
     def scale(self, v):
-        s = Signal.scale(self, v)
+        s = _Signal.scale(self, v)
         s._yexpr = ScaleOperator.apply(s._xvar, s._yexpr, v)
         return s
 
     # -- operadores aritméticos ----------------------------------------------
     def __mul__(self, other):
-        if other._dtype == np.complex_:
-            self._dtype = np.complex_
+        if other.dtype == np.complex_:
+            self.dtype = np.complex_
         self._yexpr *= other._yexpr.xreplace({other._xvar: self._xvar})
         return self
 
@@ -279,22 +274,22 @@ class FunctionSignal(Signal):
     __imul__ = __mul__
 
     def __truediv__(self, other):
-        if other._dtype == np.complex_:
-            self._dtype = np.complex_
+        if other.dtype == np.complex_:
+            self.dtype = np.complex_
         self._yexpr /= other._yexpr.xreplace({other._xvar: self._xvar})
         return self
 
     __itruediv__ = __truediv__
 
     def __rtruediv__(self, other):
-        if self._dtype == np.complex_:
-            other._dtype = np.complex_
+        if self.dtype == np.complex_:
+            other.dtype = np.complex_
         other._yexpr /= self._yexpr.xreplace({self._xvar: other._xvar})
         return 1/other
 
     def __add__(self, other):
-        if other._dtype == np.complex_:
-            self._dtype = np.complex_
+        if other.dtype == np.complex_:
+            self.dtype = np.complex_
         self._yexpr += other._yexpr.xreplace({other._xvar: self._xvar})
         return self
 
@@ -302,14 +297,14 @@ class FunctionSignal(Signal):
     __iadd__ = __add__
 
     def __sub__(self, other):
-        if other._dtype == np.complex_:
-            self._dtype = np.complex_
+        if other.dtype == np.complex_:
+            self.dtype = np.complex_
         self._yexpr -= other._yexpr.xreplace({other._xvar: self._xvar})
         return self
 
     def __rsub__(self, other):
-        if self._dtype == np.complex_:
-            other._dtype = np.complex_
+        if self.dtype == np.complex_:
+            other.dtype = np.complex_
         other._yexpr -= self._yexpr.xreplace({self._xvar: other._xvar})
         return -other
 
@@ -326,7 +321,7 @@ class FunctionSignal(Signal):
     def __eq__(self, other):
         # TODO: ¿es correcto? NO si las variables no son iguales
         return str(self).__eq__(str(other))
-#         if isinstance(other, FunctionSignal):
+#         if isinstance(other, _FunctionSignal):
 #             return self._yexpr == other._yexpr
 #         d = self._yexpr - other
 #         if (sp.expand(d) == 0) or \
@@ -361,14 +356,3 @@ class FunctionSignal(Signal):
         s = self.__class__._factory(self)
         s._yexpr = ConjugateOperator.apply(s._xvar, s._yexpr)
         return s
-
-
-class ConstantSignal(FunctionSignal):
-
-    def __init__(self, const, var):
-        super().__init__(sp.sympify(const))
-        if isinstance(const, complex):
-            self._dtype = np.complex_
-        self._xvar = var
-        self._xexpr = var
-        self._yexpr = sp.sympify(const)

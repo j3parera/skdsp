@@ -1,5 +1,5 @@
 from skdsp.signal.discrete import Square, DiscreteFunctionSignal
-from skdsp.signal.signals import Signal, FunctionSignal
+from skdsp.signal.signals import _Signal, _FunctionSignal
 from skdsp.signal.util import is_discrete, is_continuous, is_real, is_complex
 
 import numpy as np
@@ -18,8 +18,8 @@ class SquareTest(unittest.TestCase):
 
     def test_constructor(self):
         s = Square()
-        self.assertIsInstance(s, Signal)
-        self.assertIsInstance(s, FunctionSignal)
+        self.assertIsInstance(s, _Signal)
+        self.assertIsInstance(s, _FunctionSignal)
         self.assertIsInstance(s, DiscreteFunctionSignal)
         self.assertTrue(is_discrete(s))
         self.assertFalse(is_continuous(s))

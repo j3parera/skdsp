@@ -1,9 +1,9 @@
-from skdsp.signal.continuous import ContinuousFunctionSignal
-from skdsp.signal.discrete import DiscreteFunctionSignal, Exponential
+from ._signal import _FunctionSignal
+from .continuous import ContinuousFunctionSignal
+from .discrete import DiscreteFunctionSignal, Exponential
 from sympy.printing.latex import LatexPrinter
 from sympy.printing.str import StrPrinter
 import sympy as sp
-from skdsp.signal.signals import FunctionSignal
 
 
 class CustomStrPrinter(StrPrinter):
@@ -209,7 +209,7 @@ class CustomLatexPrinter(LatexPrinter):
 
 def latex(signal, **settings):
     toprint = r'{0}\left[{1}\right]'.format(signal.name, signal._xexpr)
-    if isinstance(signal, FunctionSignal):
+    if isinstance(signal, _FunctionSignal):
         toprint = signal._yexpr
     clp = CustomLatexPrinter(settings)
     return clp.doprint(toprint)

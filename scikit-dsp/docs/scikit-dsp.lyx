@@ -136,7 +136,7 @@ Esta solución va funcionando bastante bien
 ¿Merece la pena mantener una expresión simbólica paramétrica de una señal
  o sistema (además de la expresión simbólica para cálculo), p.ej en una sinusoide
  
-\begin_inset Formula $A\cos[\omega_{0}n+\phi]$
+\begin_inset Formula $A\cos(\omega_{0}n+\phi)$
 \end_inset
 
 , ¿mantener esta expresión y la correspondiente con los valores substituidos?
@@ -193,20 +193,28 @@ cte
 .
 \end_layout
 
-\begin_layout Itemize
-Cuidado, el 
-\family typewriter
-upcast
-\family default
- a pelo no funciona como se esperaba, la función 
-\family typewriter
-_demote_xxx
-\family default
- no hace lo que se pretende.
-\end_layout
-
 \begin_layout Section
 Clase Señal
+\end_layout
+
+\begin_layout Subsection
+Álgebra de señales
+\end_layout
+
+\begin_layout Standard
+Las señales son elementos de un espacio de Hilbert:
+\end_layout
+
+\begin_layout Itemize
+La suma (resta) de dos señales es una señal.
+\end_layout
+
+\begin_layout Itemize
+El producto (cociente) de dos señales es una señal.
+\end_layout
+
+\begin_layout Itemize
+La multiplicación por un escalar es una señal.
 \end_layout
 
 \begin_layout Subsection
@@ -278,6 +286,10 @@ Periódicas: CFS (Continuas), DFS (Discretas)
 Hay señales funcionales que en discreto pueden ser o no periódicas
 \end_layout
 
+\begin_layout Itemize
+Las señales de datos no son periódicas, aunque podrían serlo
+\end_layout
+
 \end_deeper
 \begin_layout Itemize
 Reales / Complejas
@@ -328,29 +340,30 @@ Compuestas: operaciones con distintas señales:
  señal de datos)...
 \end_layout
 
+\begin_layout Itemize
+En todo caso, hay que asegurar la pertenencia a un espacio vectorial en
+ 
+\begin_inset Formula $\mathbb{C}$
+\end_inset
+
+: la suma (resta, multiplicación y división) de dos señales produce una
+ señal, lo mismo que la multiplicación por un escalar.
+\end_layout
+
 \end_deeper
 \begin_layout Subsection
 Jerarquía de señales
 \end_layout
 
-\begin_layout Itemize
+\begin_layout Subsubsection
 Clase base abstracta: Signal
 \end_layout
 
-\begin_deeper
 \begin_layout Itemize
 Propiedades:
 \end_layout
 
 \begin_deeper
-\begin_layout Itemize
-
-\family typewriter
-dtype
-\family default
-: tipo de datos (real o complejo)
-\end_layout
-
 \begin_layout Itemize
 
 \family typewriter
@@ -362,20 +375,36 @@ name
 \begin_layout Itemize
 
 \family typewriter
-period
+dtype
 \family default
-: periodo de la señal (
-\family typewriter
-None
-\family default
-, si no se sabe, flotante si se ha calculado, 
-\family typewriter
-np.inf
-\family default
- si no es periódica)
+: tipo de datos (real o complejo)
 \end_layout
 
-\end_deeper
+\begin_layout Itemize
+
+\family typewriter
+is_periodic
+\family default
+: True, False, None
+\end_layout
+
+\begin_layout Itemize
+
+\family typewriter
+period
+\family default
+: periodo de la señal (-1, no calculado, valor flotante si se ha calculado,
+ 
+\family typewriter
+
+\begin_inset Formula $\infty$
+\end_inset
+
+
+\family default
+ si no es periódica
+\end_layout
+
 \end_deeper
 \begin_layout Subsection
 Señales discretas funcionales simples
