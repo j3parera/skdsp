@@ -1,6 +1,6 @@
 from skdsp.signal._signal import _Signal, _FunctionSignal
-from skdsp.signal.discrete import DiscreteFunctionSignal
-from skdsp.signal.discrete import Constant as dConstant
+import skdsp.signal.discrete as ds
+from copy import deepcopy
 # import skdsp.signal.continuous as cs
 # import skdsp.signal.printer as pt
 # import skdsp.signal._util as u
@@ -14,34 +14,46 @@ class ConstantTest(unittest.TestCase):
     def test_constructor(self):
         ''' Constant (discrete/continuous): constructors '''
         # constante discreta
-        d = dConstant(3)
+        d = ds.Constant()
+        self.assertIsNotNone(d)
+        # constante discreta
+        d = ds.Constant(3)
         # jerarquía
         self.assertIsInstance(d, _Signal)
         self.assertIsInstance(d, _FunctionSignal)
-        self.assertIsInstance(d, DiscreteFunctionSignal)
+        self.assertIsInstance(d, ds.DiscreteFunctionSignal)
+
+#     def test_deepcopy(self):
+#         ''' Constant (discrete/continuous): deep-copy '''
+#         # constante discreta
+#         d = ds.Constant(3)
+#         dc = deepcopy(d)
+#         print(d == dc)
+#         self.assertIsNotNone(dc)
+#         dc2 = ds.Constant()
+#         dc._copy_to(dc2)
+#         print(d == dc)
+#         self.assertIsNotNone(dc)
+#         print(d.__dict__)
+#         print(dc.__dict__)
+#         print(dc2.__dict__)
+#         import operator
+#         print(sorted(d._xexpr.assumptions0.items(), key=operator.itemgetter(0)))
+#         print(sorted(dc._xexpr.assumptions0.items(), key=operator.itemgetter(0)))
+#         print(sorted(dc2._xexpr.assumptions0.items(), key=operator.itemgetter(0)))
 
     def test_name(self):
         ''' Constant (discrete/continuous): name '''
         # constante discreta
-        d = dConstant(3)
+        d = ds.Constant(3)
         self.assertEqual(d.name, 'x')
         d.name = 'z'
         self.assertEqual(d.name, 'z')
- 
-#     def test_xvar(self):
-#         ''' Rect (discrete/continuous): free variable '''
-#         # rectángulo discreto
-#         d = ds.Rect(3) >> 3
-#         self.assertEqual(d.name, 'x')
-#         self.assertEqual(str(d), 'Pi[n - 3, {0}]'.format(d.width))
-#         d.xvar = sp.symbols('m', integer=True)
-#         self.assertEqual(d.name, 'x')
-#         self.assertEqual(str(d), 'Pi[m - 3, {0}]'.format(d.width))
 
     def test_xvar(self):
         ''' Constant (discrete/continuous): temporal variable '''
         # constante discreta
-        d = dConstant(3)
+        d = ds.Constant(3)
         # variable temporal
         self.assertTrue(d.is_discrete)
         self.assertFalse(d.is_continuous)
@@ -59,7 +71,7 @@ class ConstantTest(unittest.TestCase):
         ''' Constant (discrete/continuous): expression '''
         # constante discreta
         cte = 3
-        d = dConstant(cte)
+        d = ds.Constant(cte)
         # variable dependiente
         self.assertEqual(d.yexpr, sp.Expr(cte))
         self.assertTrue(np.issubdtype(d.dtype, np.float))
@@ -67,7 +79,7 @@ class ConstantTest(unittest.TestCase):
         self.assertFalse(d.is_complex)
         # constante discreta
         cte = 3j
-        d = dConstant(cte)
+        d = ds.Constant(cte)
         # variable dependiente
         self.assertEqual(d.yexpr, sp.Expr(cte))
         self.assertTrue(np.issubdtype(d.dtype, np.complex))
@@ -77,10 +89,21 @@ class ConstantTest(unittest.TestCase):
     def test_period(self):
         ''' Constant (discrete/continuous): period '''
         # constante discreta
-        d = dConstant(3)
+        d = ds.Constant(3)
         # periodicidad
         self.assertFalse(d.is_periodic)
         self.assertEqual(d.period, sp.oo)
+
+#     def test_repr_str(self):
+#         ''' Constant (discrete/continuous): repr, str '''
+#         # constante discreta
+#         d = ds.Constant(3j)
+#         # repr
+#         print(repr(d))
+#         dc = eval('ds.' + repr(d))
+#         print(dc == d)
+#         # str
+#         print(str(d))
 
 #     def test_eval_sample(self):
 #         ''' Rect (discrete/continuous): eval(scalar) '''
@@ -96,7 +119,7 @@ class ConstantTest(unittest.TestCase):
 #         self.assertEqual(d.eval(0), 1.0)
 #         self.assertEqual(d.eval(1), 1.0)
 #         self.assertEqual(d.eval(-1), 1.0)
-# 
+
 #     def test_eval_range(self):
 #         ''' Rect (discrete/continuous): eval(array) '''
 #         # rectángulo discreto
@@ -121,7 +144,7 @@ class ConstantTest(unittest.TestCase):
 #                                       np.array([0.0, 0.0, 1.0]))
 #         np.testing.assert_array_equal(d.eval(np.arange(3, -2, -2)),
 #                                       np.array([0.0, 1.0, 1.0]))
-# 
+
 #     def test_getitem_scalar(self):
 #         ''' Rect (discrete/continuous): eval[scalar] '''
 #         # rectángulo discreto

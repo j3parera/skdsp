@@ -80,7 +80,8 @@ class _ContinuousMixin(object):
                 return Constant(other)
             else:
                 return other
-        s = ContinuousFunctionSignal._factory(self)
+        s = self.copy()
+        # s = ContinuousFunctionSignal._factory(self)
         if isinstance(other, Number):
             o = Constant(other)
         else:

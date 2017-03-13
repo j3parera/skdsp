@@ -342,9 +342,13 @@ class Constant(DiscreteFunctionSignal):
             other._copy_to(s)
         return s
 
+    def _copy_to(self, other):
+        DiscreteFunctionSignal._copy_to(self, other)
+        other._const = self._const
+
     def __init__(self, const=0):
-        sc = sp.sympify(const)
-        DiscreteFunctionSignal.__init__(self, sc)
+        self._const = const
+        DiscreteFunctionSignal.__init__(self, sp.sympify(const))
         if _is_complex_scalar(const):
             self.dtype = np.complex_
         self.period = sp.oo
@@ -354,7 +358,6 @@ class Constant(DiscreteFunctionSignal):
 
     def min(self):
         return self._yexpr
-
 
 class Delta(DiscreteFunctionSignal):
 

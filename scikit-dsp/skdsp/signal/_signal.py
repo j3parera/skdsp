@@ -10,6 +10,7 @@ from ..operator.operator import FlipOperator, ShiftOperator
 from ..operator.operator import ScaleOperator, GainOperator
 from ._util import _is_real_scalar
 from abc import ABC, abstractproperty
+from copy import deepcopy
 from numbers import Number
 import numpy as np
 import sympy as sp
@@ -27,12 +28,15 @@ class _Signal(ABC):
         self._xvar = None
         self.name = 'x'
 
+    def copy(self):
+        return deepcopy(self)
+
     def _copy_to(self, other):
         other._dtype = self._dtype
         other._period = self._period
         other._xexpr = self._xexpr
         other._xvar
-        other._name = self.name
+        other.name = self.name
 
     @property
     def dtype(self):
@@ -114,8 +118,8 @@ class _Signal(ABC):
             return self._print()
         return sp.Basic.__str__(self._yexpr)
 
-    def __repr__(self):
-        return self.__str__()
+#     def __repr__(self):
+#         return self.__str__()
 
     # --- eval wrappers -------------------------------------------------------
     def __getitem__(self, idx):
@@ -319,8 +323,9 @@ class _FunctionSignal(_Signal):
         return self
 
     def __eq__(self, other):
-        # TODO: ¿es correcto? NO si las variables no son iguales
-        return str(self).__eq__(str(other))
+        return self.__dict__ == other.__dict__
+#         # TODO: ¿es correcto? NO si las variables no son iguales
+#         return str(self).__eq__(str(other))
 #         if isinstance(other, _FunctionSignal):
 #             return self._yexpr == other._yexpr
 #         d = self._yexpr - other
