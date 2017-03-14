@@ -1,6 +1,6 @@
 Signals
 =======
-.. automodule:: signals
+.. automodule:: skdsp.signal._signal
    :members:
    :undoc-members:
    :show-inheritance:

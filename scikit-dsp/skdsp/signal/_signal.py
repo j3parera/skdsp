@@ -21,14 +21,26 @@ class _Signal(ABC):
     ''' _Signal is the abstract base class
     '''
     def __init__(self):
-        """ Common *__init__* method for all signals.
+        """
+        Common *__init__* method for all signals.
+
+        Attributes:
+            _dtype: Type of the signal values (one of numpy types
+            float_ or complex_).
+            _period: Period of the signal (None = unknown, float value
+            or sympy `inf`.
+            _xvar: Sympy symbol of the independent variable
+            _xexpr: Sympy expression of the independent variable
+
         """
         self._dtype = np.float_
         self._period = None
-        self._xexpr = None
         self._xvar = None
+        self._xexpr = None
         self._min = -sp.oo
         self._max = sp.oo
+
+        #: str: name of the signal; defaults to `x`.
         self.name = 'x'
 
     # def __deepcopy__(self, memo):
@@ -197,8 +209,19 @@ class _Signal(ABC):
     __reversed__ = flip
 
     def shift(self, k):
-        """ Shifts the independent variable; i.e.
-        x[n] -> x[n-k], x(t) -> x(t-k). """
+        """
+        Shifts the independent variable; i.e.
+        :math:`y[n] = x[n-k]`,
+        :math:`y(t) = x(t-k)`.
+
+        Args:
+            k: The amount of shift.
+
+        Returns:
+            A signal copy with the independent variable shifted.
+
+        """
+
         s = deepcopy(self)
         s._xexpr = ShiftOperator.apply(s._xvar, s._xexpr, k)
         return s
