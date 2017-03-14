@@ -5,6 +5,7 @@ from numbers import Number
 from sympy.core.evaluate import evaluate
 import numpy as np
 import sympy as sp
+from jinja2.nodes import Const
 
 
 __all__ = [s for s in dir() if not s.startswith('_')]
@@ -80,8 +81,7 @@ class _ContinuousMixin(object):
                 return Constant(other)
             else:
                 return other
-        s = self.copy()
-        # s = ContinuousFunctionSignal._factory(self)
+        s = ContinuousFunctionSignal._factory(self)
         if isinstance(other, Number):
             o = Constant(other)
         else:
@@ -261,17 +261,14 @@ class Constant(ContinuousFunctionSignal):
             other._copy_to(s)
         return s
 
-    def __init__(self, const):
+    def __init__(self, const=0):
         sc = sp.sympify(const)
         ContinuousFunctionSignal.__init__(self, sc)
         if sc.is_complex:
             self.dtype = np.complex_
-
-    def max(self):
-        return self._yexpr
-
-    def min(self):
-        return self._yexpr
+        self._const = const
+        self._min = const
+        self._max = const
 
 
 class Delta(ContinuousFunctionSignal):
@@ -290,12 +287,7 @@ class Delta(ContinuousFunctionSignal):
         if delay != 0:
             self._xexpr = ShiftOperator.apply(self._xvar, self._xexpr, delay)
             self._yexpr = ShiftOperator.apply(self._xvar, self._yexpr, delay)
-
-    def max(self):
-        raise ValueError("delta(t) hasn't maximum")
-
-    def min(self):
-        return 0
+        self._min = 0
 
     def _print(self):
         return 'd({0})'.format(str(self._xexpr))
@@ -316,12 +308,8 @@ class Step(ContinuousFunctionSignal):
         if delay != 0:
             self._xexpr = ShiftOperator.apply(self._xvar, self._xexpr, delay)
             self._yexpr = ShiftOperator.apply(self._xvar, self._yexpr, delay)
-
-    def max(self):
-        return 1
-
-    def min(self):
-        return 0
+        self._max = 1
+        self._min = 0
 
     def _print(self):
         return 'u({0})'.format(str(self._xexpr))
@@ -343,15 +331,12 @@ class Ramp(ContinuousFunctionSignal):
         # delay
         self._xexpr = ShiftOperator.apply(self._xvar, self._xexpr, delay)
         self._yexpr = ShiftOperator.apply(self._xvar, self._yexpr, delay)
+        # max-min
+        self._min = 0
+        self._max = sp.oo
 
     def _print(self):
         return 'r({0})'.format(str(self._xexpr))
-
-    def max(self):
-        return np.inf
-
-    def min(self):
-        return 0
 
 
 class Rect(ContinuousFunctionSignal):
@@ -375,6 +360,9 @@ class Rect(ContinuousFunctionSignal):
         # delay
         self._xexpr = ShiftOperator.apply(self._xvar, self._xexpr, delay)
         self._yexpr = ShiftOperator.apply(self._xvar, self._yexpr, delay)
+        # min-max
+        self._min = 0
+        self._max = 1
 
     @property
     def width(self):
@@ -382,12 +370,6 @@ class Rect(ContinuousFunctionSignal):
 
     def _print(self):
         return 'Pi({0}, {1})'.format(str(self._xexpr), self._width)
-
-    def max(self):
-        return 1
-
-    def min(self):
-        return 0
 
 
 class Triang(ContinuousFunctionSignal):
@@ -412,6 +394,9 @@ class Triang(ContinuousFunctionSignal):
         # delay
         self._xexpr = ShiftOperator.apply(self._xvar, self._xexpr, delay)
         self._yexpr = ShiftOperator.apply(self._xvar, self._yexpr, delay)
+        # min-max
+        self._min = 0
+        self._max = 1
 
     @property
     def width(self):
@@ -419,12 +404,6 @@ class Triang(ContinuousFunctionSignal):
 
     def _print(self):
         return 'Delta({0}, {1})'.format(str(self._xexpr), self._width)
-
-    def max(self):
-        return 1
-
-    def min(self):
-        return 0
 
 
 class _SinCosCExpMixin(object):
@@ -465,10 +444,10 @@ class _SinCosCExpMixin(object):
 
     @property
     def period(self):
-        if self.period is not None:
-            return self.period
-        self.period = self._compute_period()
-        return self.period
+        if self._period is not None:
+            return self._period
+        self._period = self._compute_period()
+        return self._period
 
     def as_euler(self):
         eu = ContinuousFunctionSignal(self._yexpr.rewrite(sp.exp))
@@ -498,16 +477,13 @@ class Cosine(_SinCosCExpMixin, ContinuousFunctionSignal):
                                           self._omega0)
         self._yexpr = ScaleOperator.apply(self._xvar, self._yexpr,
                                           self._omega0)
+        # min-max
+        self._min = -1
+        self._max = 1
 
     def _copy_to(self, other):
         ContinuousFunctionSignal._copy_to(self, other)
         _SinCosCExpMixin._copy_to(self, other)
-
-    def max(self):
-        return 1
-
-    def min(self):
-        return -1
 
 
 class Sine(_SinCosCExpMixin, ContinuousFunctionSignal):
@@ -532,16 +508,13 @@ class Sine(_SinCosCExpMixin, ContinuousFunctionSignal):
                                           self._omega0)
         self._yexpr = ScaleOperator.apply(self._xvar, self._yexpr,
                                           self._omega0)
+        # min-max
+        self._min = -1
+        self._max = 1
 
     def _copy_to(self, other):
         ContinuousFunctionSignal._copy_to(self, other)
         _SinCosCExpMixin._copy_to(self, other)
-
-    def max(self):
-        return 1
-
-    def min(self):
-        return -1
 
 
 class Sinusoid(Cosine):
@@ -557,6 +530,9 @@ class Sinusoid(Cosine):
         Cosine.__init__(self, omega0, phi)
         self._peak_amplitude = A
         self._yexpr *= A
+        # min-max
+        self._min = -A
+        self._max = A
 
     def _copy_to(self, other):
         other._peak_amplitude = self._peak_amplitude
@@ -571,12 +547,9 @@ class Sinusoid(Cosine):
         self._yexpr /= self._peak_amplitude
         self._peak_amplitude = value
         self._yexpr *= value
-
-    def max(self):
-        return self._peak_amplitude
-
-    def min(self):
-        return -self._peak_amplitude
+        # min-max
+        self._min = -value
+        self._max = value
 
     @property
     def in_phase(self):

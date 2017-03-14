@@ -1,10 +1,8 @@
-from numbers import Integral
 import sympy as sp
+# from skdsp.signal._util import _is_integer_scalar
 
 
-__all__ = ['FlipOperator', 'ShiftOperator', 'ScaleOperator', 'GainOperator',
-           'AbsOperator', 'ConjugateOperator', 'HermitianOperator',
-           'shift', 'flip']
+__all__ = [s for s in dir() if not s.startswith('_')]
 
 
 def shift(s, k):
@@ -148,8 +146,8 @@ class ShiftOperator(Operator, UnaryOperatorMixin):
         expr(var) -> expr(var - args[0])
         """
         s = args[0]
-        if isinstance(s, Integral):
-            s = sp.Integer(args[0])
+#         if _is_integer_scalar(s):
+#             s = sp.Integer(args[0])
         return expr.xreplace({var: (var - s)})
 
 
@@ -234,6 +232,26 @@ class ConjugateOperator(Operator, UnaryOperatorMixin):
         if expr.is_real:
             return expr
         return sp.conjugate(expr)
+
+
+class RealPartOperator(Operator, UnaryOperatorMixin):
+
+    @staticmethod
+    def apply(var, expr, *args):
+        """ Devuelve la parte real de la expresión:
+        expr(var) -> Re(expr(var))
+        """
+        return sp.re(expr)
+
+
+class ImaginaryPartOperator(Operator, UnaryOperatorMixin):
+
+    @staticmethod
+    def apply(var, expr, *args):
+        """ Devuelve la parte imaginaria de la expresión:
+        expr(var) -> Im(expr(var))
+        """
+        return sp.im(expr)
 
 
 class HermitianOperator(Operator, UnaryOperatorMixin):

@@ -1,6 +1,5 @@
 from skdsp.signal._signal import _Signal, _FunctionSignal
 import skdsp.signal.discrete as ds
-from copy import deepcopy
 # import skdsp.signal.continuous as cs
 # import skdsp.signal.printer as pt
 # import skdsp.signal._util as u
@@ -12,7 +11,8 @@ import unittest
 class ConstantTest(unittest.TestCase):
 
     def test_constructor(self):
-        ''' Constant (discrete/continuous): constructors '''
+        ''' Constant (discrete/continuous): constructors.
+        '''
         # constante discreta
         d = ds.Constant()
         self.assertIsNotNone(d)
@@ -23,35 +23,18 @@ class ConstantTest(unittest.TestCase):
         self.assertIsInstance(d, _FunctionSignal)
         self.assertIsInstance(d, ds.DiscreteFunctionSignal)
 
-#     def test_deepcopy(self):
-#         ''' Constant (discrete/continuous): deep-copy '''
-#         # constante discreta
-#         d = ds.Constant(3)
-#         dc = deepcopy(d)
-#         print(d == dc)
-#         self.assertIsNotNone(dc)
-#         dc2 = ds.Constant()
-#         dc._copy_to(dc2)
-#         print(d == dc)
-#         self.assertIsNotNone(dc)
-#         print(d.__dict__)
-#         print(dc.__dict__)
-#         print(dc2.__dict__)
-#         import operator
-#         print(sorted(d._xexpr.assumptions0.items(), key=operator.itemgetter(0)))
-#         print(sorted(dc._xexpr.assumptions0.items(), key=operator.itemgetter(0)))
-#         print(sorted(dc2._xexpr.assumptions0.items(), key=operator.itemgetter(0)))
-
     def test_name(self):
-        ''' Constant (discrete/continuous): name '''
+        ''' Constant (discrete/continuous): name.
+        '''
         # constante discreta
         d = ds.Constant(3)
         self.assertEqual(d.name, 'x')
         d.name = 'z'
         self.assertEqual(d.name, 'z')
 
-    def test_xvar(self):
-        ''' Constant (discrete/continuous): temporal variable '''
+    def test_xvar_xexpr(self):
+        ''' Constant (discrete/continuous): temporal variable and expression.
+        '''
         # constante discreta
         d = ds.Constant(3)
         # variable temporal
@@ -61,14 +44,35 @@ class ConstantTest(unittest.TestCase):
         self.assertEqual(d.xexpr, sp.Expr(d.xvar))
         # shift
         shift = 5
-        d = d >> shift
+        d = ds.Constant(3).shift(shift)
         self.assertTrue(d.is_discrete)
         self.assertFalse(d.is_continuous)
         self.assertEqual(d.xvar, d._default_xvar())
         self.assertEqual(d.xexpr, sp.Expr(d.xvar - shift))
+        # flip
+        d = ds.Constant(3).flip()
+        self.assertTrue(d.is_discrete)
+        self.assertFalse(d.is_continuous)
+        self.assertEqual(d.xvar, d._default_xvar())
+        self.assertEqual(d.xexpr, sp.Expr(-d.xvar))
+        # shift and flip
+        shift = 5
+        d = ds.Constant(3).shift(shift).flip()
+        self.assertTrue(d.is_discrete)
+        self.assertFalse(d.is_continuous)
+        self.assertEqual(d.xvar, d._default_xvar())
+        self.assertEqual(d.xexpr, sp.Expr(-d.xvar - shift))
+        # flip and shift
+        shift = 5
+        d = ds.Constant(3).flip().shift(shift)
+        self.assertTrue(d.is_discrete)
+        self.assertFalse(d.is_continuous)
+        self.assertEqual(d.xvar, d._default_xvar())
+        self.assertEqual(d.xexpr, sp.Expr(-d.xvar + shift))
 
     def test_yexpr(self):
-        ''' Constant (discrete/continuous): expression '''
+        ''' Constant (discrete/continuous): function expression.
+        '''
         # constante discreta
         cte = 3
         d = ds.Constant(cte)
@@ -87,23 +91,45 @@ class ConstantTest(unittest.TestCase):
         self.assertTrue(d.is_complex)
 
     def test_period(self):
-        ''' Constant (discrete/continuous): period '''
+        ''' Constant (discrete/continuous): period.
+        '''
         # constante discreta
         d = ds.Constant(3)
         # periodicidad
         self.assertFalse(d.is_periodic)
         self.assertEqual(d.period, sp.oo)
 
-#     def test_repr_str(self):
-#         ''' Constant (discrete/continuous): repr, str '''
-#         # constante discreta
-#         d = ds.Constant(3j)
-#         # repr
-#         print(repr(d))
-#         dc = eval('ds.' + repr(d))
-#         print(dc == d)
-#         # str
-#         print(str(d))
+    def test_repr_str_latex(self):
+        ''' Constant (discrete/continuous): repr, str and latex.
+        '''
+        # constante discreta
+        d = ds.Constant(3)
+        # repr
+        self.assertEqual(repr(d), 'Constant(3)')
+        # str
+        self.assertEqual(str(d), '3')
+        # latex
+        self.assertEqual(d.latex(), '3')
+        # constante discreta
+        d = ds.Constant(-5.10-3.03j)
+        # repr
+        self.assertEqual(repr(d), 'Constant(-5.1 - 3.03*j)')
+        # str
+        self.assertEqual(str(d), '-5.1 - 3.03*j')
+        # latex
+        self.assertEqual(d.latex(), '-5.1 - 3.03*\\mathrm{j}')
+        # constante discreta
+        d = ds.Constant(-3j)
+        # repr
+        self.assertEqual(repr(d), 'Constant(-3.0*j)')
+        # str
+        self.assertEqual(str(d), '-3.0*j')
+        # latex
+        self.assertEqual(d.latex(), '-3.0*\\mathrm{j}')
+
+    def test_repr_str_latex(self):
+        ''' Constant (discrete/continuous): repr, str and latex.
+        '''
 
 #     def test_eval_sample(self):
 #         ''' Rect (discrete/continuous): eval(scalar) '''
@@ -159,7 +185,7 @@ class ConstantTest(unittest.TestCase):
 #         self.assertEqual(d[0], 1.0)
 #         self.assertEqual(d[1], 1.0)
 #         self.assertEqual(d[-1], 1.0)
-# 
+
 #     def test_getitem_slice(self):
 #         ''' Rect (discrete/continuous): eval[:] '''
 #         # rectángulo discreto
@@ -176,23 +202,6 @@ class ConstantTest(unittest.TestCase):
 #         np.testing.assert_array_equal(d[-1:2], np.array([1.0, 1.0, 1.0]))
 #         np.testing.assert_array_equal(d[-4:1:2], np.array([0.0, 0.0, 1]))
 #         np.testing.assert_array_equal(d[3:-2:-2], np.array([0.0, 1.0, 1.0]))
-
-#     def test_latex(self):
-#         ''' Rect (discrete/continuous): latex '''
-#         # rectángulo discreto
-#         d = ds.Rect()
-#         self.assertEqual(pt.latex(d, mode='inline'),
-#                          r'$\Pi\left[n/16\right]$')
-#         d = ds.Rect(8, 3)
-#         self.assertEqual(pt.latex(d, mode='inline'),
-#                          r'$\Pi\left[(n - 3)/8\right]$')
-#         # rectángulo continuo
-#         d = cs.Rect()
-#         self.assertEqual(pt.latex(d, mode='inline'),
-#                          r'$\Pi\left(t/16\right)$')
-#         d = cs.Rect(8, 3)
-#         self.assertEqual(pt.latex(d, mode='inline'),
-#                          r'$\Pi\left((t - 3)/8\right)$')
 
 if __name__ == "__main__":
     unittest.main()
