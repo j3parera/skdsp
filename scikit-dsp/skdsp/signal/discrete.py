@@ -23,6 +23,9 @@ class _DiscreteMixin(object):
 
     @property
     def period(self):
+        """
+        ¿Se puede hacer algo?
+        """
         return super().period
 
     @period.setter
@@ -74,6 +77,13 @@ class _DiscreteMixin(object):
             o = DataSignal.shift(self, k)
         return o
 
+    def scale(self, s):
+        """ Scales the independent variable by `s`."""
+        r = sp.nsimplify(s, rational=True)
+        if not isinstance(r, sp.Rational):
+            raise TypeError('expansion/compression value not rational')
+        return self.expand(r.p).compress(r.q)
+
 #     def delay(self, d):
 #         # versión de retardo no necesariamente entero
 #         if not is_real_scalar(d):
@@ -91,16 +101,16 @@ class _DiscreteMixin(object):
 
     __ilshift__ = __lshift__
 
-#     def compress(self, alpha):
-#         if not isinstance(alpha, Integral):
-#             raise TypeError('compress factor must be integer')
-#         return _Signal.compress(self, alpha)
-#
-#     def expand(self, beta):
-#         if not isinstance(beta, Integral):
-#             raise TypeError('expand factor must be integer')
-#         return _Signal.expand(self, beta)
-#
+    def compress(self, n):
+        if not _is_integer_scalar(n):
+            raise TypeError('compress factor must be integer')
+        return _Signal.scale(self, n, mul=False)
+
+    def expand(self, n):
+        if not _is_integer_scalar(n):
+            raise TypeError('expand factor must be integer')
+        return _Signal.scale(self, n, mul=True)
+
 #     def ccshift(self, k, N):
 #         if not isinstance(k, Integral):
 #             raise TypeError('delay/advance must be integer')
@@ -301,6 +311,12 @@ class DiscreteFunctionSignal(_DiscreteMixin, _FunctionSignal):
 #         #        Ns.append(DiscreteFunctionSignal(s0).period)
 #         #    N = mcm(Ns)
 
+    def generate(self, s0=0, step=1, size=1, overlap=0):
+        if step != 1:
+            raise TypeError('discrete signals are only defined' +
+                            'for integer indexes')
+        return super().generate(s0, step, size, overlap)
+
     def eval(self, x, force=False):
         is_scalar = False
         if isinstance(x, np.ndarray):
@@ -330,29 +346,23 @@ class DiscreteFunctionSignal(_DiscreteMixin, _FunctionSignal):
 
 
 class Constant(DiscreteFunctionSignal):
-
-    # @staticmethod
-    # def _factory(other):
-    #     s = Constant()
-    #     if other:
-    #         other._copy_to(s)
-    #     return s
-
-    # def _copy_to(self, other):
-    #     DiscreteFunctionSignal._copy_to(self, other)
-    #     other._const = self._const
-
+    """
+    Discrete constant signal. Not a degenerate case for constant functions
+    such as `A*cos(0)`, `A*sin(pi/2)`, `A*exp(0*n)`, althought it could be.
+    """
     def __init__(self, const=0):
         super().__init__(sp.sympify(const))
         if _is_complex_scalar(const):
             self.dtype = np.complex_
-        # const, period, max, min
-        self._const = const
+        # period
         self._period = sp.oo
-        self._max = const
-        self._min = const
 
     def latex(self):
+        """
+        A
+        :math:`\LaTeX`
+        representation of the signal.
+        """
         return str(self).replace('j', '\mathrm{j}')
 
     def __repr__(self):
@@ -392,9 +402,6 @@ class Delta(DiscreteFunctionSignal):
             raise TypeError('delay/advance must be integer')
         self._xexpr = ShiftOperator.apply(self._xvar, self._xexpr, delay)
         self._yexpr = ShiftOperator.apply(self._xvar, self._yexpr, delay)
-        # min, max
-        self._min = 0
-        self._max = 1
 
     def _print(self):
         return 'd[{0}]'.format(str(self._xexpr))
@@ -437,9 +444,6 @@ class Step(DiscreteFunctionSignal):
             raise TypeError('delay/advance must be integer')
         self._xexpr = ShiftOperator.apply(self._xvar, self._xexpr, delay)
         self._yexpr = ShiftOperator.apply(self._xvar, self._yexpr, delay)
-        # min, max
-        self._min = 0
-        self._max = 1
 
     def _print(self):
         return 'u[{0}]'.format(str(self._xexpr))
@@ -478,9 +482,6 @@ class Ramp(DiscreteFunctionSignal):
             raise TypeError('delay/advance must be integer')
         self._xexpr = ShiftOperator.apply(self._xvar, self._xexpr, delay)
         self._yexpr = ShiftOperator.apply(self._xvar, self._yexpr, delay)
-        # min, max
-        self._min = 0
-        self._max = sp.oo
 
     def _print(self):
         return 'r[{0}]'.format(str(self._xexpr))
@@ -511,9 +512,6 @@ class Rect(DiscreteFunctionSignal):
             raise TypeError('delay/advance must be integer')
         self._xexpr = ShiftOperator.apply(self._xvar, self._xexpr, delay)
         self._yexpr = ShiftOperator.apply(self._xvar, self._yexpr, delay)
-        # min, max
-        self._min = 0
-        self._max = 1
 
     @property
     def width(self):
@@ -549,9 +547,6 @@ class Triang(DiscreteFunctionSignal):
             raise TypeError('delay/advance must be integer')
         self._xexpr = ShiftOperator.apply(self._xvar, self._xexpr, delay)
         self._yexpr = ShiftOperator.apply(self._xvar, self._yexpr, delay)
-        # min, max
-        self._min = 0
-        self._max = 1
 
     @property
     def width(self):
@@ -639,9 +634,6 @@ class Cosine(_SinCosCExpMixin, DiscreteFunctionSignal):
                                           self._omega0)
         self._yexpr = ScaleOperator.apply(self._xvar, self._yexpr,
                                           self._omega0)
-        # min, max
-        self._min = -1
-        self._max = 1
 
     def _copy_to(self, other):
         DiscreteFunctionSignal._copy_to(self, other)
@@ -670,9 +662,6 @@ class Sine(_SinCosCExpMixin, DiscreteFunctionSignal):
                                           self._omega0)
         self._yexpr = ScaleOperator.apply(self._xvar, self._yexpr,
                                           self._omega0)
-        # min, max
-        self._min = -1
-        self._max = 1
 
     def _copy_to(self, other):
         DiscreteFunctionSignal._copy_to(self, other)
@@ -692,9 +681,6 @@ class Sinusoid(Cosine):
         Cosine.__init__(self, omega0, phi)
         self._peak_amplitude = A
         self._yexpr *= A
-        # min, max
-        self._min = -A
-        self._max = A
 
     def _copy_to(self, other):
         other._peak_amplitude = self._peak_amplitude
@@ -709,8 +695,6 @@ class Sinusoid(Cosine):
         self._yexpr /= self._peak_amplitude
         self._peak_amplitude = value
         self._yexpr *= value
-        # min, max
-        self._min = -value
         self._max = value
 
     @property
@@ -834,9 +818,6 @@ class Sawtooth(DiscreteFunctionSignal):
         DiscreteFunctionSignal.__init__(self, expr)
         self._period = N
         self._width = width
-        # min, max
-        self._min = -1
-        self._max = 1
 
     def _print(self):
         return 'saw[{0}, {1}, {2}]'.format(str(self._xexpr), self._period,
@@ -868,9 +849,6 @@ class Square(DiscreteFunctionSignal):
         DiscreteFunctionSignal.__init__(self, expr)
         self._period = N
         self._width = width
-        # min, max
-        self._min = -1
-        self._max = 1
 
     def _print(self):
         return 'square[{0}, {1}, {2}]'.format(str(self._xexpr), self._period,
@@ -910,9 +888,6 @@ class DeltaTrain(DiscreteFunctionSignal):
         expr = DeltaTrain._DiscreteDeltaTrain(sp.Mod(self._default_xvar(), N))
         DiscreteFunctionSignal.__init__(self, expr)
         self._period = N
-        # min, max
-        self._min = 0
-        self._max = 1
 
     def _print(self):
         return 'III[{0},{1}]'.format(str(self._xexpr), self._period)

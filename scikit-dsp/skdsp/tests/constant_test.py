@@ -11,7 +11,7 @@ import unittest
 class ConstantTest(unittest.TestCase):
 
     def test_constructor(self):
-        ''' Constant (discrete/continuous): constructors.
+        ''' Constant: constructors.
         '''
         # constante discreta
         d = ds.Constant()
@@ -24,7 +24,7 @@ class ConstantTest(unittest.TestCase):
         self.assertIsInstance(d, ds.DiscreteFunctionSignal)
 
     def test_name(self):
-        ''' Constant (discrete/continuous): name.
+        ''' Constant: name.
         '''
         # constante discreta
         d = ds.Constant(3)
@@ -33,11 +33,11 @@ class ConstantTest(unittest.TestCase):
         self.assertEqual(d.name, 'z')
 
     def test_xvar_xexpr(self):
-        ''' Constant (discrete/continuous): temporal variable and expression.
+        ''' Constant: independent variable and expression.
         '''
         # constante discreta
         d = ds.Constant(3)
-        # variable temporal
+        # variable independiente
         self.assertTrue(d.is_discrete)
         self.assertFalse(d.is_continuous)
         self.assertEqual(d.xvar, d._default_xvar())
@@ -70,28 +70,32 @@ class ConstantTest(unittest.TestCase):
         self.assertEqual(d.xvar, d._default_xvar())
         self.assertEqual(d.xexpr, sp.Expr(-d.xvar + shift))
 
-    def test_yexpr(self):
-        ''' Constant (discrete/continuous): function expression.
+    def test_yexpr_real_imag(self):
+        ''' Constant: function expression.
         '''
         # constante discreta
-        cte = 3
+        cte = 3.0
         d = ds.Constant(cte)
-        # variable dependiente
-        self.assertEqual(d.yexpr, sp.Expr(cte))
+        # expresión
+        self.assertEqual(d.yexpr, cte)
         self.assertTrue(np.issubdtype(d.dtype, np.float))
         self.assertTrue(d.is_real)
         self.assertFalse(d.is_complex)
+        self.assertEqual(d, d.real)
+        self.assertEqual(ds.Constant(0), d.imag)
         # constante discreta
-        cte = 3j
+        cte = -5-3j
         d = ds.Constant(cte)
-        # variable dependiente
-        self.assertEqual(d.yexpr, sp.Expr(cte))
+        # expresión
+        self.assertEqual(d.yexpr, cte)
         self.assertTrue(np.issubdtype(d.dtype, np.complex))
         self.assertFalse(d.is_real)
         self.assertTrue(d.is_complex)
+        self.assertEqual(ds.Constant(-5.0), d.real)
+        self.assertEqual(ds.Constant(-3.0), d.imag)
 
     def test_period(self):
-        ''' Constant (discrete/continuous): period.
+        ''' Constant: period.
         '''
         # constante discreta
         d = ds.Constant(3)
@@ -100,7 +104,7 @@ class ConstantTest(unittest.TestCase):
         self.assertEqual(d.period, sp.oo)
 
     def test_repr_str_latex(self):
-        ''' Constant (discrete/continuous): repr, str and latex.
+        ''' Constant: repr, str and latex.
         '''
         # constante discreta
         d = ds.Constant(3)
@@ -127,81 +131,83 @@ class ConstantTest(unittest.TestCase):
         # latex
         self.assertEqual(d.latex(), '-3.0*\\mathrm{j}')
 
-    def test_repr_str_latex(self):
-        ''' Constant (discrete/continuous): repr, str and latex.
+    def test_eval_sample(self):
+        ''' Constant: eval(scalar), eval(range)
         '''
+        # scalar
+        cte = complex(np.random.random(), np.random.random())
+        d = ds.Constant(cte)
+        self.assertAlmostEqual(d.eval(0), cte)
+        self.assertAlmostEqual(d.eval(1), cte)
+        self.assertAlmostEqual(d.eval(-1), cte)
+        with self.assertRaises(TypeError):
+            d.eval(0.5)
+        # range
+        np.testing.assert_array_almost_equal(d.eval(np.arange(0, 2)),
+                                             np.array([cte, cte]))
+        np.testing.assert_array_almost_equal(d.eval(np.arange(-1, 2)),
+                                             np.array([cte, cte, cte]))
+        np.testing.assert_array_almost_equal(d.eval(np.arange(-4, 1, 2)),
+                                             np.array([cte, cte, cte]))
+        np.testing.assert_array_almost_equal(d.eval(np.arange(3, -2, -2)),
+                                             np.array([cte, cte, cte]))
+        with self.assertRaises(TypeError):
+            d.eval(np.arange(0, 2, 0.5))
 
-#     def test_eval_sample(self):
-#         ''' Rect (discrete/continuous): eval(scalar) '''
-#         # rectángulo discreto
-#         d = ds.Rect(3)
-#         self.assertEqual(d.eval(0), 1.0)
-#         self.assertEqual(d.eval(1), 1.0)
-#         self.assertEqual(d.eval(-1), 1.0)
-#         with self.assertRaises(TypeError):
-#             d.eval(0.5)
-#         # rectángulo continuo
-#         d = cs.Rect(3)
-#         self.assertEqual(d.eval(0), 1.0)
-#         self.assertEqual(d.eval(1), 1.0)
-#         self.assertEqual(d.eval(-1), 1.0)
+    def test_getitem_scalar(self):
+        ''' Constant (discrete): eval[scalar], eval[slice] '''
+        # scalar
+        cte = complex(np.random.random(), np.random.random())
+        d = ds.Constant(cte)
+        self.assertAlmostEqual(d[0], cte)
+        self.assertAlmostEqual(d[1], cte)
+        self.assertAlmostEqual(d[-1], cte)
+        with self.assertRaises(TypeError):
+            d[0.5]
+        # slice
+        np.testing.assert_array_almost_equal(d[0:2],
+                                             np.array([cte, cte]))
+        np.testing.assert_array_almost_equal(d[-1:2],
+                                             np.array([cte, cte, cte]))
+        np.testing.assert_array_almost_equal(d[-4:1:2],
+                                             np.array([cte, cte, cte]))
+        np.testing.assert_array_almost_equal(d[3:-2:-2],
+                                             np.array([cte, cte, cte]))
+        with self.assertRaises(TypeError):
+            d[0:2:0.5]
 
-#     def test_eval_range(self):
-#         ''' Rect (discrete/continuous): eval(array) '''
-#         # rectángulo discreto
-#         d = ds.Rect(3)
-#         np.testing.assert_array_equal(d.eval(np.arange(0, 2)),
-#                                       np.array([1.0, 1.0]))
-#         np.testing.assert_array_equal(d.eval(np.arange(-1, 2)),
-#                                       np.array([1.0, 1.0, 1.0]))
-#         np.testing.assert_array_equal(d.eval(np.arange(-4, 1, 2)),
-#                                       np.array([0.0, 0.0, 1.0]))
-#         np.testing.assert_array_equal(d.eval(np.arange(3, -2, -2)),
-#                                       np.array([0.0, 1.0, 1.0]))
-#         with self.assertRaises(TypeError):
-#             d.eval(np.arange(0, 2, 0.5))
-#         # rectángulo continuo
-#         d = cs.Rect(3)
-#         np.testing.assert_array_equal(d.eval(np.arange(0, 2)),
-#                                       np.array([1.0, 1.0]))
-#         np.testing.assert_array_equal(d.eval(np.arange(-1, 2)),
-#                                       np.array([1.0, 1.0, 1.0]))
-#         np.testing.assert_array_equal(d.eval(np.arange(-4, 1, 2)),
-#                                       np.array([0.0, 0.0, 1.0]))
-#         np.testing.assert_array_equal(d.eval(np.arange(3, -2, -2)),
-#                                       np.array([0.0, 1.0, 1.0]))
+    def test_generator(self):
+        ''' Constant (discrete): generate '''
+        d = ds.Constant(123.456)
+        with self.assertRaises(TypeError):
+            d.generate(0, step=0.1)
+        dg = d.generate(s0=-3, size=5, overlap=3)
+        np.testing.assert_array_equal(next(dg), np.full(5, 123.456))
+        np.testing.assert_array_equal(next(dg), np.full(5, 123.456))
+        np.testing.assert_array_equal(next(dg), np.full(5, 123.456))
 
-#     def test_getitem_scalar(self):
-#         ''' Rect (discrete/continuous): eval[scalar] '''
-#         # rectángulo discreto
-#         d = ds.Rect(3)
-#         self.assertEqual(d[0], 1.0)
-#         self.assertEqual(d[1], 1.0)
-#         self.assertEqual(d[-1], 1.0)
-#         with self.assertRaises(TypeError):
-#             d[0.5]
-#         # rectángulo discreto
-#         d = cs.Rect(3)
-#         self.assertEqual(d[0], 1.0)
-#         self.assertEqual(d[1], 1.0)
-#         self.assertEqual(d[-1], 1.0)
+    def test_flip(self):
+        ''' Constant (discrete): flip '''
+        d = ds.Constant(123.456)
+        np.testing.assert_array_equal(d[-10:10], d.flip()[-10:10])
 
-#     def test_getitem_slice(self):
-#         ''' Rect (discrete/continuous): eval[:] '''
-#         # rectángulo discreto
-#         d = ds.Rect(3)
-#         np.testing.assert_array_equal(d[0:2], np.array([1.0, 1.0]))
-#         np.testing.assert_array_equal(d[-1:2], np.array([1.0, 1.0, 1.0]))
-#         np.testing.assert_array_equal(d[-4:1:2], np.array([0.0, 0.0, 1.0]))
-#         np.testing.assert_array_equal(d[3:-2:-2], np.array([0.0, 1.0, 1.0]))
-#         with self.assertRaises(TypeError):
-#             d[0:2:0.5]
-#         # rectángulo continuo
-#         d = cs.Rect(3)
-#         np.testing.assert_array_equal(d[0:2], np.array([1.0, 1.0]))
-#         np.testing.assert_array_equal(d[-1:2], np.array([1.0, 1.0, 1.0]))
-#         np.testing.assert_array_equal(d[-4:1:2], np.array([0.0, 0.0, 1]))
-#         np.testing.assert_array_equal(d[3:-2:-2], np.array([0.0, 1.0, 1.0]))
+    def test_shift_delay(self):
+        ''' Constant (discrete): shift, delay '''
+        d = ds.Constant(123.456)
+        with self.assertRaises(TypeError):
+            d.shift(0.5)
+        np.testing.assert_array_equal(d[-10:10], d.shift(3)[-10:10])
+        with self.assertRaises(TypeError):
+            d.delay(0.5)
+        np.testing.assert_array_equal(d[-10:10], d.delay(3)[-10:10])
+
+    def test_scale(self):
+        ''' Constant (discrete): shift, delay '''
+        d = ds.Constant(123.456)
+        with self.assertRaises(TypeError):
+            d.scale(sp.pi)
+        np.testing.assert_array_equal(d[-10:10], d.scale(3)[-10:10])
+        np.testing.assert_array_equal(d[-10:10], d.scale(0.25)[-10:10])
 
 if __name__ == "__main__":
     unittest.main()

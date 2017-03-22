@@ -267,8 +267,6 @@ class Constant(ContinuousFunctionSignal):
         if sc.is_complex:
             self.dtype = np.complex_
         self._const = const
-        self._min = const
-        self._max = const
 
 
 class Delta(ContinuousFunctionSignal):
@@ -287,7 +285,6 @@ class Delta(ContinuousFunctionSignal):
         if delay != 0:
             self._xexpr = ShiftOperator.apply(self._xvar, self._xexpr, delay)
             self._yexpr = ShiftOperator.apply(self._xvar, self._yexpr, delay)
-        self._min = 0
 
     def _print(self):
         return 'd({0})'.format(str(self._xexpr))
@@ -308,8 +305,6 @@ class Step(ContinuousFunctionSignal):
         if delay != 0:
             self._xexpr = ShiftOperator.apply(self._xvar, self._xexpr, delay)
             self._yexpr = ShiftOperator.apply(self._xvar, self._yexpr, delay)
-        self._max = 1
-        self._min = 0
 
     def _print(self):
         return 'u({0})'.format(str(self._xexpr))
@@ -331,9 +326,6 @@ class Ramp(ContinuousFunctionSignal):
         # delay
         self._xexpr = ShiftOperator.apply(self._xvar, self._xexpr, delay)
         self._yexpr = ShiftOperator.apply(self._xvar, self._yexpr, delay)
-        # max-min
-        self._min = 0
-        self._max = sp.oo
 
     def _print(self):
         return 'r({0})'.format(str(self._xexpr))
@@ -360,9 +352,6 @@ class Rect(ContinuousFunctionSignal):
         # delay
         self._xexpr = ShiftOperator.apply(self._xvar, self._xexpr, delay)
         self._yexpr = ShiftOperator.apply(self._xvar, self._yexpr, delay)
-        # min-max
-        self._min = 0
-        self._max = 1
 
     @property
     def width(self):
@@ -394,9 +383,6 @@ class Triang(ContinuousFunctionSignal):
         # delay
         self._xexpr = ShiftOperator.apply(self._xvar, self._xexpr, delay)
         self._yexpr = ShiftOperator.apply(self._xvar, self._yexpr, delay)
-        # min-max
-        self._min = 0
-        self._max = 1
 
     @property
     def width(self):
@@ -477,9 +463,6 @@ class Cosine(_SinCosCExpMixin, ContinuousFunctionSignal):
                                           self._omega0)
         self._yexpr = ScaleOperator.apply(self._xvar, self._yexpr,
                                           self._omega0)
-        # min-max
-        self._min = -1
-        self._max = 1
 
     def _copy_to(self, other):
         ContinuousFunctionSignal._copy_to(self, other)
@@ -508,9 +491,6 @@ class Sine(_SinCosCExpMixin, ContinuousFunctionSignal):
                                           self._omega0)
         self._yexpr = ScaleOperator.apply(self._xvar, self._yexpr,
                                           self._omega0)
-        # min-max
-        self._min = -1
-        self._max = 1
 
     def _copy_to(self, other):
         ContinuousFunctionSignal._copy_to(self, other)
@@ -530,9 +510,6 @@ class Sinusoid(Cosine):
         Cosine.__init__(self, omega0, phi)
         self._peak_amplitude = A
         self._yexpr *= A
-        # min-max
-        self._min = -A
-        self._max = A
 
     def _copy_to(self, other):
         other._peak_amplitude = self._peak_amplitude
@@ -547,9 +524,6 @@ class Sinusoid(Cosine):
         self._yexpr /= self._peak_amplitude
         self._peak_amplitude = value
         self._yexpr *= value
-        # min-max
-        self._min = -value
-        self._max = value
 
     @property
     def in_phase(self):

@@ -8,7 +8,7 @@ from ..operator.operator import AbsOperator, HermitianOperator
 from ..operator.operator import ConjugateOperator, RealPartOperator
 from ..operator.operator import ImaginaryPartOperator
 from ..operator.operator import FlipOperator, ShiftOperator
-from ..operator.operator import ScaleOperator, GainOperator
+from ..operator.operator import ScaleOperator
 from ._util import _is_real_scalar
 from abc import ABC, abstractproperty
 from copy import deepcopy
@@ -18,29 +18,21 @@ import sympy as sp
 
 
 class _Signal(ABC):
-    ''' _Signal is the abstract base class
-    '''
+    """
+    Abstract base class for all kind of signals.
+
+    Attributes:
+        name (str): Name of the signal; defaults to `'x'`.
+
+    """
     def __init__(self):
         """
-        Common *__init__* method for all signals.
-
-        Attributes:
-            _dtype: Type of the signal values (one of numpy types
-            float_ or complex_).
-            _period: Period of the signal (None = unknown, float value
-            or sympy `inf`.
-            _xvar: Sympy symbol of the independent variable
-            _xexpr: Sympy expression of the independent variable
-
+        Common `__init__()` method for all signals.
         """
         self._dtype = np.float_
         self._period = None
         self._xvar = None
         self._xexpr = None
-        self._min = -sp.oo
-        self._max = sp.oo
-
-        #: str: name of the signal; defaults to `x`.
         self.name = 'x'
 
     # def __deepcopy__(self, memo):
@@ -60,22 +52,24 @@ class _Signal(ABC):
         other._period = self._period
         other._xexpr = self._xexpr
         other._xvar = self._xvar
-        other._min = self._min
-        other._max = self._max
         other.name = self.name
 
     @property
     def dtype(self):
-        """ Type of the signal values.
-        One of *np.float_* or *np.complex_*.
+        """
+        Type of the signal values.\n
+        Note that if `dtype` changes from complex to float, the signal's
+        `yexpr` is replaced by its real part and thus the imaginary part
+        is destructively lost.
+
+        Returns:
+            The type of the signal values; one of Numpy `float_` or
+            `complex_`.
         """
         return self._dtype
 
     @dtype.setter
     def dtype(self, value):
-        """ Note. If dtype changes from complex to float, the `yexpr` of the
-        signal is replaced by its real part and thus the imaginary part is
-        destructively lost. """
         if value not in (np.float_, np.complex_):
             raise ValueError('only signal types float or complex allowed')
         if self._dtype == np.complex_:
@@ -84,13 +78,22 @@ class _Signal(ABC):
 
     @property
     def xexpr(self):
-        """ Symbolic *independent variable* (time, frequency...) expression."""
+        """
+        `Independent variable` (time, frequency...) expression.
+
+        Returns:
+            The Sympy expression for the signal's independent variable.
+        """
         return self._xexpr
 
     @property
     def xvar(self):
-        """ Symbolic *independent variable* (time, frequency...) variable used
-         in the symbolic expression `xexpr`."""
+        """
+        `Independent variable` (time, frequency...) expression.
+
+        Returns:
+            The Sympy signal's independent variable.
+        """
         return self._xvar
 
     @xvar.setter
@@ -143,55 +146,84 @@ class _Signal(ABC):
         else:
             raise TypeError('`period` must be a real scalar')
 
-    @property
-    def min(self):
-        """ Returns minimum value of signal."""
-        return self._min if self.is_real else None
-
-    @property
-    def max(self):
-        """ Returns maximum value of signal."""
-        return self._max if self.is_real else None
-
-    @abstractproperty
-    def eval(self, r):
-        """ Returns value(s) of signal evaluated at 'r'."""
-        pass
-
     def __str__(self):
         if hasattr(self.__class__, '_print'):
             return self._print()
+        if self._yexpr.is_number:
+            return sp.Basic.__str__(self._yexpr)
         return sp.Basic.__str__(self._yexpr.args[0])
 
     def __repr__(self):
         return "Generic '_Signal' object"
 
+    def latex(self):
+        """
+        A
+        :math:`\LaTeX`
+        representation of the signal.
+        """
+        return self.__str__()
+
+    def __eq__(self, other):
+        equal = other._dtype == self._dtype and other._period == self._period
+        if not equal:
+            return False
+        return sp.Eq(other._xexpr.xreplace({other._xvar: self._xvar}) -
+                     self._xexpr, 0) == True
+
     # --- eval wrappers -------------------------------------------------------
-    def __getitem__(self, idx):
+    @abstractproperty
+    def eval(self, r):
+        """ Returns value(s) of signal evaluated at 'r'."""
+        pass
+
+    def __getitem__(self, key):
         """
-        getitemmmm
+        Evaluates signal at `key`; i.e
+        :math:`y[key]`,
+        :math:`y(key)`.
+
+        Args:
+            key: Range of index values of the signal; could be either a single
+            idx or a slice.
+
+        Returns:
+            Signal values at `key`.
+
         """
-        if isinstance(idx, slice):
-            return self.eval(np.arange(idx.start, idx.stop, idx.step))
-        elif isinstance(idx, np.ndarray):
-            return self.eval(idx)
+        if isinstance(key, slice):
+            return self.eval(np.arange(key.start, key.stop, key.step))
         else:
-            return self.eval(idx)
+            return self.eval(key)
 
     def generate(self, s0=0, step=1, size=1, overlap=0):
-        ''' Generador de señal
-        devuelve trozos de señal de tamaño 'size', muestreados cada 'step'
-        unidades, empezando desde s0; cada trozo solapa 'overlap' muestras
-        con el anterior.
-        Ejemplos:
-        1) (s0=0, step=1, size=3, overlap=2) devuelve
-        (s[0], s[1], s[2]), (s[1], s[2], s[3]), (s[2], s[3], s[4]), ...
-        2) (s0=-1, step=1, size=2, overlap=0) devuelve
-        (s[-1], s[0]), (s[1], s[2]), (s[3], s[4]), ...
-        3) (s0=0, step=0.1, size=3, overlap=0.1) devuelve
-        (s[0], s[0.1], s[0.2]), (s[0.1], s[0.2], s[0.3)),
-        (s[0.2], s[0.3], s[0.4), ...
-        '''
+        """
+        Signal value generator. Evaluates signal value chunks of size `size`,
+        every `step` units, starting at `s0`. Each chunk overlaps `overlap`
+        values with the previous chunk.
+
+        Args:
+            s0: Starting index of chunk; defaults to 0.
+            step: Distance between indexes; defaults to 1.
+            size: Number of values in chunk; defaults to 1.
+            overlap: Number of values overlapped between chunks; defaults to 0.
+                idx or a slice.
+
+        Yields:
+            Numpy array: A chunk of signal values.
+
+        Examples:
+            1. `generate(s0=0, step=1, size=3, overlap=2)` returns
+            [s[0], s[1], s[2]], [s[1], s[2], s[3]], [s[2], s[3], s[4]], ...
+
+            2. `generate(s0=-1, step=1, size=2, overlap=0)` returns
+            [s[-1], s[0]], [s[1], s[2]], [s[3], s[4]], ...
+
+            3. `generate(s0=0, step=0.1, size=3, overlap=0.1)` returns
+            [s[0], s[0.1], s[0.2]], [s[0.1], s[0.2], s[0.3]],
+            [s[0.2], s[0.3], s[0.4]], ...
+
+        """
         s = s0
         while True:
             sl = np.linspace(s, s+(size*step), size, endpoint=False)
@@ -200,13 +232,18 @@ class _Signal(ABC):
 
     # --- operadores temporales -----------------------------------------------
     def flip(self):
-        """ Inverts the independent variable; i.e.
-        x[n] -> x[-n], x(t) -> x(-t). """
+        """
+        Inverts the independent variable; i.e.
+        :math:`y[n] = x[-n]`,
+        :math:`y(t) = x(-t)`.
+
+        Returns:
+            A signal copy with the independent variable inverted.
+
+        """
         s = deepcopy(self)
         s._xexpr = FlipOperator.apply(s._xvar, s._xexpr)
         return s
-
-    __reversed__ = flip
 
     def shift(self, k):
         """
@@ -221,46 +258,83 @@ class _Signal(ABC):
             A signal copy with the independent variable shifted.
 
         """
-
         s = deepcopy(self)
         s._xexpr = ShiftOperator.apply(s._xvar, s._xexpr, k)
         return s
 
     def delay(self, k):
-        """ Delays the signal by shifting the independent variable; i.e.
-        x[n] -> x[n-k], x(t) -> x(t-k). """
+        """
+        Delays the signal by shifting the independent variable; i.e.
+        :math:`y[n] = x[n-k]`,
+        :math:`y(t) = x(t-k)`.
+
+        Args:
+            k: The amount of shift.
+
+        Returns:
+            A delayed signal copy.
+
+        """
         return self.shift(k)
 
-    def scale(self, v):
-        """ Scales the independent variable; i.e.
-        x[n] -> x[v*n], x(t) -> x(v*t). """
+    def scale(self, v, mul=True):
+        """
+        Scales the the independent variable; i.e.
+        :math:`y[n] = x[v*n]`,
+        :math:`y(t) = x(v*t)`.
+
+        Args:
+            v: The amount of scaling.
+            mul (bool): If True, the scale multiplies, else
+                divides.
+
+        Returns:
+            A signal copy with the independent variable scaled.
+
+        """
         s = deepcopy(self)
-        s._xexpr = ScaleOperator.apply(s._xvar, s._xexpr, v)
+        s._xexpr = ScaleOperator.apply(s._xvar, s._xexpr, v, mul)
         return s
 
     # --- operations ----------------------------------------------------------
     @property
     def real(self):
+        """
+        Real part of the signal.
+
+        Returns:
+            A signal copy with the real part of the signal.
+
+        """
         s = deepcopy(self)
-        s._yexpr = sp.Expr(RealPartOperator.apply(s._xvar, s._yexpr))
+        s._yexpr = RealPartOperator.apply(s._xvar, s._yexpr)
+        s._dtype = np.float_
         return s
 
     @property
     def imag(self):
+        """
+        Imaginary part of the signal.
+
+        Returns:
+            A signal copy with the imaginary part of the signal.
+
+        """
         s = deepcopy(self)
-        s._yexpr = sp.Expr(ImaginaryPartOperator.apply(s._xvar, s._yexpr))
+        s._yexpr = ImaginaryPartOperator.apply(s._xvar, s._yexpr)
+        s._dtype = np.float_
         return s
 
 
 class _FunctionSignal(_Signal):
 
     def __init__(self, expr):
-        _Signal.__init__(self)
+        super().__init__()
         if not isinstance(expr, sp.Expr):
             raise TypeError("'expr' must be a sympy expression")
         if expr.is_number:
             # just in case is a symbol or constant
-            self._yexpr = sp.Expr(expr)
+            self._yexpr = expr
             self._xvar = self._default_xvar()
             self._xexpr = sp.Expr(self._xvar)
         else:
@@ -346,8 +420,9 @@ class _FunctionSignal(_Signal):
     def __mul__(self, other):
         if other.dtype == np.complex_:
             self.dtype = np.complex_
-        self._yexpr *= other._yexpr.xreplace({other._xvar: self._xvar})
-        return self
+        s = deepcopy(self)
+        s._yexpr *= other._yexpr.xreplace({other._xvar: s._xvar})
+        return s
 
     __rmul__ = __mul__
     __imul__ = __mul__
@@ -355,22 +430,25 @@ class _FunctionSignal(_Signal):
     def __truediv__(self, other):
         if other.dtype == np.complex_:
             self.dtype = np.complex_
-        self._yexpr /= other._yexpr.xreplace({other._xvar: self._xvar})
-        return self
+        s = deepcopy(self)
+        s._yexpr /= other._yexpr.xreplace({other._xvar: s._xvar})
+        return s
 
     __itruediv__ = __truediv__
 
     def __rtruediv__(self, other):
         if self.dtype == np.complex_:
             other.dtype = np.complex_
-        other._yexpr /= self._yexpr.xreplace({self._xvar: other._xvar})
+        s = deepcopy(other)
+        s._yexpr /= self._yexpr.xreplace({self._xvar: s._xvar})
         return 1/other
 
     def __add__(self, other):
         if other.dtype == np.complex_:
             self.dtype = np.complex_
-        self._yexpr += other._yexpr.xreplace({other._xvar: self._xvar})
-        return self
+        s = deepcopy(self)
+        s._yexpr += other._yexpr.xreplace({other._xvar: s._xvar})
+        return s
 
     __radd__ = __add__
     __iadd__ = __add__
@@ -378,29 +456,35 @@ class _FunctionSignal(_Signal):
     def __sub__(self, other):
         if other.dtype == np.complex_:
             self.dtype = np.complex_
-        self._yexpr -= other._yexpr.xreplace({other._xvar: self._xvar})
-        return self
+        s = deepcopy(self)
+        s._yexpr -= other._yexpr.xreplace({other._xvar: s._xvar})
+        return s
 
     def __rsub__(self, other):
         if self.dtype == np.complex_:
             other.dtype = np.complex_
-        other._yexpr -= self._yexpr.xreplace({self._xvar: other._xvar})
-        return -other
+        s = deepcopy(other)
+        s._yexpr -= self._yexpr.xreplace({self._xvar: s._xvar})
+        return -s
 
     __isub__ = __sub__
 
     def __neg__(self):
-        self._yexpr = GainOperator.apply(self._xvar, self._yexpr, -1)
-        return self
+        s = deepcopy(self)
+        s._yexpr = -self._yexpr
+        return s
 
     def __abs__(self):
-        self._yexpr = AbsOperator.apply(self._xvar, self._yexpr)
-        return self
+        s = deepcopy(self)
+        s._yexpr = AbsOperator.apply(s._xvar, s._yexpr)
+        return s
 
     def __eq__(self, other):
-        return self.__dict__ == other.__dict__
-#         # TODO: ¿es correcto? NO si las variables no son iguales
-#         return str(self).__eq__(str(other))
+        if not super().__eq__(other):
+            return False
+        return sp.Eq(other._yexpr.xreplace({other._xvar: self._xvar}) -
+                     self._yexpr, 0) == True
+
 #         if isinstance(other, _FunctionSignal):
 #             return self._yexpr == other._yexpr
 #         d = self._yexpr - other
@@ -411,28 +495,22 @@ class _FunctionSignal(_Signal):
 #         else:
 #             return False
 
-    def range(self, dB=False):
-        dr = self.max - self.min
-        if dB:
-            return 20*sp.log(dr, 10)
-        return dr
-
     @property
     def even(self):
-        s1 = self.__class__._factory(self)
-        s2 = self.__class__._factory(self)
+        s1 = deepcopy(self)
+        s2 = deepcopy(self)
         s2._yexpr = HermitianOperator.apply(s2._xvar, s2._yexpr)
         return sp.Rational(1, 2)*(s1 + s2)
 
     @property
     def odd(self):
-        s1 = self.__class__._factory(self)
-        s2 = self.__class__._factory(self)
+        s1 = deepcopy(self)
+        s2 = deepcopy(self)
         s2._yexpr = HermitianOperator.apply(s2._xvar, s2._yexpr)
         return sp.Rational(1, 2)*(s1 - s2)
 
     @property
     def conjugate(self):
-        s = self.__class__._factory(self)
+        s = deepcopy(self)
         s._yexpr = ConjugateOperator.apply(s._xvar, s._yexpr)
         return s
