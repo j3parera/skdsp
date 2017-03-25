@@ -230,7 +230,7 @@ class _Signal(ABC):
             yield self[sl]
             s += size*step - overlap
 
-    # --- operadores temporales -----------------------------------------------
+    # --- independent variable operations -------------------------------------
     def flip(self):
         """
         Inverts the independent variable; i.e.
