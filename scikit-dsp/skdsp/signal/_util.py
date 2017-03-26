@@ -102,7 +102,7 @@ def _is_integer_scalar(x):
 
 
 def _latex_mode(s, mode):
-    if 'mode' == 'inline':
+    if mode == 'inline':
         return r'$' + s + '$'
     else:
         return s

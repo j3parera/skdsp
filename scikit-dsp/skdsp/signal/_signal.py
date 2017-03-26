@@ -6,14 +6,16 @@ This class implements all the common methods of signals.
 
 from ..operator.operator import AbsOperator, HermitianOperator
 from ..operator.operator import ConjugateOperator, RealPartOperator
-from ..operator.operator import ImaginaryPartOperator
 from ..operator.operator import FlipOperator, ShiftOperator
+from ..operator.operator import ImaginaryPartOperator
 from ..operator.operator import ScaleOperator
 from ._util import _is_real_scalar
+from ._util import _latex_mode
 from abc import ABC, abstractproperty
 from copy import deepcopy
 from numbers import Number
 import numpy as np
+import re
 import sympy as sp
 
 
@@ -22,10 +24,48 @@ class _Signal(ABC):
     Abstract base class for all kind of signals.
 
     Attributes:
-        name (str): Name of the signal; defaults to `'x'`.
+        name (str): Name of the signal; defaults to
+            :math:`xk`
+            :math:`k`
+            an autoincremented integer.
+    """
 
     """
-    def __init__(self):
+    Signal registry. Maintains a dictionary of created signals to avoid
+    using the same name for more than one. Registering is performed
+    automatically at class creation. In order to de-register, the signal
+    must be 'deleted' using `del s`
+    """
+    _registry = {}
+
+    """
+    Last name index used for automatic signal name assigment.
+    """
+    _last_name_idx = -1
+
+    @classmethod
+    def _register(cls, name):
+        cls._registry[name] = True
+
+    @classmethod
+    def _deregister(cls, name):
+        try:
+            del cls._registry[name]
+        except:
+            pass
+
+    @classmethod
+    def _check_name(cls, name):
+        if name in cls._registry:
+            raise ValueError("Duplicate signal name")
+        if re.match('x\d+', name):
+            raise ValueError("Signal names 'xk' not allowed.")
+        return name
+
+    def __del__(self):
+        self._deregister(self._name)
+
+    def __init__(self, **kwargs):
         """
         Common `__init__()` method for all signals.
         """
@@ -33,7 +73,12 @@ class _Signal(ABC):
         self._period = None
         self._xvar = None
         self._xexpr = None
-        self.name = 'x'
+        if 'name' in kwargs:
+            self._name = kwargs['name']
+        else:
+            self._name = 'x' + str(_Signal._last_name_idx + 1)
+            _Signal._last_name_idx += 1
+        self._register(self._name)
 
     # def __deepcopy__(self, memo):
     #    """ Este deepcopy no es, en principio, necesario, salvo que
@@ -53,6 +98,27 @@ class _Signal(ABC):
         other._xexpr = self._xexpr
         other._xvar = self._xvar
         other.name = self.name
+
+    @property
+    def name(self):
+        return self._name
+
+    @name.setter
+    def name(self, value):
+        """
+        Assigns a name to the signal.
+        """
+        if self._name == value:
+            return
+        self._name = self._check_name(value)
+
+    def latex_name(self, mode=None):
+        m = re.match(r'(\D+)(\d+)', self._name)
+        if m:
+            s = m.group(1) + '_{{0}}'.format(m.group(2))
+        else:
+            s = self._name
+        return _latex_mode(s, mode)
 
     @property
     def dtype(self):
@@ -146,23 +212,8 @@ class _Signal(ABC):
         else:
             raise TypeError('`period` must be a real scalar')
 
-    def __str__(self):
-        if hasattr(self.__class__, '_print'):
-            return self._print()
-        if self._yexpr.is_number:
-            return sp.Basic.__str__(self._yexpr)
-        return sp.Basic.__str__(self._yexpr.args[0])
-
     def __repr__(self):
         return "Generic '_Signal' object"
-
-    def latex(self):
-        """
-        A
-        :math:`\LaTeX`
-        representation of the signal.
-        """
-        return self.__str__()
 
     def __eq__(self, other):
         equal = other._dtype == self._dtype and other._period == self._period
@@ -328,8 +379,8 @@ class _Signal(ABC):
 
 class _FunctionSignal(_Signal):
 
-    def __init__(self, expr):
-        super().__init__()
+    def __init__(self, expr, **kwargs):
+        super().__init__(**kwargs)
         if not isinstance(expr, sp.Expr):
             raise TypeError("'expr' must be a sympy expression")
         if expr.is_number:
@@ -354,6 +405,21 @@ class _FunctionSignal(_Signal):
     @property
     def yexpr(self):
         return self._yexpr
+
+    def latex_yexpr(self):
+        """
+        A
+        :math:`\LaTeX`
+        representation of the signal expression.
+        """
+        return self.__str__()
+
+    def __str__(self):
+        if hasattr(self.__class__, '_print'):
+            return self._print()
+        if self._yexpr.is_number:
+            return sp.Basic.__str__(self._yexpr)
+        return sp.Basic.__str__(self._yexpr.args[0])
 
     def eval(self, x):
         # Hay que ver si hay 'Pow'

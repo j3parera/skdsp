@@ -280,8 +280,8 @@ class DiscreteFunctionSignal(_DiscreteMixin, _FunctionSignal):
         other._copy_to(s)
         return s
 
-    def __init__(self, expr):
-        _FunctionSignal.__init__(self, expr)
+    def __init__(self, expr, **kwargs):
+        _FunctionSignal.__init__(self, expr, **kwargs)
         _DiscreteMixin.__init__(self)
         self._z_transform = None
         self._dt_fourier_transform = None
@@ -350,20 +350,20 @@ class Constant(DiscreteFunctionSignal):
     Discrete constant signal. Not a degenerate case for constant functions
     such as `A*cos(0)`, `A*sin(pi/2)`, `A*exp(0*n)`, althought it could be.
     """
-    def __init__(self, const=0):
-        super().__init__(sp.sympify(const))
+    def __init__(self, const=0, **kwargs):
+        super().__init__(sp.sympify(const), **kwargs)
         if _is_complex_scalar(const):
             self.dtype = np.complex_
         # period
         self._period = sp.oo
 
-    def latex(self):
+    def latex_yexpr(self):
         """
         A
         :math:`\LaTeX`
         representation of the signal.
         """
-        return str(self).replace('j', '\mathrm{j}')
+        return super().latex_yexpr().replace('j', '\mathrm{j}')
 
     def __repr__(self):
         return 'Constant(' + str(self) + ')'
