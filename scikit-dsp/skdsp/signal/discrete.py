@@ -39,12 +39,30 @@ class _DiscreteMixin(object):
         else:
             raise TypeError("'period' must be an integer scalar")
 
-    @staticmethod
-    def _check_indexes(x):
+    def _check_indexes(self, x):
         """
         Checks if all values in x are integers (including floats
         without fractional part (e.g. 1.0, 2.0).
         """
+        try:
+            xlambda = sp.lambdify(self._xvar, self._xexpr, 'numpy')
+            x = xlambda(x)
+            if not hasattr(x, "__len__"):
+                # workaround para issue #5642 de sympy. Cuando yexpr es una
+                # constante, se devuelve un escalar aunque la entrada sea un
+                # array
+                x = np.full(x.shape, x, self.dtype)
+        except (NameError, ValueError):
+            # sympy no ha podido hacer una función lambda
+            # (o hay algún problema de cálculo, p.e 2^(-1) enteros)
+            # así que se procesan los valores uno a uno
+            x = np.zeros_like(x, self.dtype)
+            for k, x0 in enumerate(x):
+                try:
+                    x[k] = self._xexpr.xreplace({self._xvar: x0})
+                except TypeError:
+                    x[k] = np.nan
+
         if not np.all(np.equal(np.mod(np.asanyarray(x), 1), 0)):
             raise TypeError('discrete signals are only defined' +
                             'for integer indexes')
@@ -54,7 +72,7 @@ class _DiscreteMixin(object):
         """
         Default discrete time variable: n
         """
-        return sp.symbols('n', integer=True)
+        return sp.Symbol('n', integer=True)
 
     def __init__(self):
         """
@@ -550,10 +568,10 @@ class Constant(DiscreteFunctionSignal):
     such as `A*cos(0)`, `A*sin(pi/2)`, `A*exp(0*n)`, althought it could be.
     """
     def __new__(cls, const=0, **kwargs):
-        c = sp.sympify(const)
-        if not c.is_constant():
+        const = sp.sympify(const)
+        if not const.is_constant():
             raise ValueError('const value is not constant')
-        return _Signal.__new__(cls, sp.sympify(const))
+        return _Signal.__new__(cls, const)
 
     def __init__(self, const=0, **kwargs):
         DiscreteFunctionSignal.__init__(self, self.args[0], **kwargs)
@@ -575,6 +593,9 @@ class Constant(DiscreteFunctionSignal):
 
 
 class Delta(DiscreteFunctionSignal):
+    """
+    Discrete delta signal.
+    """
 
     class _DiscreteDelta(sp.Function):
 
@@ -592,28 +613,52 @@ class Delta(DiscreteFunctionSignal):
         def _imp_(n):
             return np.equal(n, 0).astype(np.float_)
 
-    @staticmethod
-    def _factory(other):
-        s = Delta()
-        if other:
-            other._copy_to(s)
-        return s
+#     @staticmethod
+#     def _factory(other):
+#         s = Delta()
+#         if other:
+#             other._copy_to(s)
+#         return s
 
-    def __init__(self, delay=0):
-        expr = Delta._DiscreteDelta(self._default_xvar())
-        DiscreteFunctionSignal.__init__(self, expr)
+    def __new__(cls, delay=0, **kwargs):
         # delay
-        if not isinstance(delay, Integral):
-            raise TypeError('delay/advance must be integer')
-        self._xexpr = ShiftOperator.apply(self._xvar, self._xexpr, delay)
-        self._yexpr = ShiftOperator.apply(self._xvar, self._yexpr, delay)
+        delay = sp.sympify(delay)
+        if not delay.is_integer:
+            raise ValueError('delay/advance must be integer')
+        # expression
+        expr = Delta._DiscreteDelta(_DiscreteMixin._default_xvar())
+        return _Signal.__new__(cls, expr, delay)
 
-    def _print(self):
+    def __init__(self, delay=0, **kwargs):
+        DiscreteFunctionSignal.__init__(self, self.args[0], **kwargs)
+        delay = self.args[1]
+        if delay != 0:
+            self._xexpr = ShiftOperator.apply(self._xvar, self._xexpr, delay)
+            self._yexpr = ShiftOperator.apply(self._xvar, self._yexpr, delay)
+        # period
+        self._period = sp.oo
+
+    @property
+    def real(self):
+        return self
+
+    @property
+    def imag(self):
+        return Constant(0)
+
+    def latex_yexpr(self):
+        """
+        A
+        :math:`\LaTeX`
+        representation of the signal.
+        """
+        return r'\delta\left[{0}\right]'.format(sp.latex(self._xexpr))
+
+    def __str__(self):
         return 'd[{0}]'.format(str(self._xexpr))
 
-    def tolatex(self, mode):
-        s = r'\delta\left[{0}\right]'.format(sp.latex(self._xexpr))
-        return _latex_mode(s, mode='inline')
+    def __repr__(self):
+        return 'Delta(' + str(self.args[1]) + ')'
 
 
 class Step(DiscreteFunctionSignal):
