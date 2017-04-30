@@ -322,6 +322,9 @@ class _Signal(ABC):
     def __imul__(self, other):
         raise NotImplementedError('({0}).__imul__'.format(self))
 
+    def __pow__(self, other):
+        raise NotImplementedError('({0}).__pow__'.format(self))
+
     def __truediv__(self, other):
         raise NotImplementedError('({0}).__truediv__'.format(self))
 
