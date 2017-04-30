@@ -430,6 +430,10 @@ class _Signal(ABC):
         return s
 
 
+class _SignalOp(_Signal):
+    pass
+
+
 class _FunctionSignal(_Signal):
 
     def __init__(self, expr, **kwargs):

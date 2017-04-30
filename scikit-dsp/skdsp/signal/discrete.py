@@ -2,7 +2,7 @@
 from ..operator.operator import ScaleOperator, ShiftOperator
 from ._util import _is_complex_scalar, _is_integer_scalar, _latex_mode
 from numbers import Integral, Number
-from skdsp.signal._signal import _Signal, _FunctionSignal
+from skdsp.signal._signal import _Signal, _FunctionSignal, _SignalOp
 from sympy.core.compatibility import iterable
 from sympy.core.evaluate import evaluate, global_evaluate
 import numpy as np
@@ -250,7 +250,7 @@ class _DiscreteMixin(object):
         return X
 
 
-class _DiscreteSignalOp(_DiscreteMixin, _Signal):
+class _DiscreteSignalOp(_DiscreteMixin, _SignalOp):
     pass
 
 
@@ -550,8 +550,10 @@ class Constant(DiscreteFunctionSignal):
     such as `A*cos(0)`, `A*sin(pi/2)`, `A*exp(0*n)`, althought it could be.
     """
     def __new__(cls, const=0, **kwargs):
-        with evaluate(True):
-            return _Signal.__new__(cls, sp.sympify(const))
+        c = sp.sympify(const)
+        if not c.is_constant():
+            raise ValueError('const value is not constant')
+        return _Signal.__new__(cls, sp.sympify(const))
 
     def __init__(self, const=0, **kwargs):
         DiscreteFunctionSignal.__init__(self, self.args[0], **kwargs)
