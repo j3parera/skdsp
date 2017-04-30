@@ -3,7 +3,6 @@ import numpy as np
 import skdsp.signal.discrete as ds
 import sympy as sp
 import unittest
-from skdsp.signal.discrete import _DiscreteMixin
 
 
 class ConstantTest(unittest.TestCase):
@@ -22,7 +21,7 @@ class ConstantTest(unittest.TestCase):
         self.assertIsInstance(d, ds.DiscreteFunctionSignal)
         # no constante
         with self.assertRaises(ValueError):
-            d = ds.Constant(_DiscreteMixin._default_xvar())
+            d = ds.Constant(ds._DiscreteMixin._default_xvar())
 
     def test_name(self):
         ''' Constant: name.
@@ -59,34 +58,34 @@ class ConstantTest(unittest.TestCase):
         self.assertTrue(d.is_discrete)
         self.assertFalse(d.is_continuous)
         self.assertEqual(d.xvar, d._default_xvar())
-        self.assertEqual(d.xexpr, sp.Expr(d.xvar))
+        self.assertEqual(d.xexpr, d.xvar)
         # shift
         shift = 5
         d = ds.Constant(3).shift(shift)
         self.assertTrue(d.is_discrete)
         self.assertFalse(d.is_continuous)
         self.assertEqual(d.xvar, d._default_xvar())
-        self.assertEqual(d.xexpr, sp.Expr(d.xvar - shift))
+        self.assertEqual(d.xexpr, d.xvar - shift)
         # flip
         d = ds.Constant(3).flip()
         self.assertTrue(d.is_discrete)
         self.assertFalse(d.is_continuous)
         self.assertEqual(d.xvar, d._default_xvar())
-        self.assertEqual(d.xexpr, sp.Expr(-d.xvar))
+        self.assertEqual(d.xexpr, -d.xvar)
         # shift and flip
         shift = 5
         d = ds.Constant(3).shift(shift).flip()
         self.assertTrue(d.is_discrete)
         self.assertFalse(d.is_continuous)
         self.assertEqual(d.xvar, d._default_xvar())
-        self.assertEqual(d.xexpr, sp.Expr(-d.xvar - shift))
+        self.assertEqual(d.xexpr, -d.xvar - shift)
         # flip and shift
         shift = 5
         d = ds.Constant(3).flip().shift(shift)
         self.assertTrue(d.is_discrete)
         self.assertFalse(d.is_continuous)
         self.assertEqual(d.xvar, d._default_xvar())
-        self.assertEqual(d.xexpr, sp.Expr(-d.xvar + shift))
+        self.assertEqual(d.xexpr, -d.xvar + shift)
 
     def test_yexpr_real_imag(self):
         ''' Constant: function expression.
@@ -224,8 +223,8 @@ class ConstantTest(unittest.TestCase):
         d = ds.Constant(123.456)
         with self.assertRaises(TypeError):
             d.scale(sp.pi)
-        np.testing.assert_array_equal(d[-10:10], d.scale(3)[-10:10])
-        np.testing.assert_array_equal(d[-10:10], d.scale(0.25)[-10:10])
+        np.testing.assert_array_equal(d[-3:3], d.scale(3)[-3:3])
+        np.testing.assert_array_equal(d[-3:3], d.scale(0.25)[-12:12:4])
 
 if __name__ == "__main__":
     unittest.main()
