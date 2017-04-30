@@ -1,6 +1,7 @@
 
 from ..operator.operator import ScaleOperator, ShiftOperator
 from ._util import _is_complex_scalar, _is_integer_scalar
+from copy import deepcopy
 from numbers import Integral, Number
 from skdsp.signal._signal import _Signal, _FunctionSignal, _SignalOp
 from sympy.core.compatibility import iterable
@@ -80,11 +81,11 @@ class _DiscreteMixin(object):
         """
         pass
 
-    def _copy_to(self, other):
-        """
-        Copy class variables.
-        """
-        pass
+#     def _copy_to(self, other):
+#         """
+#         Copy class variables.
+#         """
+#         pass
 
     def _add(self, other):
         if isinstance(self, _FunctionSignal):
@@ -490,12 +491,6 @@ class DataSignal(_Signal, _DiscreteMixin):
 
 
 class DiscreteFunctionSignal(_DiscreteMixin, _FunctionSignal):
-    # Las especializaciones discretas deben ir antes que las funcionales
-    @staticmethod
-    def _factory(other):
-        s = DiscreteFunctionSignal(other._yexpr)
-        other._copy_to(s)
-        return s
 
     def __init__(self, expr, **kwargs):
         _FunctionSignal.__init__(self, expr, **kwargs)
@@ -503,11 +498,17 @@ class DiscreteFunctionSignal(_DiscreteMixin, _FunctionSignal):
         self._z_transform = None
         self._dt_fourier_transform = None
 
-    def _copy_to(self, other):
-        other._z_transform = self._z_transform
-        other._dt_fourier_transform = self._dt_fourier_transform
-        _DiscreteMixin._copy_to(self, other)
-        _FunctionSignal._copy_to(self, other)
+#     @staticmethod
+#     def _factory(other):
+#         s = DiscreteFunctionSignal(other._yexpr)
+#         other._copy_to(s)
+#         return s
+#
+#     def _copy_to(self, other):
+#         other._z_transform = self._z_transform
+#         other._dt_fourier_transform = self._dt_fourier_transform
+#         _DiscreteMixin._copy_to(self, other)
+#         _FunctionSignal._copy_to(self, other)
 
     @property
     def z_transform(self):
@@ -550,13 +551,13 @@ class DiscreteFunctionSignal(_DiscreteMixin, _FunctionSignal):
         return y
 
     def __abs__(self):
-        s = DiscreteFunctionSignal._factory(self)
+        s = deepcopy(self)
         return _FunctionSignal.__abs__(s)
 
     def magnitude(self, dB=False):
         m = abs(self)
         if dB:
-            mdb = DiscreteFunctionSignal._factory(self)
+            mdb = deepcopy(self)
             mdb._yexpr = 20*sp.log(m._yexpr, 10)
             return mdb
         return m
@@ -679,12 +680,12 @@ class Step(DiscreteFunctionSignal):
         def _imp_(n):
             return np.greater_equal(n, 0).astype(np.float_)
 
-    @staticmethod
-    def _factory(other):
-        s = Step()
-        if other:
-            other._copy_to(s)
-        return s
+#     @staticmethod
+#     def _factory(other):
+#         s = Step()
+#         if other:
+#             other._copy_to(s)
+#         return s
 
     def __init__(self, delay=0):
         expr = Step._DiscreteStep(self._default_xvar())
@@ -717,12 +718,12 @@ class Ramp(DiscreteFunctionSignal):
         def _imp_(n):
             return n*np.greater_equal(n, 0).astype(np.float_)
 
-    @staticmethod
-    def _factory(other):
-        s = Ramp()
-        if other:
-            other._copy_to(s)
-        return s
+#     @staticmethod
+#     def _factory(other):
+#         s = Ramp()
+#         if other:
+#             other._copy_to(s)
+#         return s
 
     def __init__(self, delay=0):
         expr = Ramp._DiscreteRamp(self._default_xvar())
@@ -739,17 +740,6 @@ class Ramp(DiscreteFunctionSignal):
 
 class Rect(DiscreteFunctionSignal):
 
-    @staticmethod
-    def _factory(other):
-        s = Rect()
-        if other:
-            other._copy_to(s)
-        return s
-
-    def _copy_to(self, other):
-        DiscreteFunctionSignal._copy_to(self, other)
-        other._width = self._width
-
     def __init__(self, width=16, delay=0):
         if not isinstance(width, Integral):
             raise TypeError('width must be integer')
@@ -763,6 +753,17 @@ class Rect(DiscreteFunctionSignal):
         self._xexpr = ShiftOperator.apply(self._xvar, self._xexpr, delay)
         self._yexpr = ShiftOperator.apply(self._xvar, self._yexpr, delay)
 
+#     @staticmethod
+#     def _factory(other):
+#         s = Rect()
+#         if other:
+#             other._copy_to(s)
+#         return s
+#
+#     def _copy_to(self, other):
+#         DiscreteFunctionSignal._copy_to(self, other)
+#         other._width = self._width
+
     @property
     def width(self):
         return self._width
@@ -772,17 +773,6 @@ class Rect(DiscreteFunctionSignal):
 
 
 class Triang(DiscreteFunctionSignal):
-
-    @staticmethod
-    def _factory(other):
-        s = Triang()
-        if other:
-            other._copy_to(s)
-        return s
-
-    def _copy_to(self, other):
-        DiscreteFunctionSignal._copy_to(self, other)
-        other._width = self._width
 
     def __init__(self, width=16, delay=0):
         if not isinstance(width, Integral):
@@ -798,6 +788,17 @@ class Triang(DiscreteFunctionSignal):
         self._xexpr = ShiftOperator.apply(self._xvar, self._xexpr, delay)
         self._yexpr = ShiftOperator.apply(self._xvar, self._yexpr, delay)
 
+#     @staticmethod
+#     def _factory(other):
+#         s = Triang()
+#         if other:
+#             other._copy_to(s)
+#         return s
+#
+#     def _copy_to(self, other):
+#         DiscreteFunctionSignal._copy_to(self, other)
+#         other._width = self._width
+
     @property
     def width(self):
         return self._width
@@ -812,9 +813,9 @@ class _SinCosCExpMixin(object):
         self._omega0 = sp.simplify(omega0)
         self._phi0 = self._reduce_phase(phi0)
 
-    def _copy_to(self, other):
-        other._omega0 = self._omega0
-        other._phi0 = self._phi0
+#     def _copy_to(self, other):
+#         other._omega0 = self._omega0
+#         other._phi0 = self._phi0
 
     def _compute_period(self):
         # si omega0 es cero, se puede considerar periodo N = 1
@@ -864,13 +865,6 @@ class Cosine(_SinCosCExpMixin, DiscreteFunctionSignal):
         def _imp_(n):
             return np.cos(n)
 
-    @staticmethod
-    def _factory(other):
-        s = Cosine()
-        if other:
-            other._copy_to(s)
-        return s
-
     def __init__(self, omega0=1, phi0=0):
         expr = Cosine._DiscreteCosine(self._default_xvar())
         DiscreteFunctionSignal.__init__(self, expr)
@@ -884,20 +878,19 @@ class Cosine(_SinCosCExpMixin, DiscreteFunctionSignal):
                                           self._omega0)
         self._yexpr = ScaleOperator.apply(self._xvar, self._yexpr,
                                           self._omega0)
-
-    def _copy_to(self, other):
-        DiscreteFunctionSignal._copy_to(self, other)
-        _SinCosCExpMixin._copy_to(self, other)
+#     @staticmethod
+#     def _factory(other):
+#         s = Cosine()
+#         if other:
+#             other._copy_to(s)
+#         return s
+#
+#     def _copy_to(self, other):
+#         DiscreteFunctionSignal._copy_to(self, other)
+#         _SinCosCExpMixin._copy_to(self, other)
 
 
 class Sine(_SinCosCExpMixin, DiscreteFunctionSignal):
-
-    @staticmethod
-    def _factory(other):
-        s = Sine()
-        if other:
-            other._copy_to(s)
-        return s
 
     def __init__(self, omega0=1, phi0=0):
         expr = sp.sin(self._default_xvar())
@@ -912,29 +905,35 @@ class Sine(_SinCosCExpMixin, DiscreteFunctionSignal):
                                           self._omega0)
         self._yexpr = ScaleOperator.apply(self._xvar, self._yexpr,
                                           self._omega0)
-
-    def _copy_to(self, other):
-        DiscreteFunctionSignal._copy_to(self, other)
-        _SinCosCExpMixin._copy_to(self, other)
+#     @staticmethod
+#     def _factory(other):
+#         s = Sine()
+#         if other:
+#             other._copy_to(s)
+#         return s
+#
+#     def _copy_to(self, other):
+#         DiscreteFunctionSignal._copy_to(self, other)
+#         _SinCosCExpMixin._copy_to(self, other)
 
 
 class Sinusoid(Cosine):
-
-    @staticmethod
-    def _factory(other):
-        s = Sinusoid()
-        if other:
-            other._copy_to(s)
-        return s
 
     def __init__(self, A=1, omega0=1, phi=0):
         Cosine.__init__(self, omega0, phi)
         self._peak_amplitude = A
         self._yexpr *= A
 
-    def _copy_to(self, other):
-        other._peak_amplitude = self._peak_amplitude
-        Cosine._copy_to(self, other)
+#     @staticmethod
+#     def _factory(other):
+#         s = Sinusoid()
+#         if other:
+#             other._copy_to(s)
+#         return s
+#
+#     def _copy_to(self, other):
+#         other._peak_amplitude = self._peak_amplitude
+#         Cosine._copy_to(self, other)
 
     @property
     def peak_amplitude(self):
@@ -968,13 +967,6 @@ class Sinusoid(Cosine):
 
 class Exponential(_SinCosCExpMixin, DiscreteFunctionSignal):
 
-    @staticmethod
-    def _factory(other):
-        s = Exponential()
-        if other:
-            other._copy_to(s)
-        return s
-
     def __init__(self, base=1):
         expr = sp.Pow(base, self._default_xvar())
         DiscreteFunctionSignal.__init__(self, expr)
@@ -985,10 +977,17 @@ class Exponential(_SinCosCExpMixin, DiscreteFunctionSignal):
             if pb != 0:
                 self.dtype = np.complex_
 
-    def _copy_to(self, other):
-        other._base = self._base
-        DiscreteFunctionSignal._copy_to(self, other)
-        _SinCosCExpMixin._copy_to(self, other)
+#     @staticmethod
+#     def _factory(other):
+#         s = Exponential()
+#         if other:
+#             other._copy_to(s)
+#         return s
+#
+#     def _copy_to(self, other):
+#         other._base = self._base
+#         DiscreteFunctionSignal._copy_to(self, other)
+#         _SinCosCExpMixin._copy_to(self, other)
 
     @property
     def base(self):
@@ -1000,13 +999,6 @@ class Exponential(_SinCosCExpMixin, DiscreteFunctionSignal):
 
 
 class ComplexSinusoid(_SinCosCExpMixin, DiscreteFunctionSignal):
-
-    @staticmethod
-    def _factory(other):
-        s = ComplexSinusoid()
-        if other:
-            other._copy_to(s)
-        return s
 
     def __init__(self, A=1, omega0=1, phi0=0):
         self._A = sp.Abs(A)
@@ -1025,9 +1017,16 @@ class ComplexSinusoid(_SinCosCExpMixin, DiscreteFunctionSignal):
         self._yexpr = ScaleOperator.apply(self._xvar, self._yexpr,
                                           self._omega0)
 
-    def _copy_to(self, other):
-        DiscreteFunctionSignal._copy_to(self, other)
-        _SinCosCExpMixin._copy_to(self, other)
+#     @staticmethod
+#     def _factory(other):
+#         s = ComplexSinusoid()
+#         if other:
+#             other._copy_to(s)
+#         return s
+#
+#     def _copy_to(self, other):
+#         DiscreteFunctionSignal._copy_to(self, other)
+#         _SinCosCExpMixin._copy_to(self, other)
 
     @property
     def phasor(self):
@@ -1044,17 +1043,6 @@ class ComplexSinusoid(_SinCosCExpMixin, DiscreteFunctionSignal):
 
 class Sawtooth(DiscreteFunctionSignal):
 
-    @staticmethod
-    def _factory(other):
-        s = Sawtooth()
-        if other:
-            other._copy_to(s)
-        return s
-
-    def _copy_to(self, other):
-        DiscreteFunctionSignal._copy_to(self, other)
-        other._width = self._width
-
     def __init__(self, N=16, width=None):
         if width is None:
             width = N
@@ -1069,23 +1057,23 @@ class Sawtooth(DiscreteFunctionSignal):
         self._period = N
         self._width = width
 
+#     @staticmethod
+#     def _factory(other):
+#         s = Sawtooth()
+#         if other:
+#             other._copy_to(s)
+#         return s
+#
+#     def _copy_to(self, other):
+#         DiscreteFunctionSignal._copy_to(self, other)
+#         other._width = self._width
+
     def _print(self):
         return 'saw[{0}, {1}, {2}]'.format(str(self._xexpr), self._period,
                                            self._width)
 
 
 class Square(DiscreteFunctionSignal):
-
-    @staticmethod
-    def _factory(other):
-        s = Square()
-        if other:
-            other._copy_to(s)
-        return s
-
-    def _copy_to(self, other):
-        DiscreteFunctionSignal._copy_to(self, other)
-        other._width = self._width
 
     def __init__(self, N=16, width=None):
         if N <= 0:
@@ -1099,6 +1087,17 @@ class Square(DiscreteFunctionSignal):
         DiscreteFunctionSignal.__init__(self, expr)
         self._period = N
         self._width = width
+
+#     @staticmethod
+#     def _factory(other):
+#         s = Square()
+#         if other:
+#             other._copy_to(s)
+#         return s
+#
+#     def _copy_to(self, other):
+#         DiscreteFunctionSignal._copy_to(self, other)
+#         other._width = self._width
 
     def _print(self):
         return 'square[{0}, {1}, {2}]'.format(str(self._xexpr), self._period,
@@ -1124,12 +1123,12 @@ class DeltaTrain(DiscreteFunctionSignal):
             # i es 0, siempre
             return np.equal(n, 0).astype(np.float_)
 
-    @staticmethod
-    def _factory(other):
-        s = DeltaTrain()
-        if other:
-            other._copy_to(s)
-        return s
+#     @staticmethod
+#     def _factory(other):
+#         s = DeltaTrain()
+#         if other:
+#             other._copy_to(s)
+#         return s
 
     def __init__(self, N=16):
         if N <= 0:

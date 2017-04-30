@@ -5,7 +5,6 @@ from numbers import Number
 from sympy.core.evaluate import evaluate
 import numpy as np
 import sympy as sp
-from jinja2.nodes import Const
 
 
 __all__ = [s for s in dir() if not s.startswith('_')]
@@ -20,8 +19,8 @@ class _ContinuousMixin(object):
     def __init__(self):
         pass
 
-    def _copy_to(self, other):
-        pass
+#     def _copy_to(self, other):
+#         pass
 
 #     def _has_ramp(self):
 #         # CUIDADITO, si esto da más problemas quizás sea mejor quitarlo
@@ -189,11 +188,6 @@ class _ContinuousMixin(object):
 
 class ContinuousFunctionSignal(_ContinuousMixin, _FunctionSignal):
     # Las especializaciones discretas deben ir antes que las funcionales
-    @staticmethod
-    def _factory(other):
-        s = ContinuousFunctionSignal(other._yexpr)
-        other._copy_to(s)
-        return s
 
     def __init__(self, expr):
         _FunctionSignal.__init__(self, expr)
@@ -201,11 +195,17 @@ class ContinuousFunctionSignal(_ContinuousMixin, _FunctionSignal):
         self._laplace_transform = None
         self._fourier_transform = None
 
-    def _copy_to(self, other):
-        other._laplace_transform = self._laplace_transform
-        other._fourier_transform = self._fourier_transform
-        _ContinuousMixin._copy_to(self, other)
-        _FunctionSignal._copy_to(self, other)
+#     @staticmethod
+#     def _factory(other):
+#         s = ContinuousFunctionSignal(other._yexpr)
+#         other._copy_to(s)
+#         return s
+#
+#     def _copy_to(self, other):
+#         other._laplace_transform = self._laplace_transform
+#         other._fourier_transform = self._fourier_transform
+#         _ContinuousMixin._copy_to(self, other)
+#         _FunctionSignal._copy_to(self, other)
 
     @property
     def laplace(self):
@@ -254,13 +254,6 @@ class ContinuousFunctionSignal(_ContinuousMixin, _FunctionSignal):
 
 class Constant(ContinuousFunctionSignal):
 
-    @staticmethod
-    def _factory(other, cte):
-        s = Constant(cte)
-        if other:
-            other._copy_to(s)
-        return s
-
     def __init__(self, const=0):
         sc = sp.sympify(const)
         ContinuousFunctionSignal.__init__(self, sc)
@@ -268,15 +261,15 @@ class Constant(ContinuousFunctionSignal):
             self.dtype = np.complex_
         self._const = const
 
+#     @staticmethod
+#     def _factory(other, cte):
+#         s = Constant(cte)
+#         if other:
+#             other._copy_to(s)
+#         return s
+
 
 class Delta(ContinuousFunctionSignal):
-
-    @staticmethod
-    def _factory(other):
-        s = Delta()
-        if other:
-            other._copy_to(s)
-        return s
 
     def __init__(self, delay=0):
         expr = sp.DiracDelta(self._default_xvar())
@@ -289,15 +282,15 @@ class Delta(ContinuousFunctionSignal):
     def _print(self):
         return 'd({0})'.format(str(self._xexpr))
 
+#     @staticmethod
+#     def _factory(other):
+#         s = Delta()
+#         if other:
+#             other._copy_to(s)
+#         return s
+
 
 class Step(ContinuousFunctionSignal):
-
-    @staticmethod
-    def _factory(other):
-        s = Step()
-        if other:
-            other._copy_to(s)
-        return s
 
     def __init__(self, delay=0):
         expr = sp.Heaviside(self._default_xvar())
@@ -309,15 +302,15 @@ class Step(ContinuousFunctionSignal):
     def _print(self):
         return 'u({0})'.format(str(self._xexpr))
 
+#     @staticmethod
+#     def _factory(other):
+#         s = Step()
+#         if other:
+#             other._copy_to(s)
+#         return s
+
 
 class Ramp(ContinuousFunctionSignal):
-
-    @staticmethod
-    def _factory(other):
-        s = Ramp()
-        if other:
-            other._copy_to(s)
-        return s
 
     def __init__(self, delay=0):
         n = self._default_xvar()
@@ -330,19 +323,15 @@ class Ramp(ContinuousFunctionSignal):
     def _print(self):
         return 'r({0})'.format(str(self._xexpr))
 
+#     @staticmethod
+#     def _factory(other):
+#         s = Ramp()
+#         if other:
+#             other._copy_to(s)
+#         return s
+
 
 class Rect(ContinuousFunctionSignal):
-
-    @staticmethod
-    def _factory(other):
-        s = Rect()
-        if other:
-            other._copy_to(s)
-        return s
-
-    def _copy_to(self, other):
-        ContinuousFunctionSignal._copy_to(self, other)
-        other._width = self._width
 
     def __init__(self, width=16, delay=0):
         n = self._default_xvar()
@@ -360,19 +349,19 @@ class Rect(ContinuousFunctionSignal):
     def _print(self):
         return 'Pi({0}, {1})'.format(str(self._xexpr), self._width)
 
+#     @staticmethod
+#     def _factory(other):
+#         s = Rect()
+#         if other:
+#             other._copy_to(s)
+#         return s
+#
+#     def _copy_to(self, other):
+#         ContinuousFunctionSignal._copy_to(self, other)
+#         other._width = self._width
+
 
 class Triang(ContinuousFunctionSignal):
-
-    @staticmethod
-    def _factory(other):
-        s = Triang()
-        if other:
-            other._copy_to(s)
-        return s
-
-    def _copy_to(self, other):
-        ContinuousFunctionSignal._copy_to(self, other)
-        other._width = self._width
 
     def __init__(self, width=16, delay=0):
         n = self._default_xvar()
@@ -391,16 +380,23 @@ class Triang(ContinuousFunctionSignal):
     def _print(self):
         return 'Delta({0}, {1})'.format(str(self._xexpr), self._width)
 
+#     @staticmethod
+#     def _factory(other):
+#         s = Triang()
+#         if other:
+#             other._copy_to(s)
+#         return s
+#
+#     def _copy_to(self, other):
+#         ContinuousFunctionSignal._copy_to(self, other)
+#         other._width = self._width
+
 
 class _SinCosCExpMixin(object):
 
     def __init__(self, omega0, phi0):
         self._omega0 = sp.simplify(omega0)
         self._phi0 = self._reduce_phase(phi0)
-
-    def _copy_to(self, other):
-        other._omega0 = self._omega0
-        other._phi0 = self._phi0
 
     def _compute_period(self):
         # si omega0 es cero, se puede considerar periodo N = 1
@@ -440,15 +436,12 @@ class _SinCosCExpMixin(object):
         eu.dtype = np.complex_
         return eu
 
+#     def _copy_to(self, other):
+#         other._omega0 = self._omega0
+#         other._phi0 = self._phi0
+
 
 class Cosine(_SinCosCExpMixin, ContinuousFunctionSignal):
-
-    @staticmethod
-    def _factory(other):
-        s = Cosine()
-        if other:
-            other._copy_to(s)
-        return s
 
     def __init__(self, omega0=1, phi0=0):
         expr = sp.cos(self._default_xvar())
@@ -464,19 +457,19 @@ class Cosine(_SinCosCExpMixin, ContinuousFunctionSignal):
         self._yexpr = ScaleOperator.apply(self._xvar, self._yexpr,
                                           self._omega0)
 
-    def _copy_to(self, other):
-        ContinuousFunctionSignal._copy_to(self, other)
-        _SinCosCExpMixin._copy_to(self, other)
+#     @staticmethod
+#     def _factory(other):
+#         s = Cosine()
+#         if other:
+#             other._copy_to(s)
+#         return s
+#
+#     def _copy_to(self, other):
+#         ContinuousFunctionSignal._copy_to(self, other)
+#         _SinCosCExpMixin._copy_to(self, other)
 
 
 class Sine(_SinCosCExpMixin, ContinuousFunctionSignal):
-
-    @staticmethod
-    def _factory(other):
-        s = Sine()
-        if other:
-            other._copy_to(s)
-        return s
 
     def __init__(self, omega0=1, phi0=0):
         expr = sp.sin(self._default_xvar())
@@ -492,28 +485,24 @@ class Sine(_SinCosCExpMixin, ContinuousFunctionSignal):
         self._yexpr = ScaleOperator.apply(self._xvar, self._yexpr,
                                           self._omega0)
 
-    def _copy_to(self, other):
-        ContinuousFunctionSignal._copy_to(self, other)
-        _SinCosCExpMixin._copy_to(self, other)
+#     @staticmethod
+#     def _factory(other):
+#         s = Sine()
+#         if other:
+#             other._copy_to(s)
+#         return s
+#
+#     def _copy_to(self, other):
+#         ContinuousFunctionSignal._copy_to(self, other)
+#         _SinCosCExpMixin._copy_to(self, other)
 
 
 class Sinusoid(Cosine):
-
-    @staticmethod
-    def _factory(other):
-        s = Sinusoid()
-        if other:
-            other._copy_to(s)
-        return s
 
     def __init__(self, A=1, omega0=1, phi=0):
         Cosine.__init__(self, omega0, phi)
         self._peak_amplitude = A
         self._yexpr *= A
-
-    def _copy_to(self, other):
-        other._peak_amplitude = self._peak_amplitude
-        Cosine._copy_to(self, other)
 
     @property
     def peak_amplitude(self):
@@ -543,15 +532,19 @@ class Sinusoid(Cosine):
     def Q(self):
         return self.in_quadrature
 
+#     @staticmethod
+#     def _factory(other):
+#         s = Sinusoid()
+#         if other:
+#             other._copy_to(s)
+#         return s
+#
+#     def _copy_to(self, other):
+#         other._peak_amplitude = self._peak_amplitude
+#         Cosine._copy_to(self, other)
+
 
 class Exponential(_SinCosCExpMixin, ContinuousFunctionSignal):
-
-    @staticmethod
-    def _factory(other):
-        s = Exponential()
-        if other:
-            other._copy_to(s)
-        return s
 
     def __init__(self, base=1):
         expr = sp.Pow(base, self._default_xvar())
@@ -563,11 +556,6 @@ class Exponential(_SinCosCExpMixin, ContinuousFunctionSignal):
             if pb != 0:
                 self.dtype = np.complex_
 
-    def _copy_to(self, other):
-        other._base = self._base
-        ContinuousFunctionSignal._copy_to(self, other)
-        _SinCosCExpMixin._copy_to(self, other)
-
     @property
     def base(self):
         return self._base
@@ -576,15 +564,20 @@ class Exponential(_SinCosCExpMixin, ContinuousFunctionSignal):
         mod1 = sp.Abs(self._base) == 1
         return mod1 and _Signal.is_periodic(self)
 
+#     @staticmethod
+#     def _factory(other):
+#         s = Exponential()
+#         if other:
+#             other._copy_to(s)
+#         return s
+#
+#     def _copy_to(self, other):
+#         other._base = self._base
+#         ContinuousFunctionSignal._copy_to(self, other)
+#         _SinCosCExpMixin._copy_to(self, other)
+
 
 class ComplexSinusoid(_SinCosCExpMixin, ContinuousFunctionSignal):
-
-    @staticmethod
-    def _factory(other):
-        s = ComplexSinusoid()
-        if other:
-            other._copy_to(s)
-        return s
 
     def __init__(self, A=1, omega0=1, phi0=0):
         self._A = sp.Abs(A)
@@ -603,10 +596,6 @@ class ComplexSinusoid(_SinCosCExpMixin, ContinuousFunctionSignal):
         self._yexpr = ScaleOperator.apply(self._xvar, self._yexpr,
                                           self._omega0)
 
-    def _copy_to(self, other):
-        ContinuousFunctionSignal._copy_to(self, other)
-        _SinCosCExpMixin._copy_to(self, other)
-
     @property
     def phasor(self):
         return self._A*sp.exp(sp.I*self._phi0)
@@ -618,3 +607,14 @@ class ComplexSinusoid(_SinCosCExpMixin, ContinuousFunctionSignal):
             o = -o
         s = Exponential(sp.exp(sp.I*o))
         return s
+
+#     @staticmethod
+#     def _factory(other):
+#         s = ComplexSinusoid()
+#         if other:
+#             other._copy_to(s)
+#         return s
+#
+#     def _copy_to(self, other):
+#         ContinuousFunctionSignal._copy_to(self, other)
+#         _SinCosCExpMixin._copy_to(self, other)

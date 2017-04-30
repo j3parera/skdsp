@@ -45,6 +45,7 @@ class _Signal(ABC):
 
     @classmethod
     def _register(cls, name):
+        """ Registers a signal name. """
         cls._registry[name] = True
 
     @classmethod
@@ -97,12 +98,12 @@ class _Signal(ABC):
     #        setattr(result, deepcopy(k, memo), deepcopy(v, memo))
     #    return result
 
-    def _copy_to(self, other):
-        other._dtype = self._dtype
-        other._period = self._period
-        other._xexpr = self._xexpr
-        other._xvar = self._xvar
-        other.name = self.name
+#     def _copy_to(self, other):
+#         other._dtype = self._dtype
+#         other._period = self._period
+#         other._xexpr = self._xexpr
+#         other._xvar = self._xvar
+#         other.name = self.name
 
     @property
     def args(self):
@@ -453,11 +454,11 @@ class _FunctionSignal(_Signal):
             self._xvar = fs.pop()
             self._xexpr = self._xvar
 
-    def _copy_to(self, other):
-        other._yexpr = self._yexpr
-        other._xexpr = self._xexpr
-        other._xvar = self._xvar
-        _Signal._copy_to(self, other)
+#     def _copy_to(self, other):
+#         other._yexpr = self._yexpr
+#         other._xexpr = self._xexpr
+#         other._xvar = self._xvar
+#         _Signal._copy_to(self, other)
 
     @property
     def yexpr(self):
