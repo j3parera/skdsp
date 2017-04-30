@@ -444,7 +444,7 @@ class _FunctionSignal(_Signal):
             # just in case is a symbol or constant
             self._yexpr = expr
             self._xvar = self._default_xvar()
-            self._xexpr = sp.Expr(self._xvar)
+            self._xexpr = self._xvar
         else:
             fs = expr.free_symbols
             if len(fs) != 1:
