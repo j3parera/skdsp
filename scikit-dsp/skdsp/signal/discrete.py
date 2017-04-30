@@ -1,6 +1,6 @@
 
 from ..operator.operator import ScaleOperator, ShiftOperator
-from ._util import _is_complex_scalar, _is_integer_scalar, _latex_mode
+from ._util import _is_complex_scalar, _is_integer_scalar
 from numbers import Integral, Number
 from skdsp.signal._signal import _Signal, _FunctionSignal, _SignalOp
 from sympy.core.compatibility import iterable
