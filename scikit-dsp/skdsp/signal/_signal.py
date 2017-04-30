@@ -62,6 +62,11 @@ class _Signal(ABC):
             raise ValueError("Signal names 'xk' not allowed.")
         return name
 
+    def __new__(cls, *args):
+        obj = object.__new__(cls)
+        obj._args = args
+        return obj
+
     def __del__(self):
         self._deregister(self._name)
 
@@ -98,6 +103,10 @@ class _Signal(ABC):
         other._xexpr = self._xexpr
         other._xvar = self._xvar
         other.name = self.name
+
+    @property
+    def args(self):
+        return self._args
 
     @property
     def name(self):
@@ -280,6 +289,47 @@ class _Signal(ABC):
             sl = np.linspace(s, s+(size*step), size, endpoint=False)
             yield self[sl]
             s += size*step - overlap
+
+    # --- math wrappers -------------------------------------------------------
+    # math functions must not arrive here, they must be previously catched
+    def __add__(self, other):
+        raise NotImplementedError('({0}).__add__'.format(self))
+
+    def __radd__(self, other):
+        raise NotImplementedError('({0}).__radd__'.format(self))
+
+    def __iadd__(self, other):
+        raise NotImplementedError('({0}).__iadd__'.format(self))
+
+    def __sub__(self, other):
+        raise NotImplementedError('({0}).__sub__'.format(self))
+
+    def __rsub__(self, other):
+        raise NotImplementedError('({0}).__rsub__'.format(self))
+
+    def __isub__(self, other):
+        raise NotImplementedError('({0}).__isub__'.format(self))
+
+    def __neg__(self):
+        raise NotImplementedError('({0}).__neg__'.format(self))
+
+    def __mul__(self, other):
+        raise NotImplementedError('({0}).__mul__'.format(self))
+
+    def __rmul__(self, other):
+        raise NotImplementedError('({0}).__rmul__'.format(self))
+
+    def __imul__(self, other):
+        raise NotImplementedError('({0}).__imul__'.format(self))
+
+    def __truediv__(self, other):
+        raise NotImplementedError('({0}).__truediv__'.format(self))
+
+    def __rtruediv__(self, other):
+        raise NotImplementedError('({0}).__rtruediv__'.format(self))
+
+    def __itruediv__(self, other):
+        raise NotImplementedError('({0}).__itruediv__'.format(self))
 
     # --- independent variable operations -------------------------------------
     def flip(self):
@@ -484,6 +534,7 @@ class _FunctionSignal(_Signal):
 
     # -- operadores aritméticos ----------------------------------------------
     def __mul__(self, other):
+        # TODO
         if other.dtype == np.complex_:
             self.dtype = np.complex_
         s = deepcopy(self)
@@ -494,6 +545,7 @@ class _FunctionSignal(_Signal):
     __imul__ = __mul__
 
     def __truediv__(self, other):
+        # TODO
         if other.dtype == np.complex_:
             self.dtype = np.complex_
         s = deepcopy(self)
@@ -503,6 +555,7 @@ class _FunctionSignal(_Signal):
     __itruediv__ = __truediv__
 
     def __rtruediv__(self, other):
+        # TODO
         if self.dtype == np.complex_:
             other.dtype = np.complex_
         s = deepcopy(other)
@@ -510,6 +563,7 @@ class _FunctionSignal(_Signal):
         return 1/other
 
     def __add__(self, other):
+        # TODO
         if other.dtype == np.complex_:
             self.dtype = np.complex_
         s = deepcopy(self)
@@ -520,6 +574,7 @@ class _FunctionSignal(_Signal):
     __iadd__ = __add__
 
     def __sub__(self, other):
+        # TODO
         if other.dtype == np.complex_:
             self.dtype = np.complex_
         s = deepcopy(self)
@@ -527,6 +582,7 @@ class _FunctionSignal(_Signal):
         return s
 
     def __rsub__(self, other):
+        # TODO
         if self.dtype == np.complex_:
             other.dtype = np.complex_
         s = deepcopy(other)
@@ -536,6 +592,7 @@ class _FunctionSignal(_Signal):
     __isub__ = __sub__
 
     def __neg__(self):
+        # TODO
         s = deepcopy(self)
         s._yexpr = -self._yexpr
         return s
@@ -563,6 +620,7 @@ class _FunctionSignal(_Signal):
 
     @property
     def even(self):
+        # TODO
         s1 = deepcopy(self)
         s2 = deepcopy(self)
         s2._yexpr = HermitianOperator.apply(s2._xvar, s2._yexpr)
@@ -570,6 +628,7 @@ class _FunctionSignal(_Signal):
 
     @property
     def odd(self):
+        # TODO
         s1 = deepcopy(self)
         s2 = deepcopy(self)
         s2._yexpr = HermitianOperator.apply(s2._xvar, s2._yexpr)
@@ -577,6 +636,7 @@ class _FunctionSignal(_Signal):
 
     @property
     def conjugate(self):
+        # TODO
         s = deepcopy(self)
         s._yexpr = ConjugateOperator.apply(s._xvar, s._yexpr)
         return s

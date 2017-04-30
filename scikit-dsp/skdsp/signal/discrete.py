@@ -1,7 +1,10 @@
+
 from ..operator.operator import ScaleOperator, ShiftOperator
 from ._util import _is_complex_scalar, _is_integer_scalar, _latex_mode
-from skdsp.signal._signal import _Signal, _FunctionSignal
 from numbers import Integral, Number
+from skdsp.signal._signal import _Signal, _FunctionSignal
+from sympy.core.compatibility import iterable
+from sympy.core.evaluate import evaluate, global_evaluate
 import numpy as np
 import sympy as sp
 
@@ -65,6 +68,27 @@ class _DiscreteMixin(object):
         """
         pass
 
+    def _add(self, other):
+        if isinstance(self, _FunctionSignal):
+            if isinstance(other, _FunctionSignal):
+                yexpr1, xvar1 = self.yexpr, self.xvar
+                yexpr2, xvar2 = other.yexpr, other.xvar
+                yexpr = yexpr1 + yexpr2.subs(xvar2, xvar1)
+                if yexpr.is_constant():
+                    return Constant(yexpr)
+                return DiscreteFunctionSignal(yexpr)
+
+    def _mul(self, other):
+        if isinstance(self, _FunctionSignal):
+            if isinstance(other, _FunctionSignal):
+                yexpr1, xvar1 = self.yexpr, self.xvar
+                yexpr2, xvar2 = other.yexpr, other.xvar
+                yexpr = yexpr1 * yexpr2.subs(xvar2, xvar1)
+                if yexpr.is_constant():
+                    return Constant(yexpr)
+                return DiscreteFunctionSignal(yexpr)
+
+    # --- independent variable operations -------------------------------------
     def shift(self, k):
         """
         Delays (or advances) the signal k (integer) units.
@@ -77,29 +101,18 @@ class _DiscreteMixin(object):
             o = DataSignal.shift(self, k)
         return o
 
+    def delay(self, k):
+        """
+        Quizás D/C - retardo continuo -- C/D
+        """
+        return self.shift(k)
+
     def scale(self, s):
         """ Scales the independent variable by `s`."""
         r = sp.nsimplify(s, rational=True)
         if not isinstance(r, sp.Rational):
             raise TypeError('expansion/compression value not rational')
         return self.expand(r.p).compress(r.q)
-
-#     def delay(self, d):
-#         # versión de retardo no necesariamente entero
-#         if not is_real_scalar(d):
-#             raise TypeError('delay/advance must be real')
-#         o = _FunctionSignal.shift(self, d)
-#         return o
-
-    def __rshift__(self, k):
-        return _DiscreteMixin.shift(self, k)
-
-    __irshift__ = __rshift__
-
-    def __lshift__(self, k):
-        return _DiscreteMixin.shift(self, -k)
-
-    __ilshift__ = __lshift__
 
     def compress(self, n):
         if not _is_integer_scalar(n):
@@ -111,127 +124,76 @@ class _DiscreteMixin(object):
             raise TypeError('expand factor must be integer')
         return _Signal.scale(self, n, mul=True)
 
+    def __rshift__(self, k):
+        return _DiscreteMixin.shift(self, k)
+
+    __irshift__ = __rshift__
+
+    def __lshift__(self, k):
+        return _DiscreteMixin.shift(self, -k)
+
+    __ilshift__ = __lshift__
+
+    # --- math wrappers -------------------------------------------------------
+    def __add__(self, other):
+        if isinstance(other, Number):
+            other = Constant(other)
+        if not isinstance(other, _DiscreteMixin):
+            raise TypeError("can't add discrete signal and {0}"
+                            .format(type(other)))
+        return DiscreteSignalAdd(self, other)
+
+    def __radd__(self, other):
+        return self + other
+
+    __iadd__ = __add__
+
+    def __sub__(self, other):
+        if isinstance(other, Number):
+            other = Constant(other)
+        if not isinstance(other, _DiscreteMixin):
+            raise TypeError("can't add discrete signal and {0}"
+                            .format(type(other)))
+        return DiscreteSignalAdd(self, -other)
+
+    def __rsub__(self, other):
+        return (-self) + other
+
+    __isub__ = __sub__
+
+    def __neg__(self):
+        with evaluate(True):
+            return self * Constant(-1)
+
+    def __mul__(self, other):
+        if isinstance(other, Number):
+            other = Constant(other)
+        if not isinstance(other, _DiscreteMixin):
+            raise TypeError("can't add discrete signal and {0}"
+                            .format(type(other)))
+        return DiscreteSignalMul(self, other)
+
+    def __rmul__(self, other):
+        return self * other
+
+    __imul__ = __mul__
+
+    def __truediv__(self, other):
+        # TODO
+        raise NotImplementedError('({0}).__truediv__'.format(self))
+
+    def __rtruediv__(self, other):
+        return self / other
+
+    __itruediv__ = __truediv__
+
+    # --- other operations ----------------------------------------------------
 #     def ccshift(self, k, N):
 #         if not isinstance(k, Integral):
 #             raise TypeError('delay/advance must be integer')
 #         if not isinstance(N, Integral):
 #             raise TypeError('modulo length must be integer')
 #         return _Signal.cshift(self, k, N)
-
-    def __add__(self, other):
-        if not isinstance(other, (_DiscreteMixin, Number)):
-            raise TypeError("can't add {0}".format(str(other)))
-        if other == 0 or other == Constant(0):
-            return self
-        if self == 0 or self == Constant(0):
-            if isinstance(other, Number):
-                return Constant(other)
-            else:
-                return other
-        s = DiscreteFunctionSignal._factory(self)
-        if isinstance(other, Number):
-            o = Constant(other)
-        else:
-            o = other
-        return _FunctionSignal.__add__(s, o)
-
-    __radd__ = __add__
-    __iadd__ = __add__
-
-    def __sub__(self, other):
-        if not isinstance(other, (_DiscreteMixin, Number)):
-            raise TypeError("can't sub {0}".format(str(other)))
-        if other == 0 or other == Constant(0):
-            return self
-        if self == 0 or self == Constant(0):
-            if isinstance(other, Number):
-                return Constant(-other)
-            else:
-                return -other
-        s = DiscreteFunctionSignal._factory(self)
-        if isinstance(other, Number):
-            o = Constant(other)
-        else:
-            o = other
-        return _FunctionSignal.__sub__(s, o)
-
-    def __rsub__(self, other):
-        if not isinstance(other, (_DiscreteMixin, Number)):
-            raise TypeError("can't sub {0}".format(str(other)))
-        if other == 0 or other == Constant(0):
-            return -self
-        if self == 0 or self == Constant(0):
-            if isinstance(other, Number):
-                return Constant(other)
-            else:
-                return other
-        s = DiscreteFunctionSignal._factory(self)
-        if isinstance(other, Number):
-            o = Constant(other)
-        else:
-            o = other
-        return _FunctionSignal.__rsub__(o, s)
-
-    __isub__ = __sub__
-
-    def __mul__(self, other):
-        if isinstance(other, sp.Expr):
-            if other.is_number:
-                other = Constant(other)
-        if not isinstance(other, (_DiscreteMixin, Number)):
-            raise TypeError("can't multiply {0}".format(str(other)))
-        if other == 0 or other == Constant(0):
-            return Constant(0)
-        if self == 0 or self == Constant(0):
-            return Constant(0)
-        if other == 1 or other == Constant(1):
-            return self
-        if self == 1 or self == Constant(1):
-            if isinstance(other, Number):
-                return Constant(other)
-            else:
-                return other
-        if isinstance(other, (Constant, Number)):
-            s = self.__class__._factory(self)
-        else:
-            s = DiscreteFunctionSignal._factory(self)
-        if isinstance(other, Number):
-            o = Constant(other)
-        else:
-            o = other
-        return _FunctionSignal.__mul__(s, o)
-
-    __rmul__ = __mul__
-    __imul__ = __mul__
-
-    def __truediv__(self, other):
-        if not isinstance(other, (_DiscreteMixin, Number)):
-            raise TypeError("can't divide {0}".format(str(other)))
-        if other == 1 or other == Constant(1):
-            return self
-        if isinstance(other, (Constant, Number)):
-            s = self.__class__._factory(self)
-        else:
-            s = DiscreteFunctionSignal._factory(self)
-        if isinstance(other, Number):
-            o = Constant(other)
-        else:
-            o = other
-        return _FunctionSignal.__truediv__(s, o)
-
-    __itruediv__ = __truediv__
-
-    def __rtruediv__(self, other):
-        if not isinstance(other, (_DiscreteMixin, Number)):
-            raise TypeError("can't divide {0}".format(str(other)))
-        if other == 1 or other == Constant(1):
-            return Constant(1)/self
-        s = DiscreteFunctionSignal._factory(self)
-        if isinstance(other, Number):
-            o = Constant(other)
-        else:
-            o = other
-        return _FunctionSignal.__rtruediv__(o, s)
 
     def dfs(self, P=None, force=False, symbolic=False):
         if not force and not self.is_periodic():
@@ -262,6 +224,147 @@ class _DiscreteMixin(object):
             for k0 in np.arange(0, N):
                 X[k0] = np.sum(x*np.exp(-1j*2*np.pi*k0*n/N))
         return X
+
+
+class _DiscreteSignalOp(_DiscreteMixin, _Signal):
+    pass
+
+
+class DiscreteSignalAdd(_DiscreteSignalOp):
+
+    def __init__(self, *args):
+        _Signal.__init__(self)
+        s0 = self.args[0]
+        s1 = self.args[1]
+        s1.xvar = s0.xvar
+        self.period = sp.lcm(s0.period, s1.period)
+
+    def __new__(cls, *args):
+        evaluate = global_evaluate[0]
+
+        # flatten inputs
+        args = list(args)
+
+        # adapted from sequences.SeqAdd
+        def _flatten(arg):
+            if isinstance(arg, _Signal):
+                if isinstance(arg, DiscreteSignalAdd):
+                    return sum(map(_flatten, arg.args), [])
+                else:
+                    return [arg]
+            if iterable(arg):
+                return sum(map(_flatten, arg), [])
+            raise TypeError("Input must be signals or "
+                            " iterables of signals")
+
+        args = _flatten(args)
+
+        # reduce using known rules
+        if evaluate:
+            return DiscreteSignalAdd.reduce(args)
+
+        return _Signal.__new__(cls, *args)
+
+    @staticmethod
+    def reduce(args):
+        """
+        Simplify :class:`SignalAdd` using known rules.
+        """
+        new_args = True
+        while(new_args):
+            for id1, s in enumerate(args):
+                new_args = False
+                for id2, t in enumerate(args):
+                    if id1 == id2:
+                        continue
+                    new_seq = s._add(t)
+                    # This returns None if s does not know how to add
+                    # with t. Returns the newly added sequence otherwise
+                    if new_seq is not None:
+                        new_args = [a for a in args if a not in (s, t)]
+                        new_args.append(new_seq)
+                        break
+                if new_args:
+                    args = new_args
+                    break
+
+        if len(args) == 1:
+            return args.pop()
+        else:
+            return DiscreteSignalAdd(args)
+
+    def eval(self, r):
+        return sum(a.eval(r) for a in self.args)
+
+
+class DiscreteSignalMul(_DiscreteSignalOp):
+
+    def __init__(self, *args):
+        _Signal.__init__(self)
+        s0 = self.args[0]
+        s1 = self.args[1]
+        s1.xvar = s0.xvar
+        self.period = sp.lcm(s0.period, s1.period)
+
+    def __new__(cls, *args):
+        evaluate = global_evaluate[0]
+
+        # flatten inputs
+        args = list(args)
+
+        # adapted from sequences.SeqMul
+        def _flatten(arg):
+            if isinstance(arg, _Signal):
+                if isinstance(arg, DiscreteSignalMul):
+                    return sum(map(_flatten, arg.args), [])
+                else:
+                    return [arg]
+            if iterable(arg):
+                return sum(map(_flatten, arg), [])
+            raise TypeError("Input must be signals or "
+                            " iterables of signals")
+
+        args = _flatten(args)
+
+        # reduce using known rules
+        if evaluate:
+            return DiscreteSignalMul.reduce(args)
+
+        return _Signal.__new__(cls, *args)
+
+    @staticmethod
+    def reduce(args):
+        """
+        Simplify :class:`SignalMul` using known rules.
+        """
+        new_args = True
+        while(new_args):
+            for id1, s in enumerate(args):
+                new_args = False
+                for id2, t in enumerate(args):
+                    if id1 == id2:
+                        continue
+                    new_seq = s._mul(t)
+                    # This returns None if s does not know how to add
+                    # with t. Returns the newly added sequence otherwise
+                    if new_seq is not None:
+                        new_args = [a for a in args if a not in (s, t)]
+                        new_args.append(new_seq)
+                        break
+                if new_args:
+                    args = new_args
+                    break
+
+        if len(args) == 1:
+            return args.pop()
+        else:
+            return DiscreteSignalMul(args)
+
+    def eval(self, r):
+        val = 1
+        for a in self.args:
+            val *= a.eval(r)
+        return val
 
 
 class DataSignal(_Signal, _DiscreteMixin):
@@ -350,9 +453,12 @@ class Constant(DiscreteFunctionSignal):
     Discrete constant signal. Not a degenerate case for constant functions
     such as `A*cos(0)`, `A*sin(pi/2)`, `A*exp(0*n)`, althought it could be.
     """
+    def __new__(cls, const=0, **kwargs):
+        return _Signal.__new__(cls, sp.sympify(const))
+
     def __init__(self, const=0, **kwargs):
-        super().__init__(sp.sympify(const), **kwargs)
-        if _is_complex_scalar(const):
+        DiscreteFunctionSignal.__init__(self, self.args[0], **kwargs)
+        if _is_complex_scalar(self.args[0]):
             self.dtype = np.complex_
         # period
         self._period = sp.oo

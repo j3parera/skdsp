@@ -1,9 +1,6 @@
 from skdsp.signal._signal import _Signal, _FunctionSignal
-import skdsp.signal.discrete as ds
-# import skdsp.signal.continuous as cs
-# import skdsp.signal.printer as pt
-# import skdsp.signal._util as u
 import numpy as np
+import skdsp.signal.discrete as ds
 import sympy as sp
 import unittest
 

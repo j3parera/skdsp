@@ -66,7 +66,7 @@ def _is_complex_scalar(x):
     """
     ok = True
     if isinstance(x, sp.Expr):
-        ok = x.is_number and x.is_complex
+        ok = x.is_number and sp.im(x) != 0
     else:
         ok = np.isscalar(x) and np.iscomplexobj(x)
     return ok
