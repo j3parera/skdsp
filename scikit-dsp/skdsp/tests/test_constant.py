@@ -3,6 +3,7 @@ import numpy as np
 import skdsp.signal.discrete as ds
 import sympy as sp
 import unittest
+from skdsp.signal.discrete import _DiscreteMixin
 
 
 class ConstantTest(unittest.TestCase):
@@ -19,6 +20,9 @@ class ConstantTest(unittest.TestCase):
         self.assertIsInstance(d, _Signal)
         self.assertIsInstance(d, _FunctionSignal)
         self.assertIsInstance(d, ds.DiscreteFunctionSignal)
+        # no constante
+        with self.assertRaises(ValueError):
+            d = ds.Constant(_DiscreteMixin._default_xvar())
 
     def test_name(self):
         ''' Constant: name.
