@@ -244,7 +244,8 @@ class RealPartOperator(Operator, UnaryOperatorMixin):
         """ Devuelve la parte real de la expresión:
         expr(var) -> Re(expr(var))
         """
-        return sp.re(expr)
+        (real, _) = expr.as_real_imag(evaluate=True)
+        return real
 
 
 class ImaginaryPartOperator(Operator, UnaryOperatorMixin):
@@ -254,7 +255,8 @@ class ImaginaryPartOperator(Operator, UnaryOperatorMixin):
         """ Devuelve la parte imaginaria de la expresión:
         expr(var) -> Im(expr(var))
         """
-        return sp.im(expr)
+        (_, imag) = expr.as_real_imag(evaluate=True)
+        return imag
 
 
 class HermitianOperator(Operator, UnaryOperatorMixin):
