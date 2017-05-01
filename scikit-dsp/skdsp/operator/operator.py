@@ -163,27 +163,6 @@ class ScaleOperator(Operator, UnaryOperatorMixin):
         else:
             return expr.xreplace({var: var/args[0]})
 
-# class ExpandOperator(Operator, UnitaryOperator):
-#
-#     def __init__(self, beta):
-#         super().__init__(beta)
-#         self._beta = beta
-#
-#     def compose(self, op, var):
-#         # TODO: cuidadito con señales discretas
-#         return op.xreplace({var: var / self._beta})
-#
-#
-# class CompressOperator(Operator, UnitaryOperator):
-#
-#     def __init__(self, alpha):
-#         super().__init__(alpha)
-#         self.alpha = alpha
-#
-#     def compose(self, op, var):
-#         return op.xreplace({var: var * self._alpha})
-#
-#
 # class CircularShiftOperator(Operator, UnitaryOperator):
 #
 #     def __init__(self, k, N):
