@@ -48,8 +48,6 @@ class CustomLatexPrinter(LatexPrinter):
         sv = r'{}'.format(self._make_var(e._xexpr, True))
         return self._make_s(r'\cos', sv, e, True)
 
-
-
     def _print__ContinuousRamp(self, e):
         if isinstance(e, sp.Expr):
             return r'r\left({0}\right)'.format(self._print(e.args[0]))
@@ -189,7 +187,7 @@ class CustomLatexPrinter(LatexPrinter):
 #         terms = []
 #         for term in unordered_terms:
 #             terms.append(term)
-# 
+#
 #         tex = ""
 #         for i, term in enumerate(terms):
 #             if i == 0:
@@ -203,9 +201,9 @@ class CustomLatexPrinter(LatexPrinter):
 #             if self._needs_add_brackets(term):
 #                 term_tex = r"\left(%s\right)" % term_tex
 #             tex += term_tex
-# 
+#
 #         return tex
-    
+
 
 def latex(signal, **settings):
     toprint = r'{0}\left[{1}\right]'.format(signal.name, signal._xexpr)
