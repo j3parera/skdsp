@@ -81,13 +81,6 @@ class _DiscreteMixin(object):
         """
         pass
 
-
-#     def _copy_to(self, other):
-#         """
-#         Copy class variables.
-#         """
-#         pass
-
     def _add(self, other):
         if isinstance(self, _FunctionSignal):
             if isinstance(other, _FunctionSignal):
