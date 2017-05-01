@@ -17,6 +17,7 @@ from numbers import Number
 import numpy as np
 import re
 import sympy as sp
+from operator import __truediv__
 
 
 class _Signal(ABC):
@@ -31,8 +32,8 @@ class _Signal(ABC):
     """
 
     """
-    Signal registry. Maintains a dictionary of created signals to avoid
-    using the same name for more than one. Registering is performed
+    Signal registry. Maintains a dictionary of created signals names to avoid
+    using the same name for more than one signal. Registering is performed
     automatically at class creation. In order to de-register, the signal
     must be 'deleted' using `del s`
     """
@@ -45,11 +46,22 @@ class _Signal(ABC):
 
     @classmethod
     def _register(cls, name):
-        """ Registers a signal name. """
+        """
+        Registers a signal name.
+
+        Args:
+            name (str): The name to be registered
+        """
         cls._registry[name] = True
 
     @classmethod
     def _deregister(cls, name):
+        """
+        Deregisters a signal name.
+
+        Args:
+            name (str): The name to be deregistered
+        """
         try:
             del cls._registry[name]
         except:
@@ -57,28 +69,52 @@ class _Signal(ABC):
 
     @classmethod
     def _check_name(cls, name):
+        """
+        Checks a signal name for duplicate or reserved.
+
+        Args:
+            name (str): The name to be checked.
+        """
         if name in cls._registry:
             raise ValueError("Duplicate signal name")
         if re.match('x\d+', name):
-            raise ValueError("Signal names 'xk' not allowed.")
+            raise ValueError("Signal names 'xk' are reserved.")
         return name
 
     def __new__(cls, *args):
+        """
+        Signal common allocation.
+
+        Args:
+            args (str): Whatever list of arguments to be internally held.
+        """
         obj = object.__new__(cls)
         obj._args = args
         return obj
 
     def __del__(self):
+        """
+        Signal deallocation.
+        """
         self._deregister(self._name)
 
     def __init__(self, **kwargs):
         """
-        Common `__init__()` method for all signals.
+        Common initialization for all signals.
+
+        Args:
+            kwargs['name'] (str): Signal's name. If not provided the signal is
+            assigned a unique reserved name.
+            kwargs['cmplx'] (bool): If True, signal is complex; defaults to
+            False.
         """
-        self._dtype = np.float_
         self._period = None
         self._xvar = None
         self._xexpr = None
+        if 'cmplx' in kwargs and kwargs['cmplx'] == True:
+            self._dtype = np.complex_
+        else:
+            self._dtype = np.float_
         if 'name' in kwargs:
             self._name = kwargs['name']
         else:
@@ -86,31 +122,18 @@ class _Signal(ABC):
             _Signal._last_name_idx += 1
         self._register(self._name)
 
-    # def __deepcopy__(self, memo):
-    #    """ Este deepcopy no es, en principio, necesario, salvo que
-    #    haya que hacer algo con las expresiones sympy por el bug #7672.
-    #    No hace lo mismo que la función deepcopy, pero parece suficiente.
-    #    """
-    #    cls = self.__class__
-    #    result = cls.__new__(cls)
-    #    memo[id(self)] = result
-    #    for k, v in self.__dict__.items():
-    #        setattr(result, deepcopy(k, memo), deepcopy(v, memo))
-    #    return result
-
-#     def _copy_to(self, other):
-#         other._dtype = self._dtype
-#         other._period = self._period
-#         other._xexpr = self._xexpr
-#         other._xvar = self._xvar
-#         other.name = self.name
-
     @property
     def args(self):
+        """
+        Internally held arguments.
+        """
         return self._args
 
     @property
     def name(self):
+        """
+        The signal's name.
+        """
         return self._name
 
     @name.setter
@@ -123,6 +146,15 @@ class _Signal(ABC):
         self._name = self._check_name(value)
 
     def latex_name(self, mode=None):
+        """
+        The signal's name in
+        :math:`\LaTeX`
+        .
+
+        Args:
+            mode (str): if mode='inline' the signal's name is surrounded by
+            $ signs.
+        """
         m = re.match(r'(\D+)(\d+)', self._name)
         if m:
             s = m.group(1) + '_{{0}}'.format(m.group(2))
@@ -181,27 +213,27 @@ class _Signal(ABC):
 
     @property
     def is_real(self):
-        """ Tests weather the signal is real valued."""
+        """ Tests whether the signal is real valued."""
         return self._dtype == np.float_
 
     @property
     def is_complex(self):
-        """ Tests weather the signal is complex valued."""
+        """ Tests whether the signal is complex valued."""
         return self._dtype == np.complex_
 
     @abstractproperty
     def is_discrete(self):
-        """ Tests weather the signal is discrete."""
+        """ Tests whether the signal is discrete."""
         pass
 
     @abstractproperty
     def is_continuous(self):
-        """ Tests weather the signal is continuous."""
+        """ Tests whether the signal is continuous."""
         pass
 
     @property
     def is_periodic(self):
-        """ Tests weather the signal is periodic."""
+        """ Tests whether the signal is periodic."""
         return self._period is not None and self._period != sp.oo
 
     @property
@@ -223,9 +255,11 @@ class _Signal(ABC):
             raise TypeError('`period` must be a real scalar')
 
     def __repr__(self):
+        """ Signal's `repr()`esentation. """
         return "Generic '_Signal' object"
 
     def __eq__(self, other):
+        """ Tests equality with other signal. """
         equal = other._dtype == self._dtype and other._period == self._period
         if not equal:
             return False
@@ -294,46 +328,57 @@ class _Signal(ABC):
     # --- math wrappers -------------------------------------------------------
     # math functions must not arrive here, they must be previously catched
     def __add__(self, other):
+        """ Signal addition:
+        :math:`z[n] = x[n] + y[n]`,
+        :math:`z(t) = x(t) + y(t)`.
+        """
         raise NotImplementedError('({0}).__add__'.format(self))
 
-    def __radd__(self, other):
-        raise NotImplementedError('({0}).__radd__'.format(self))
-
-    def __iadd__(self, other):
-        raise NotImplementedError('({0}).__iadd__'.format(self))
+    __radd__ = __add__
+    __iadd__ = __add__
 
     def __sub__(self, other):
+        """ Signal substraction:
+        :math:`z[n] = x[n] - y[n]`,
+        :math:`z(t) = x(t) - y(t)`.
+        """
         raise NotImplementedError('({0}).__sub__'.format(self))
 
-    def __rsub__(self, other):
-        raise NotImplementedError('({0}).__rsub__'.format(self))
-
-    def __isub__(self, other):
-        raise NotImplementedError('({0}).__isub__'.format(self))
+    __rsub__ = __sub__
+    __isub__ = __sub__
 
     def __neg__(self):
-        raise NotImplementedError('({0}).__neg__'.format(self))
+        """ Signal sign inversion:
+        :math:`y[n] = -x[n]`,
+        :math:`y(t) = -x(t)`.
+        """
 
     def __mul__(self, other):
+        """ Signal multiplication:
+        :math:`z[n] = x[n] * y[n]`,
+        :math:`z(t) = x(t) * y(t)`.
+        """
         raise NotImplementedError('({0}).__mul__'.format(self))
 
-    def __rmul__(self, other):
-        raise NotImplementedError('({0}).__rmul__'.format(self))
-
-    def __imul__(self, other):
-        raise NotImplementedError('({0}).__imul__'.format(self))
+    __rmul__ = __mul__
+    __imul__ = __mul__
 
     def __pow__(self, other):
+        """ Signal exponentiation:
+        :math:`z[n] = x[n]^{y[n]}`,
+        :math:`z(t) = x(t)^{y(t)}`.
+        """
         raise NotImplementedError('({0}).__pow__'.format(self))
 
     def __truediv__(self, other):
+        """ Signal division:
+        :math:`z[n] = x[n] / y[n]`,
+        :math:`z(t) = x(t) / y(t)`.
+        """
         raise NotImplementedError('({0}).__truediv__'.format(self))
 
-    def __rtruediv__(self, other):
-        raise NotImplementedError('({0}).__rtruediv__'.format(self))
-
-    def __itruediv__(self, other):
-        raise NotImplementedError('({0}).__itruediv__'.format(self))
+    __rtruediv__ = __truediv__
+    __itruediv__ = __truediv__
 
     # --- independent variable operations -------------------------------------
     def flip(self):
@@ -432,12 +477,23 @@ class _Signal(ABC):
 
 
 class _SignalOp(_Signal):
+    """
+    Tag for a class holding an operation (add, mul or pow) on signals.
+    """
     pass
 
 
 class _FunctionSignal(_Signal):
-
+    """
+    Generic class for a signal defined by a mathematical expression.
+    """
     def __init__(self, expr, **kwargs):
+        """
+        Common initialization for all functional signals.
+
+        Args:
+            expr: The sympy mathematical expression that defines the signal.
+        """
         super().__init__(**kwargs)
         if not isinstance(expr, sp.Expr):
             raise TypeError("'expr' must be a sympy expression")
@@ -453,12 +509,6 @@ class _FunctionSignal(_Signal):
             self._yexpr = expr
             self._xvar = fs.pop()
             self._xexpr = self._xvar
-
-#     def _copy_to(self, other):
-#         other._yexpr = self._yexpr
-#         other._xexpr = self._xexpr
-#         other._xvar = self._xvar
-#         _Signal._copy_to(self, other)
 
     @property
     def yexpr(self):
@@ -540,71 +590,6 @@ class _FunctionSignal(_Signal):
         s._yexpr = ScaleOperator.apply(s._xvar, s._yexpr, v)
         return s
 
-    # -- operadores aritméticos ----------------------------------------------
-    def __mul__(self, other):
-        # TODO
-        if other.dtype == np.complex_:
-            self.dtype = np.complex_
-        s = deepcopy(self)
-        s._yexpr *= other._yexpr.xreplace({other._xvar: s._xvar})
-        return s
-
-    __rmul__ = __mul__
-    __imul__ = __mul__
-
-    def __truediv__(self, other):
-        # TODO
-        if other.dtype == np.complex_:
-            self.dtype = np.complex_
-        s = deepcopy(self)
-        s._yexpr /= other._yexpr.xreplace({other._xvar: s._xvar})
-        return s
-
-    __itruediv__ = __truediv__
-
-    def __rtruediv__(self, other):
-        # TODO
-        if self.dtype == np.complex_:
-            other.dtype = np.complex_
-        s = deepcopy(other)
-        s._yexpr /= self._yexpr.xreplace({self._xvar: s._xvar})
-        return 1/other
-
-    def __add__(self, other):
-        # TODO
-        if other.dtype == np.complex_:
-            self.dtype = np.complex_
-        s = deepcopy(self)
-        s._yexpr += other._yexpr.xreplace({other._xvar: s._xvar})
-        return s
-
-    __radd__ = __add__
-    __iadd__ = __add__
-
-    def __sub__(self, other):
-        # TODO
-        if other.dtype == np.complex_:
-            self.dtype = np.complex_
-        s = deepcopy(self)
-        s._yexpr -= other._yexpr.xreplace({other._xvar: s._xvar})
-        return s
-
-    def __rsub__(self, other):
-        # TODO
-        if self.dtype == np.complex_:
-            other.dtype = np.complex_
-        s = deepcopy(other)
-        s._yexpr -= self._yexpr.xreplace({self._xvar: s._xvar})
-        return -s
-
-    __isub__ = __sub__
-
-    def __neg__(self):
-        # TODO
-        s = deepcopy(self)
-        s._yexpr = -self._yexpr
-        return s
-
     def __abs__(self):
         s = deepcopy(self)
         s._yexpr = AbsOperator.apply(s._xvar, s._yexpr)
@@ -616,19 +601,8 @@ class _FunctionSignal(_Signal):
         return sp.Eq(other._yexpr.xreplace({other._xvar: self._xvar}) -
                      self._yexpr, 0) == True
 
-#         if isinstance(other, _FunctionSignal):
-#             return self._yexpr == other._yexpr
-#         d = self._yexpr - other
-#         if (sp.expand(d) == 0) or \
-#            (sp.simplify(d) == 0) or \
-#            (sp.trigsimp(d) == 0):
-#             return True
-#         else:
-#             return False
-
     @property
     def even(self):
-        # TODO
         s1 = deepcopy(self)
         s2 = deepcopy(self)
         s2._yexpr = HermitianOperator.apply(s2._xvar, s2._yexpr)
@@ -636,7 +610,6 @@ class _FunctionSignal(_Signal):
 
     @property
     def odd(self):
-        # TODO
         s1 = deepcopy(self)
         s2 = deepcopy(self)
         s2._yexpr = HermitianOperator.apply(s2._xvar, s2._yexpr)
@@ -644,7 +617,6 @@ class _FunctionSignal(_Signal):
 
     @property
     def conjugate(self):
-        # TODO
         s = deepcopy(self)
         s._yexpr = ConjugateOperator.apply(s._xvar, s._yexpr)
         return s
