@@ -3,7 +3,6 @@ import skdsp.signal.discrete as ds
 import skdsp.signal.continuous as cs
 import skdsp.signal.printer as pt
 import skdsp.signal._signal as sg
-from skdsp.signal.util import is_discrete, is_continuous, is_complex
 import numpy as np
 import sympy as sp
 import unittest
@@ -23,8 +22,8 @@ class ComplexSinusoidTest(unittest.TestCase):
         self.assertIsInstance(c, sg._Signal)
         self.assertIsInstance(c, sg._FunctionSignal)
         self.assertIsInstance(c, ds.DiscreteFunctionSignal)
-        self.assertTrue(is_discrete(c))
-        self.assertFalse(is_continuous(c))
+        self.assertTrue(c.is_discrete())
+        self.assertFalse(c.is_continuous())
         c1 = ds.ComplexSinusoid(3, sp.S.Pi/4, sp.S.Pi/6)
         c2 = 3*ds.ComplexSinusoid().delay(-sp.S.Pi/6).scale(sp.S.Pi/4)
         self.assertEqual(c1, c2)
@@ -33,8 +32,8 @@ class ComplexSinusoidTest(unittest.TestCase):
         self.assertIsInstance(c, sg._Signal)
         self.assertIsInstance(c, sg._FunctionSignal)
         self.assertIsInstance(c, cs.ContinuousFunctionSignal)
-        self.assertFalse(is_discrete(c))
-        self.assertTrue(is_continuous(c))
+        self.assertFalse(c.is_discrete)
+        self.assertTrue(c.is_continuous())
         c1 = cs.ComplexSinusoid(3, sp.S.Pi/4, sp.S.Pi/6)
         c2 = 3*cs.ComplexSinusoid().delay(-sp.S.Pi/6).scale(sp.S.Pi/4)
         self.assertEqual(c1, c2)
@@ -52,7 +51,8 @@ class ComplexSinusoidTest(unittest.TestCase):
         np.testing.assert_almost_equal(c.eval(1),
                                        3*np.exp(1j*phi0n)*(np.exp(1j*omega0n)))
         np.testing.assert_almost_equal(c.eval(-1),
-                                       3*np.exp(1j*phi0n)*(np.exp(-1j*omega0n)))
+                                       3*np.exp(1j*phi0n) *
+                                       (np.exp(-1j*omega0n)))
         c = ds.ComplexSinusoid(1, 0, sp.S.Pi/2)
         np.testing.assert_almost_equal(c.eval(0), 1j)
         # sinusoide compleja continua
@@ -184,13 +184,13 @@ class ComplexSinusoidTest(unittest.TestCase):
         ''' Complex sinusoid (discrete/continuous): dtype '''
         # sinusoide compleja discreta
         c = ds.ComplexSinusoid(1, sp.S.Pi/4, sp.S.Pi/6)
-        self.assertTrue(is_complex(c))
+        self.assertTrue(c.is_complex())
         self.assertEqual(c.dtype, np.complex_)
         with self.assertRaises(ValueError):
             c.dtype = np.int_
         # sinusoide compleja continua
         c = cs.ComplexSinusoid(1, sp.S.Pi/4, sp.S.Pi/6)
-        self.assertTrue(is_complex(c))
+        self.assertTrue(c.is_complex())
         self.assertEqual(c.dtype, np.complex_)
         with self.assertRaises(ValueError):
             c.dtype = np.int_
