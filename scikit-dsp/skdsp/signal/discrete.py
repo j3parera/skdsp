@@ -40,6 +40,13 @@ class _DiscreteMixin(object):
         else:
             raise TypeError("'period' must be an integer scalar")
 
+    @property
+    def imag(self):
+        s = super().imag()
+        if s is None:
+            return Constant(0)
+        return s
+
     def _check_indexes(self, x):
         """
         Checks if all values in x are integers (including floats
@@ -609,14 +616,6 @@ class Delta(DiscreteFunctionSignal):
         # period
         self._period = sp.oo
 
-    @property
-    def real(self):
-        return self
-
-    @property
-    def imag(self):
-        return Constant(0)
-
     def latex_yexpr(self):
         """
         A
@@ -650,17 +649,37 @@ class Step(DiscreteFunctionSignal):
         def _imp_(n):
             return np.greater_equal(n, 0).astype(np.float_)
 
-    def __init__(self, delay=0):
-        expr = Step._DiscreteStep(self._default_xvar())
-        DiscreteFunctionSignal.__init__(self, expr)
+    def __new__(cls, delay=0, **kwargs):
         # delay
-        if not isinstance(delay, Integral):
-            raise TypeError('delay/advance must be integer')
-        self._xexpr = ShiftOperator.apply(self._xvar, self._xexpr, delay)
-        self._yexpr = ShiftOperator.apply(self._xvar, self._yexpr, delay)
+        delay = sp.sympify(delay)
+        if not delay.is_integer:
+            raise ValueError('delay/advance must be integer')
+        # expression
+        expr = Step._DiscreteStep(_DiscreteMixin._default_xvar())
+        return _Signal.__new__(cls, expr, delay)
 
-    def _print(self):
+    def __init__(self, delay=0, **kwargs):
+        DiscreteFunctionSignal.__init__(self, self.args[0], **kwargs)
+        delay = self.args[1]
+        if delay != 0:
+            self._xexpr = ShiftOperator.apply(self._xvar, self._xexpr, delay)
+            self._yexpr = ShiftOperator.apply(self._xvar, self._yexpr, delay)
+        # period
+        self._period = sp.oo
+
+    def latex_yexpr(self):
+        """
+        A
+        :math:`\LaTeX`
+        representation of the signal.
+        """
+        return r'u\left[{0}\right]'.format(sp.latex(self._xexpr))
+
+    def __str__(self):
         return 'u[{0}]'.format(str(self._xexpr))
+
+    def __repr__(self):
+        return 'Step(' + str(self.args[1]) + ')'
 
 
 class Ramp(DiscreteFunctionSignal):
@@ -681,17 +700,37 @@ class Ramp(DiscreteFunctionSignal):
         def _imp_(n):
             return n*np.greater_equal(n, 0).astype(np.float_)
 
-    def __init__(self, delay=0):
-        expr = Ramp._DiscreteRamp(self._default_xvar())
-        DiscreteFunctionSignal.__init__(self, expr)
+    def __new__(cls, delay=0, **kwargs):
         # delay
-        if not isinstance(delay, Integral):
-            raise TypeError('delay/advance must be integer')
-        self._xexpr = ShiftOperator.apply(self._xvar, self._xexpr, delay)
-        self._yexpr = ShiftOperator.apply(self._xvar, self._yexpr, delay)
+        delay = sp.sympify(delay)
+        if not delay.is_integer:
+            raise ValueError('delay/advance must be integer')
+        # expression
+        expr = Ramp._DiscreteRamp(_DiscreteMixin._default_xvar())
+        return _Signal.__new__(cls, expr, delay)
 
-    def _print(self):
+    def __init__(self, delay=0, **kwargs):
+        DiscreteFunctionSignal.__init__(self, self.args[0], **kwargs)
+        delay = self.args[1]
+        if delay != 0:
+            self._xexpr = ShiftOperator.apply(self._xvar, self._xexpr, delay)
+            self._yexpr = ShiftOperator.apply(self._xvar, self._yexpr, delay)
+        # period
+        self._period = sp.oo
+
+    def latex_yexpr(self):
+        """
+        A
+        :math:`\LaTeX`
+        representation of the signal.
+        """
+        return r'r\left[{0}\right]'.format(sp.latex(self._xexpr))
+
+    def __str__(self):
         return 'r[{0}]'.format(str(self._xexpr))
+
+    def __repr__(self):
+        return 'Ramp(' + str(self.args[1]) + ')'
 
 
 class Rect(DiscreteFunctionSignal):

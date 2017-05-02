@@ -414,8 +414,9 @@ Señales discretas funcionales simples
 \noindent
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="13" columns="3">
+<lyxtabular version="3" rows="14" columns="4">
 <features tabularvalignment="middle">
+<column alignment="left" valignment="top">
 <column alignment="left" valignment="top">
 <column alignment="left" valignment="top">
 <column alignment="left" valignment="top">
@@ -447,6 +448,15 @@ Notas
 
 \end_inset
 </cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
 </row>
 <row>
 <cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
@@ -472,6 +482,15 @@ constante
 
 \begin_layout Plain Layout
 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+ok
 \end_layout
 
 \end_inset
@@ -508,6 +527,15 @@ delta
 
 \end_inset
 </cell>
+<cell alignment="center" valignment="top" topline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+ok
+\end_layout
+
+\end_inset
+</cell>
 </row>
 <row>
 <cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
@@ -526,6 +554,56 @@ escalón unitario
 \begin_inset Formula $u[n]$
 \end_inset
 
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+ok
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+rampa unidad
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $r[n]$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
 
 \end_layout
 
@@ -576,6 +654,15 @@ Ventana rectangular, boxcar
 
 \end_inset
 </cell>
+<cell alignment="center" valignment="top" topline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
 </row>
 <row>
 <cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
@@ -616,6 +703,15 @@ exponencial
 
 \end_inset
 </cell>
+<cell alignment="center" valignment="top" topline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
 </row>
 <row>
 <cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
@@ -639,6 +735,15 @@ exponencial real:
 \begin_inset Formula $\alpha\in\mathbb{R}$
 \end_inset
 
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
 
 \end_layout
 
@@ -694,6 +799,15 @@ exponencial compleja:
 
 \end_inset
 </cell>
+<cell alignment="center" valignment="top" topline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
 </row>
 <row>
 <cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
@@ -730,6 +844,15 @@ sinusoide
 
 \begin_layout Plain Layout
 Más genérica que el coseno
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
 \end_layout
 
 \end_inset
@@ -782,6 +905,15 @@ constante
 
 \end_inset
 </cell>
+<cell alignment="center" valignment="top" topline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
 </row>
 <row>
 <cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
@@ -813,6 +945,15 @@ Periodo
 \begin_inset Formula $N$
 \end_inset
 
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
 
 \end_layout
 
@@ -857,6 +998,15 @@ Periodo
 
 \end_inset
 </cell>
+<cell alignment="center" valignment="top" topline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
 </row>
 <row>
 <cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
@@ -891,6 +1041,15 @@ Periodo
 \begin_inset Formula $N$
 \end_inset
 
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
 
 \end_layout
 

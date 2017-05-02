@@ -457,23 +457,26 @@ class _Signal(ABC):
 
         """
         s = deepcopy(self)
-        s._yexpr = RealPartOperator.apply(s._xvar, s._yexpr)
-        s._dtype = np.float_
+        if self.is_complex:
+            s._yexpr = RealPartOperator.apply(s._xvar, s._yexpr)
+            s._dtype = np.float_
         return s
 
-    @property
+#    @property
     def imag(self):
         """
         Imaginary part of the signal.
 
         Returns:
-            A signal copy with the imaginary part of the signal.
-
+            A signal copy with the imaginary part of the signal if it's
+            complex, else None.
         """
-        s = deepcopy(self)
-        s._yexpr = ImaginaryPartOperator.apply(s._xvar, s._yexpr)
-        s._dtype = np.float_
-        return s
+        if self.is_complex:
+            s = deepcopy(self)
+            s._yexpr = ImaginaryPartOperator.apply(s._xvar, s._yexpr)
+            s._dtype = np.float_
+            return s
+        return None
 
 
 class _SignalOp(_Signal):
