@@ -277,7 +277,7 @@ class Ramp(ContinuousFunctionSignal):
         return 'r({0})'.format(str(self._xexpr))
 
 
-class Rect(ContinuousFunctionSignal):
+class RectPulse(ContinuousFunctionSignal):
 
     def __init__(self, width=16, delay=0):
         n = self._default_xvar()
@@ -296,7 +296,7 @@ class Rect(ContinuousFunctionSignal):
         return 'Pi({0}, {1})'.format(str(self._xexpr), self._width)
 
 
-class Triang(ContinuousFunctionSignal):
+class TriangPulse(ContinuousFunctionSignal):
 
     def __init__(self, width=16, delay=0):
         n = self._default_xvar()
