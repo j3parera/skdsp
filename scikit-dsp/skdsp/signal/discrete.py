@@ -1,9 +1,10 @@
 
 from ..operator.operator import ScaleOperator, ShiftOperator
+from ._signal import _Signal, _FunctionSignal, _SignalOp
 from ._util import _is_complex_scalar, _is_integer_scalar
+from ._util import _latex_mode
 from copy import deepcopy
-from numbers import Integral, Number
-from skdsp.signal._signal import _Signal, _FunctionSignal, _SignalOp
+from numbers import Number
 from sympy.core.compatibility import iterable
 from sympy.core.evaluate import evaluate, global_evaluate
 import numpy as np
@@ -565,13 +566,14 @@ class Constant(DiscreteFunctionSignal):
         # period
         self._period = sp.oo
 
-    def latex_yexpr(self):
+    def latex_yexpr(self, mode=None):
         """
         A
         :math:`\LaTeX`
         representation of the signal.
         """
-        return super().latex_yexpr().replace('j', '\mathrm{j}')
+        s = super().latex_yexpr().replace('j', '\mathrm{j}')
+        return _latex_mode(s, mode)
 
     def __repr__(self):
         return 'Constant(' + str(self) + ')'
@@ -616,13 +618,14 @@ class Delta(DiscreteFunctionSignal):
         # period
         self._period = sp.oo
 
-    def latex_yexpr(self):
+    def latex_yexpr(self, mode=None):
         """
         A
         :math:`\LaTeX`
         representation of the signal.
         """
-        return r'\delta\left[{0}\right]'.format(sp.latex(self._xexpr))
+        s = r'\delta\left[{0}\right]'.format(sp.latex(self._xexpr))
+        return _latex_mode(s, mode)
 
     def __str__(self):
         return 'd[{0}]'.format(str(self._xexpr))
@@ -667,13 +670,14 @@ class Step(DiscreteFunctionSignal):
         # period
         self._period = sp.oo
 
-    def latex_yexpr(self):
+    def latex_yexpr(self, mode=None):
         """
         A
         :math:`\LaTeX`
         representation of the signal.
         """
-        return r'u\left[{0}\right]'.format(sp.latex(self._xexpr))
+        s = r'u\left[{0}\right]'.format(sp.latex(self._xexpr))
+        return _latex_mode(s, mode)
 
     def __str__(self):
         return 'u[{0}]'.format(str(self._xexpr))
@@ -718,13 +722,14 @@ class Ramp(DiscreteFunctionSignal):
         # period
         self._period = sp.oo
 
-    def latex_yexpr(self):
+    def latex_yexpr(self, mode=None):
         """
         A
         :math:`\LaTeX`
         representation of the signal.
         """
-        return r'r\left[{0}\right]'.format(sp.latex(self._xexpr))
+        s = r'r\left[{0}\right]'.format(sp.latex(self._xexpr))
+        return _latex_mode(s, mode)
 
     def __str__(self):
         return 'r[{0}]'.format(str(self._xexpr))
@@ -733,51 +738,83 @@ class Ramp(DiscreteFunctionSignal):
         return 'Ramp(' + str(self.args[1]) + ')'
 
 
-class Rect(DiscreteFunctionSignal):
+class RectPulse(DiscreteFunctionSignal):
 
-    def __init__(self, width=16, delay=0):
-        if not isinstance(width, Integral):
-            raise TypeError('width must be integer')
-        n = self._default_xvar()
-        expr = sp.Piecewise((1, sp.Abs(n) <= width/2), (0, True))
-        DiscreteFunctionSignal.__init__(self, expr)
-        self._width = width
-        # delay
-        if not isinstance(delay, Integral):
-            raise TypeError('delay/advance must be integer')
-        self._xexpr = ShiftOperator.apply(self._xvar, self._xexpr, delay)
-        self._yexpr = ShiftOperator.apply(self._xvar, self._yexpr, delay)
+    def __new__(cls, width=16, **kwargs):
+        # width
+        width = sp.sympify(width)
+        if not width.is_integer or not width.is_nonnegative:
+            raise ValueError('width must be a non-negative integer')
+        # expression
+        n = _DiscreteMixin._default_xvar()
+        expr = sp.Piecewise((1, sp.Abs(n) <= width), (0, True))
+        # expr = (Step._DiscreteStep(n + width) -
+        #         Step._DiscreteStep(n - (width + 1)))
+        return _Signal.__new__(cls, expr, width)
 
-    @property
-    def width(self):
-        return self._width
-
-    def _print(self):
-        return 'Pi[{0}, {1}]'.format(str(self._xexpr), self._width)
-
-
-class Triang(DiscreteFunctionSignal):
-
-    def __init__(self, width=16, delay=0):
-        if not isinstance(width, Integral):
-            raise TypeError('width must be integer')
-        n = self._default_xvar()
-        expr = sp.Piecewise((1.0 - 2.0*sp.Abs(n)/width, sp.Abs(n) < width/2),
-                            (0, True))
-        DiscreteFunctionSignal.__init__(self, expr)
-        self._width = width
-        # delay
-        if not isinstance(delay, Integral):
-            raise TypeError('delay/advance must be integer')
-        self._xexpr = ShiftOperator.apply(self._xvar, self._xexpr, delay)
-        self._yexpr = ShiftOperator.apply(self._xvar, self._yexpr, delay)
+    def __init__(self, width=16, **kwargs):
+        DiscreteFunctionSignal.__init__(self, self.args[0], **kwargs)
+        # period
+        self._period = sp.oo
 
     @property
     def width(self):
-        return self._width
+        return self.args[1]
 
-    def _print(self):
-        return 'Delta[{0}, {1}]'.format(str(self._xexpr), self._width)
+    def latex_yexpr(self, mode=None):
+        """
+        A
+        :math:`\LaTeX`
+        representation of the signal.
+        """
+        s = r'\Pi_{{{0}}}\left[{1}\right]'.format(self.width,
+                                                  sp.latex(self._xexpr))
+        return _latex_mode(s, mode)
+
+    def __str__(self):
+        return 'Pi{0}[{1}]'.format(self.width, str(self._xexpr))
+
+    def __repr__(self):
+        return 'RectPulse(' + str(self.width) + ')'
+
+
+class TriangPulse(DiscreteFunctionSignal):
+
+    def __new__(cls, width=16, **kwargs):
+        # width
+        width = sp.sympify(width)
+        if not width.is_integer or not width.is_positive:
+            raise ValueError('width must be a positive integer')
+        # expression
+        n = _DiscreteMixin._default_xvar()
+        expr = sp.Piecewise((1.0, n == 0), (1.0 - sp.Abs(n)/width,
+                                            sp.Abs(n) <= width), (0, True))
+        return _Signal.__new__(cls, expr, width)
+
+    def __init__(self, width=16, **kwargs):
+        DiscreteFunctionSignal.__init__(self, self.args[0], **kwargs)
+        # period
+        self._period = sp.oo
+
+    @property
+    def width(self):
+        return self.args[1]
+
+    def latex_yexpr(self, mode=None):
+        """
+        A
+        :math:`\LaTeX`
+        representation of the signal.
+        """
+        s = r'\Delta_{{{0}}}\left[{1}\right]'.format(self.width,
+                                                     sp.latex(self._xexpr))
+        return _latex_mode(s, mode)
+
+    def __str__(self):
+        return 'Delta{0}[{1}]'.format(self.width, str(self._xexpr))
+
+    def __repr__(self):
+        return 'TriangPulse(' + str(self.width) + ')'
 
 
 class _SinCosCExpMixin(object):
