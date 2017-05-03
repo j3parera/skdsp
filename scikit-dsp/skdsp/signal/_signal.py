@@ -506,12 +506,10 @@ class _FunctionSignal(_Signal):
             self._xvar = self._default_xvar()
             self._xexpr = self._xvar
         else:
-            fs = expr.free_symbols
-            if len(fs) != 1:
-                raise TypeError("'expr' must contain a free symbol")
             self._yexpr = expr
-            self._xvar = fs.pop()
+            self._xvar = expr.free_symbols.pop()
             self._xexpr = self._xvar
+        self._ylamdba = None
 
     @property
     def yexpr(self):
@@ -550,8 +548,9 @@ class _FunctionSignal(_Signal):
                     to_real = True
                     # break # ??
         try:
-            ylambda = sp.lambdify(self._xvar, self._yexpr, 'numpy')
-            y = ylambda(x)
+            if self._ylamdba is None:
+                self._ylambda = sp.lambdify(self._xvar, self._yexpr, 'numpy')
+            y = self._ylambda(x)
             if not hasattr(y, "__len__"):
                 # workaround para issue #5642 de sympy. Cuando yexpr es una
                 # constante, se devuelve un escalar aunque la entrada sea un
