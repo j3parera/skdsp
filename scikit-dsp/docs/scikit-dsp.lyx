@@ -414,7 +414,7 @@ Señales discretas funcionales simples
 \noindent
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="14" columns="4">
+<lyxtabular version="3" rows="16" columns="4">
 <features tabularvalignment="middle">
 <column alignment="left" valignment="top">
 <column alignment="left" valignment="top">
@@ -472,6 +472,9 @@ constante
 \begin_inset Text
 
 \begin_layout Plain Layout
+\begin_inset Formula $c\in\mathbb{C}$
+\end_inset
+
 
 \end_layout
 
@@ -563,7 +566,7 @@ escalón unitario
 \begin_inset Text
 
 \begin_layout Plain Layout
-
+as_delta, ....
 \end_layout
 
 \end_inset
@@ -592,7 +595,10 @@ rampa unidad
 \begin_inset Text
 
 \begin_layout Plain Layout
-\begin_inset Formula $r[n]$
+\begin_inset Formula $r[n]=\begin{cases}
+n & n\ge0\\
+0 & resto
+\end{cases}=nu[n]$
 \end_inset
 
 
@@ -613,52 +619,7 @@ rampa unidad
 \begin_inset Text
 
 \begin_layout Plain Layout
-
-\end_layout
-
-\end_inset
-</cell>
-</row>
-<row>
-<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
-\begin_inset Text
-
-\begin_layout Plain Layout
-pulso rectangular
-\end_layout
-
-\end_inset
-</cell>
-<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
-\begin_inset Text
-
-\begin_layout Plain Layout
-\begin_inset Formula $\Pi[n/L]=u[n]-u[n-L]$
-\end_inset
-
-, 
-\begin_inset Formula $L>0$
-\end_inset
-
-
-\end_layout
-
-\end_inset
-</cell>
-<cell alignment="center" valignment="top" topline="true" rightline="true" usebox="none">
-\begin_inset Text
-
-\begin_layout Plain Layout
-Ventana rectangular, boxcar
-\end_layout
-
-\end_inset
-</cell>
-<cell alignment="center" valignment="top" topline="true" rightline="true" usebox="none">
-\begin_inset Text
-
-\begin_layout Plain Layout
-
+ok
 \end_layout
 
 \end_inset
@@ -920,6 +881,102 @@ constante
 \begin_inset Text
 
 \begin_layout Plain Layout
+pulso rectangular
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $\Pi_{N}[n]=\begin{cases}
+1 & \left|n\right|\le N\\
+0 & resto
+\end{cases}=u[n+N]-u[n-(N+1)]$
+\end_inset
+
+, 
+\begin_inset Formula $N\in\mathbb{N}^{0}$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+No es ventana rectangular
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+pulso triangular
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $\Delta_{N}[n]=\begin{cases}
+1-\left|n\right|/N & \left|n\right|\le N\\
+0 & resto
+\end{cases}$
+\end_inset
+
+, 
+\begin_inset Formula $N\in\mathbb{N}$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+No es ventana Bartlett
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
 tren de deltas
 \end_layout
 
@@ -945,6 +1002,44 @@ Periodo
 \begin_inset Formula $N$
 \end_inset
 
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
 
 \end_layout
 
