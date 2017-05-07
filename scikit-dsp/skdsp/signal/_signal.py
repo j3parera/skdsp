@@ -89,7 +89,7 @@ class _Signal(ABC):
             args (str): Whatever list of arguments to be internally held.
         """
         obj = object.__new__(cls)
-        obj._args = args
+        obj._args = list(args)
         return obj
 
     def __del__(self):
@@ -234,7 +234,7 @@ class _Signal(ABC):
     @property
     def is_periodic(self):
         """ Tests whether the signal is periodic."""
-        return self._period is not None and self._period != sp.oo
+        return self.period is not None and self.period != sp.oo
 
     @property
     def period(self):
@@ -252,7 +252,7 @@ class _Signal(ABC):
         if _is_real_scalar(v):
             self._period = v
         else:
-            raise TypeError('`period` must be a real scalar')
+            raise ValueError('`period` must be a real scalar')
 
     def __repr__(self):
         """ Signal's `repr()`esentation. """
@@ -462,7 +462,7 @@ class _Signal(ABC):
             s._dtype = np.float_
         return s
 
-#    @property
+    @property
     def imag(self):
         """
         Imaginary part of the signal.
@@ -477,6 +477,25 @@ class _Signal(ABC):
             s._dtype = np.float_
             return s
         return None
+
+    # --- utilities -----------------------------------------------------------
+    def latex_xexpr(self):
+        if self.xexpr == self.xvar:
+            sn = sp.latex(self._xexpr)
+        else:
+            # just in case it appears '- n' with space
+            s0 = sp.latex(self.xexpr)
+            if s0.startswith('- '):
+                s0 = s0.replace(' ', '', 1)
+            sn = r'\left(' + s0 + r'\right)'
+        return sn
+
+    def str_xexpr(self):
+        if self.xexpr == self.xvar:
+            sn = sp.latex(self._xexpr)
+        else:
+            sn = '(' + str(self.xexpr) + ')'
+        return sn
 
 
 class _SignalOp(_Signal):
@@ -528,7 +547,8 @@ class _FunctionSignal(_Signal):
             return self._print()
         if self._yexpr.is_number:
             return sp.Basic.__str__(self._yexpr)
-        return sp.Basic.__str__(self._yexpr.args[0])
+        # TODO
+        return sp.Basic.__str__(self._yexpr)
 
     def eval(self, x):
         # Hay que ver si hay 'Pow'

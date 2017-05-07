@@ -316,7 +316,7 @@ class TriangPulse(ContinuousFunctionSignal):
         return 'Delta({0}, {1})'.format(str(self._xexpr), self._width)
 
 
-class _SinCosCExpMixin(object):
+class _TrigMixin(object):
 
     def __init__(self, omega0, phi0):
         self._omega0 = sp.simplify(omega0)
@@ -361,12 +361,12 @@ class _SinCosCExpMixin(object):
         return eu
 
 
-class Cosine(_SinCosCExpMixin, ContinuousFunctionSignal):
+class Cosine(_TrigMixin, ContinuousFunctionSignal):
 
     def __init__(self, omega0=1, phi0=0):
         expr = sp.cos(self._default_xvar())
         ContinuousFunctionSignal.__init__(self, expr)
-        _SinCosCExpMixin.__init__(self, omega0, phi0)
+        _TrigMixin.__init__(self, omega0, phi0)
         # delay (negativo, OJO)
         delay = -self._phi0
         self._xexpr = ShiftOperator.apply(self._xvar, self._xexpr, delay)
@@ -378,12 +378,12 @@ class Cosine(_SinCosCExpMixin, ContinuousFunctionSignal):
                                           self._omega0)
 
 
-class Sine(_SinCosCExpMixin, ContinuousFunctionSignal):
+class Sine(_TrigMixin, ContinuousFunctionSignal):
 
     def __init__(self, omega0=1, phi0=0):
         expr = sp.sin(self._default_xvar())
         ContinuousFunctionSignal.__init__(self, expr)
-        _SinCosCExpMixin.__init__(self, omega0, phi0)
+        _TrigMixin.__init__(self, omega0, phi0)
         # delay (negativo, OJO)
         delay = -self._phi0
         self._xexpr = ShiftOperator.apply(self._xvar, self._xexpr, delay)
@@ -431,12 +431,12 @@ class Sinusoid(Cosine):
         return self.in_quadrature
 
 
-class Exponential(_SinCosCExpMixin, ContinuousFunctionSignal):
+class Exponential(_TrigMixin, ContinuousFunctionSignal):
 
     def __init__(self, base=1):
         expr = sp.Pow(base, self._default_xvar())
         ContinuousFunctionSignal.__init__(self, expr)
-        _SinCosCExpMixin.__init__(self, self._extract_omega(base), 0)
+        _TrigMixin.__init__(self, self._extract_omega(base), 0)
         self._base = sp.sympify(base)
         pb = sp.arg(self._base)
         if pb != sp.nan:
@@ -452,14 +452,14 @@ class Exponential(_SinCosCExpMixin, ContinuousFunctionSignal):
         return mod1 and _Signal.is_periodic(self)
 
 
-class ComplexSinusoid(_SinCosCExpMixin, ContinuousFunctionSignal):
+class ComplexSinusoid(_TrigMixin, ContinuousFunctionSignal):
 
     def __init__(self, A=1, omega0=1, phi0=0):
         self._A = sp.Abs(A)
         phi = phi0 + self._extract_omega(A)
         expr = self._A*sp.exp(sp.I*self._default_xvar())
         ContinuousFunctionSignal.__init__(self, expr)
-        _SinCosCExpMixin.__init__(self, omega0, phi)
+        _TrigMixin.__init__(self, omega0, phi)
         self.dtype = np.complex_
         # delay (negativo, OJO)
         delay = -self._phi0

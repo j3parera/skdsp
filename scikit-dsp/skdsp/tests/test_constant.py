@@ -157,7 +157,7 @@ class ConstantTest(unittest.TestCase):
         self.assertAlmostEqual(d.eval(0), cte)
         self.assertAlmostEqual(d.eval(1), cte)
         self.assertAlmostEqual(d.eval(-1), cte)
-        with self.assertRaises(TypeError):
+        with self.assertRaises(ValueError):
             d.eval(0.5)
         # range
         np.testing.assert_array_almost_equal(d.eval(np.arange(0, 2)),
@@ -168,7 +168,7 @@ class ConstantTest(unittest.TestCase):
                                              np.array([cte, cte, cte]))
         np.testing.assert_array_almost_equal(d.eval(np.arange(3, -2, -2)),
                                              np.array([cte, cte, cte]))
-        with self.assertRaises(TypeError):
+        with self.assertRaises(ValueError):
             d.eval(np.arange(0, 2, 0.5))
 
     def test_getitem_scalar(self):
@@ -179,7 +179,7 @@ class ConstantTest(unittest.TestCase):
         self.assertAlmostEqual(d[0], cte)
         self.assertAlmostEqual(d[1], cte)
         self.assertAlmostEqual(d[-1], cte)
-        with self.assertRaises(TypeError):
+        with self.assertRaises(ValueError):
             d[0.5]
         # slice
         np.testing.assert_array_almost_equal(d[0:2],
@@ -190,13 +190,13 @@ class ConstantTest(unittest.TestCase):
                                              np.array([cte, cte, cte]))
         np.testing.assert_array_almost_equal(d[3:-2:-2],
                                              np.array([cte, cte, cte]))
-        with self.assertRaises(TypeError):
+        with self.assertRaises(ValueError):
             d[0:2:0.5]
 
     def test_generator(self):
         ''' Constant (discrete): generate '''
         d = ds.Constant(123.456)
-        with self.assertRaises(TypeError):
+        with self.assertRaises(ValueError):
             d.generate(0, step=0.1)
         dg = d.generate(s0=-3, size=5, overlap=3)
         np.testing.assert_array_equal(next(dg), np.full(5, 123.456))
@@ -211,17 +211,17 @@ class ConstantTest(unittest.TestCase):
     def test_shift_delay(self):
         ''' Constant (discrete): shift, delay '''
         d = ds.Constant(123.456)
-        with self.assertRaises(TypeError):
+        with self.assertRaises(ValueError):
             d.shift(0.5)
         np.testing.assert_array_equal(d[-10:10], d.shift(3)[-10:10])
-        with self.assertRaises(TypeError):
+        with self.assertRaises(ValueError):
             d.delay(0.5)
         np.testing.assert_array_equal(d[-10:10], d.delay(3)[-10:10])
 
     def test_scale(self):
         ''' Constant (discrete): shift, delay '''
         d = ds.Constant(123.456)
-        with self.assertRaises(TypeError):
+        with self.assertRaises(ValueError):
             d.scale(sp.pi)
         np.testing.assert_array_equal(d[-3:3], d.scale(3)[-3:3])
         np.testing.assert_array_equal(d[-3:3], d.scale(0.25)[-12:12:4])

@@ -39,11 +39,11 @@ class _DiscreteMixin(object):
         if _is_integer_scalar(v) or v.equals(sp.oo):
             self._period = v
         else:
-            raise TypeError("'period' must be an integer scalar")
+            raise ValueError("'period' must be an integer scalar")
 
     @property
     def imag(self):
-        s = super().imag()
+        s = super().imag
         if s is None:
             return Constant(0)
         return s
@@ -54,7 +54,7 @@ class _DiscreteMixin(object):
         without fractional part (e.g. 1.0, 2.0).
         """
         try:
-            xlambda = sp.lambdify(self._xvar, self._xexpr, 'numpy')
+            xlambda = sp.lambdify(self._xvar, self.xexpr, 'numpy')
             x = xlambda(x)
             if not hasattr(x, "__len__"):
                 # workaround para issue #5642 de sympy. Cuando yexpr es una
@@ -68,13 +68,13 @@ class _DiscreteMixin(object):
             x = np.zeros_like(x, self.dtype)
             for k, x0 in enumerate(x):
                 try:
-                    x[k] = self._xexpr.xreplace({self._xvar: x0})
+                    x[k] = self.xexpr.xreplace({self._xvar: x0})
                 except TypeError:
                     x[k] = np.nan
 
         if not np.all(np.equal(np.mod(np.asanyarray(x), 1), 0)):
-            raise TypeError('discrete signals are only defined' +
-                            'for integer indexes')
+            raise ValueError('discrete signals are only defined' +
+                             'for integer indexes')
 
     @staticmethod
     def _default_xvar():
@@ -128,7 +128,7 @@ class _DiscreteMixin(object):
         Delays (or advances) the signal k (integer) units.
         """
         if not _is_integer_scalar(k):
-            raise TypeError('delay/advance must be integer')
+            raise ValueError('delay/advance must be integer')
         if isinstance(self, _FunctionSignal):
             o = _FunctionSignal.shift(self, k)
         elif isinstance(self, DataSignal):
@@ -145,17 +145,17 @@ class _DiscreteMixin(object):
         """ Scales the independent variable by `s`."""
         r = sp.nsimplify(s, rational=True)
         if not isinstance(r, sp.Rational):
-            raise TypeError('expansion/compression value not rational')
+            raise ValueError('expansion/compression value not rational')
         return self.expand(r.p).compress(r.q)
 
     def compress(self, n):
         if not _is_integer_scalar(n):
-            raise TypeError('compress factor must be integer')
+            raise ValueError('compress factor must be integer')
         return _Signal.scale(self, n, mul=False)
 
     def expand(self, n):
         if not _is_integer_scalar(n):
-            raise TypeError('expand factor must be integer')
+            raise ValueError('expand factor must be integer')
         return _Signal.scale(self, n, mul=True)
 
     def __rshift__(self, k):
@@ -238,9 +238,9 @@ class _DiscreteMixin(object):
     # --- other operations ----------------------------------------------------
 #     def ccshift(self, k, N):
 #         if not isinstance(k, Integral):
-#             raise TypeError('delay/advance must be integer')
+#             raise ValueError('delay/advance must be integer')
 #         if not isinstance(N, Integral):
-#             raise TypeError('modulo length must be integer')
+#             raise ValueError('modulo length must be integer')
 #         return _Signal.cshift(self, k, N)
 
     def dfs(self, P=None, force=False, symbolic=False):
@@ -516,8 +516,8 @@ class DiscreteFunctionSignal(_DiscreteMixin, _FunctionSignal):
 
     def generate(self, s0=0, step=1, size=1, overlap=0):
         if step != 1:
-            raise TypeError('discrete signals are only defined' +
-                            'for integer indexes')
+            raise ValueError('discrete signals are only defined' +
+                             'for integer indexes')
         return super().generate(s0, step, size, overlap)
 
     def eval(self, x, force=False):
@@ -613,8 +613,8 @@ class Delta(DiscreteFunctionSignal):
         DiscreteFunctionSignal.__init__(self, self.args[0], **kwargs)
         delay = self.args[1]
         if delay != 0:
-            self._xexpr = ShiftOperator.apply(self._xvar, self._xexpr, delay)
-            self._yexpr = ShiftOperator.apply(self._xvar, self._yexpr, delay)
+            self._xexpr = ShiftOperator.apply(self._xvar, self.xexpr, delay)
+            self._yexpr = ShiftOperator.apply(self._xvar, self.yexpr, delay)
         # period
         self._period = sp.oo
 
@@ -624,11 +624,11 @@ class Delta(DiscreteFunctionSignal):
         :math:`\LaTeX`
         representation of the signal.
         """
-        s = r'\delta\left[{0}\right]'.format(sp.latex(self._xexpr))
+        s = r'\delta\left[{0}\right]'.format(sp.latex(self.xexpr))
         return _latex_mode(s, mode)
 
     def __str__(self):
-        return 'd[{0}]'.format(str(self._xexpr))
+        return 'd[{0}]'.format(str(self.xexpr))
 
     def __repr__(self):
         return 'Delta(' + str(self.args[1]) + ')'
@@ -665,8 +665,8 @@ class Step(DiscreteFunctionSignal):
         DiscreteFunctionSignal.__init__(self, self.args[0], **kwargs)
         delay = self.args[1]
         if delay != 0:
-            self._xexpr = ShiftOperator.apply(self._xvar, self._xexpr, delay)
-            self._yexpr = ShiftOperator.apply(self._xvar, self._yexpr, delay)
+            self._xexpr = ShiftOperator.apply(self._xvar, self.xexpr, delay)
+            self._yexpr = ShiftOperator.apply(self._xvar, self.yexpr, delay)
         # period
         self._period = sp.oo
 
@@ -676,11 +676,11 @@ class Step(DiscreteFunctionSignal):
         :math:`\LaTeX`
         representation of the signal.
         """
-        s = r'u\left[{0}\right]'.format(sp.latex(self._xexpr))
+        s = r'u\left[{0}\right]'.format(sp.latex(self.xexpr))
         return _latex_mode(s, mode)
 
     def __str__(self):
-        return 'u[{0}]'.format(str(self._xexpr))
+        return 'u[{0}]'.format(str(self.xexpr))
 
     def __repr__(self):
         return 'Step(' + str(self.args[1]) + ')'
@@ -717,8 +717,8 @@ class Ramp(DiscreteFunctionSignal):
         DiscreteFunctionSignal.__init__(self, self.args[0], **kwargs)
         delay = self.args[1]
         if delay != 0:
-            self._xexpr = ShiftOperator.apply(self._xvar, self._xexpr, delay)
-            self._yexpr = ShiftOperator.apply(self._xvar, self._yexpr, delay)
+            self._xexpr = ShiftOperator.apply(self._xvar, self.xexpr, delay)
+            self._yexpr = ShiftOperator.apply(self._xvar, self.yexpr, delay)
         # period
         self._period = sp.oo
 
@@ -728,11 +728,11 @@ class Ramp(DiscreteFunctionSignal):
         :math:`\LaTeX`
         representation of the signal.
         """
-        s = r'r\left[{0}\right]'.format(sp.latex(self._xexpr))
+        s = r'r\left[{0}\right]'.format(sp.latex(self.xexpr))
         return _latex_mode(s, mode)
 
     def __str__(self):
-        return 'r[{0}]'.format(str(self._xexpr))
+        return 'r[{0}]'.format(str(self.xexpr))
 
     def __repr__(self):
         return 'Ramp(' + str(self.args[1]) + ')'
@@ -768,11 +768,11 @@ class RectPulse(DiscreteFunctionSignal):
         representation of the signal.
         """
         s = r'\Pi_{{{0}}}\left[{1}\right]'.format(self.width,
-                                                  sp.latex(self._xexpr))
+                                                  sp.latex(self.xexpr))
         return _latex_mode(s, mode)
 
     def __str__(self):
-        return 'Pi{0}[{1}]'.format(self.width, str(self._xexpr))
+        return 'Pi{0}[{1}]'.format(self.width, str(self.xexpr))
 
     def __repr__(self):
         return 'RectPulse(' + str(self.width) + ')'
@@ -807,32 +807,32 @@ class TriangPulse(DiscreteFunctionSignal):
         representation of the signal.
         """
         s = r'\Delta_{{{0}}}\left[{1}\right]'.format(self.width,
-                                                     sp.latex(self._xexpr))
+                                                     sp.latex(self.xexpr))
         return _latex_mode(s, mode)
 
     def __str__(self):
-        return 'Delta{0}[{1}]'.format(self.width, str(self._xexpr))
+        return 'Delta{0}[{1}]'.format(self.width, str(self.xexpr))
 
     def __repr__(self):
         return 'TriangPulse(' + str(self.width) + ')'
 
 
-class _SinCosCExpMixin(object):
+class _TrigMixin(object):
 
     def __init__(self, omega0, phi0):
         self._omega0 = sp.simplify(omega0)
         self._phi0 = self._reduce_phase(phi0)
 
     def _compute_period(self):
-        # si omega0 es cero, se puede considerar periodo N = 1
-        if self._omega0 == 0:
-            return sp.S.One
+        # si omega0 es cero, periodo infinito
+        if self.frequency == 0:
+            return sp.oo
         # trata de simplificar 2*pi/omega como racional
-        sNk = sp.nsimplify(2*sp.S.Pi/self._omega0, rational=True)
+        sNk = sp.nsimplify(2*sp.S.Pi/self.frequency, rational=True)
         if sp.ask(sp.Q.rational(sNk)):
             # si es racional, el numerador es el periodo
             return sp.Rational(sNk).p
-        return np.Inf
+        return sp.oo
 
     def _reduce_phase(self, phi):
         ''' Reduce la fase, módulo 2*pi en el intervalo [-pi, pi)
@@ -863,68 +863,44 @@ class _SinCosCExpMixin(object):
         return eu
 
 
-class Cosine(_SinCosCExpMixin, DiscreteFunctionSignal):
+class Sinusoid(_TrigMixin, DiscreteFunctionSignal):
 
-    class _DiscreteCosine(sp.cos):
+    def __new__(cls, A=1, omega0=1, phi=0, **kwargs):
+        # arguments
+        A = sp.sympify(A)
+        _, Ai = A.as_real_imag()
+        if Ai != 0:
+            raise ValueError("Amplitude can't be complex.")
+        omega0 = sp.sympify(omega0)
+        phi = sp.sympify(phi)
+        # expression
+        n = _DiscreteMixin._default_xvar()
+        expr = A*sp.cos(omega0*n + phi)
+        return _Signal.__new__(cls, expr, A, omega0, phi)
 
-        @staticmethod
-        def _imp_(n):
-            return np.cos(n)
-
-    def __init__(self, omega0=1, phi0=0):
-        expr = Cosine._DiscreteCosine(self._default_xvar())
-        DiscreteFunctionSignal.__init__(self, expr)
-        _SinCosCExpMixin.__init__(self, omega0, phi0)
-        # delay (negativo, OJO)
-        delay = -self._phi0
-        self._xexpr = ShiftOperator.apply(self._xvar, self._xexpr, delay)
-        self._yexpr = ShiftOperator.apply(self._xvar, self._yexpr, delay)
-        # escalado
-        self._xexpr = ScaleOperator.apply(self._xvar, self._xexpr,
-                                          self._omega0)
-        self._yexpr = ScaleOperator.apply(self._xvar, self._yexpr,
-                                          self._omega0)
-
-
-class Sine(_SinCosCExpMixin, DiscreteFunctionSignal):
-
-    def __init__(self, omega0=1, phi0=0):
-        expr = sp.sin(self._default_xvar())
-        DiscreteFunctionSignal.__init__(self, expr)
-        _SinCosCExpMixin.__init__(self, omega0, phi0)
-        # delay (negativo, OJO)
-        delay = -self._phi0
-        self._xexpr = ShiftOperator.apply(self._xvar, self._xexpr, delay)
-        self._yexpr = ShiftOperator.apply(self._xvar, self._yexpr, delay)
-        # escalado
-        self._xexpr = ScaleOperator.apply(self._xvar, self._xexpr,
-                                          self._omega0)
-        self._yexpr = ScaleOperator.apply(self._xvar, self._yexpr,
-                                          self._omega0)
-
-
-class Sinusoid(Cosine):
-
-    def __init__(self, A=1, omega0=1, phi=0):
-        Cosine.__init__(self, omega0, phi)
-        self._peak_amplitude = A
-        self._yexpr *= A
+    def __init__(self, A=1, omega0=1, phi=0, **kwargs):
+        DiscreteFunctionSignal.__init__(self, self.args[0], **kwargs)
+        _TrigMixin.__init__(self, self.args[2], self.args[3])
 
     @property
-    def peak_amplitude(self):
-        return self._peak_amplitude
+    def amplitude(self):
+        return self.args[1]
 
-    @peak_amplitude.setter
-    def peak_amplitude(self, value):
-        self._yexpr /= self._peak_amplitude
-        self._peak_amplitude = value
-        self._yexpr *= value
-        self._max = value
+    @amplitude.setter
+    def amplitude(self, A):
+        A = sp.sympify(A)
+        _, Ai = A.as_real_imag()
+        if Ai != 0:
+            raise ValueError("Amplitude can't be complex.")
+        self._yexpr = A / self.amplitude
+        self._args[1] = A
 
     @property
     def in_phase(self):
-        A1 = Constant(self._peak_amplitude * sp.cos(self._phi0))
-        return A1*Cosine(self._omega0)
+        A = self.amplitude * sp.cos(self.phase_offset)
+        if A == 0:
+            return Constant(0)
+        return Sinusoid(A, self.frequency)
 
     @property
     def I(self):
@@ -932,20 +908,53 @@ class Sinusoid(Cosine):
 
     @property
     def in_quadrature(self):
-        A2 = Constant(-self._peak_amplitude * sp.sin(self._phi0))
-        return A2*Sine(self._omega0)
+        A = -self.amplitude * sp.sin(self.phase_offset)
+        if A == 0:
+            return Constant(0)
+        return Sinusoid(A, self.frequency - sp.sympify(sp.S.Pi/2))
 
     @property
     def Q(self):
         return self.in_quadrature
 
+    def latex_yexpr(self, mode=None):
+        """
+        A
+        :math:`\LaTeX`
+        representation of the signal.
+        """
+        s = r'{0}\cos\left({1}{2}'.format(sp.latex(self.amplitude),
+                                          sp.latex(self.frequency),
+                                          self.latex_xexpr())
+        phi = self.phase_offset
+        if phi != 0:
+            s += ' {0} {1}'.format('-' if phi.is_negative else '+',
+                                   sp.latex(phi))
+        s += r'\right)'
+        return _latex_mode(s, mode)
 
-class Exponential(_SinCosCExpMixin, DiscreteFunctionSignal):
+    def __str__(self):
+        s = '{0}*cos({1}*{2}'.format(str(self.amplitude), str(self.frequency),
+                                     self.str_xexpr())
+        phi = self.phase_offset
+        if phi != 0:
+            s += ' {0} {1}'.format('-' if phi.is_negative else '+',
+                                   str(phi))
+        s += ')'
+        return s
+
+    def __repr__(self):
+        return 'Sinusoid({0}, {1}, {2})'.format(str(self.amplitude),
+                                                str(self.frequency),
+                                                str(self.phase_offset))
+
+
+class Exponential(_TrigMixin, DiscreteFunctionSignal):
 
     def __init__(self, base=1):
         expr = sp.Pow(base, self._default_xvar())
         DiscreteFunctionSignal.__init__(self, expr)
-        _SinCosCExpMixin.__init__(self, self._extract_omega(base), 0)
+        _TrigMixin.__init__(self, self._extract_omega(base), 0)
         self._base = sp.sympify(base)
         pb = sp.arg(self._base)
         if pb != sp.nan:
@@ -961,14 +970,14 @@ class Exponential(_SinCosCExpMixin, DiscreteFunctionSignal):
         return mod1 and _Signal.is_periodic(self)
 
 
-class ComplexSinusoid(_SinCosCExpMixin, DiscreteFunctionSignal):
+class ComplexSinusoid(_TrigMixin, DiscreteFunctionSignal):
 
     def __init__(self, A=1, omega0=1, phi0=0):
         self._A = sp.Abs(A)
         phi = phi0 + self._extract_omega(A)
         expr = self._A*sp.exp(sp.I*self._default_xvar())
         DiscreteFunctionSignal.__init__(self, expr)
-        _SinCosCExpMixin.__init__(self, omega0, phi)
+        _TrigMixin.__init__(self, omega0, phi)
         self.dtype = np.complex_
         # delay (negativo, OJO)
         delay = -self._phi0

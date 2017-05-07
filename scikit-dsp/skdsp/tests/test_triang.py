@@ -141,7 +141,7 @@ class TriangTest(unittest.TestCase):
         self.assertAlmostEqual(d.eval(0), 1)
         self.assertAlmostEqual(d.eval(1), 1 - 1/16)
         self.assertAlmostEqual(d.eval(-1), 1 - 1/16)
-        with self.assertRaises(TypeError):
+        with self.assertRaises(ValueError):
             d.eval(0.5)
         # range
         np.testing.assert_array_almost_equal(d.eval(np.arange(0, 2)),
@@ -158,7 +158,7 @@ class TriangTest(unittest.TestCase):
         self.assertAlmostEqual(d.eval(0), 1)
         self.assertAlmostEqual(d.eval(1), 0)
         self.assertAlmostEqual(d.eval(-1), 0)
-        with self.assertRaises(TypeError):
+        with self.assertRaises(ValueError):
             d.eval(0.5)
         # range
         np.testing.assert_array_almost_equal(d.eval(np.arange(0, 2)),
@@ -169,7 +169,7 @@ class TriangTest(unittest.TestCase):
                                              np.array([0, 0, 1]))
         np.testing.assert_array_almost_equal(d.eval(np.arange(3, -2, -2)),
                                              np.array([0, 0, 0]))
-        with self.assertRaises(TypeError):
+        with self.assertRaises(ValueError):
             d.eval(np.arange(0, 2, 0.5))
 
     def test_getitem_scalar(self):
@@ -179,7 +179,7 @@ class TriangTest(unittest.TestCase):
         self.assertAlmostEqual(d[0], 1)
         self.assertAlmostEqual(d[1], 1 - 1/16)
         self.assertAlmostEqual(d[-1], 1 - 1/16)
-        with self.assertRaises(TypeError):
+        with self.assertRaises(ValueError):
             d[0.5]
         # slice
         np.testing.assert_array_almost_equal(d[0:2],
@@ -191,14 +191,14 @@ class TriangTest(unittest.TestCase):
         np.testing.assert_array_almost_equal(d[3:-2:-2],
                                              np.array([1 - 3/16, 1 - 1/16,
                                                        1 - 1/16]))
-        with self.assertRaises(TypeError):
+        with self.assertRaises(ValueError):
             d[0:2:0.5]
         # scalar
         d = ds.TriangPulse(1)
         self.assertAlmostEqual(d[0], 1)
         self.assertAlmostEqual(d[1], 0)
         self.assertAlmostEqual(d[-1], 0)
-        with self.assertRaises(TypeError):
+        with self.assertRaises(ValueError):
             d[0.5]
         # slice
         np.testing.assert_array_almost_equal(d[0:2],
@@ -209,13 +209,13 @@ class TriangTest(unittest.TestCase):
                                              np.array([0, 0, 1]))
         np.testing.assert_array_almost_equal(d[3:-2:-2],
                                              np.array([0, 0, 0]))
-        with self.assertRaises(TypeError):
+        with self.assertRaises(ValueError):
             d[0:2:0.5]
 
     def test_generator(self):
         ''' TriangPulse (discrete): generate '''
         d = ds.TriangPulse(1)
-        with self.assertRaises(TypeError):
+        with self.assertRaises(ValueError):
             d.generate(0, step=0.1)
         dg = d.generate(s0=-3, size=5, overlap=4)
         np.testing.assert_array_equal(next(dg), np.array([0, 0, 0, 1, 0]))
@@ -235,13 +235,13 @@ class TriangTest(unittest.TestCase):
     def test_shift_delay(self):
         ''' TriangPulse (discrete): shift, delay '''
         d = ds.TriangPulse()
-        with self.assertRaises(TypeError):
+        with self.assertRaises(ValueError):
             d.shift(0.5)
         d = ds.TriangPulse(8).shift(2)
         np.testing.assert_array_equal(d[-3:3], np.array([1 - 5/8, 1 - 4/8,
                                                          1 - 3/8, 1 - 2/8,
                                                          1 - 1/8, 1]))
-        with self.assertRaises(TypeError):
+        with self.assertRaises(ValueError):
             d.delay(0.5)
         d = ds.TriangPulse(8).delay(-2)
         np.testing.assert_array_equal(d[-3:3], np.array([1 - 1/8, 1, 1 - 1/8,
@@ -251,7 +251,7 @@ class TriangTest(unittest.TestCase):
     def test_scale(self):
         ''' TriangPulse (discrete): shift, delay '''
         d = ds.TriangPulse(8)
-        with self.assertRaises(TypeError):
+        with self.assertRaises(ValueError):
             d.scale(sp.pi)
         d = ds.TriangPulse(8).scale(3)
         np.testing.assert_array_equal(d[-3:3],
