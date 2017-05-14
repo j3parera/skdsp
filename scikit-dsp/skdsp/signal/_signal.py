@@ -21,6 +21,7 @@ from operator import __truediv__
 
 
 class _Signal(ABC):
+    # TODO Cambiar ABC por sp.Basic, pero deja ya no puede usarse deepcopy
     """
     Abstract base class for all kind of signals.
 
@@ -481,7 +482,7 @@ class _Signal(ABC):
     # --- utilities -----------------------------------------------------------
     def latex_xexpr(self):
         if self.xexpr == self.xvar:
-            sn = sp.latex(self._xexpr)
+            sn = ' ' + sp.latex(self._xexpr)
         else:
             # just in case it appears '- n' with space
             s0 = sp.latex(self.xexpr)
@@ -522,32 +523,29 @@ class _FunctionSignal(_Signal):
         if expr.is_number:
             # just in case is a symbol or constant
             self._yexpr = expr
-            self._xvar = self._default_xvar()
+            self._xvar = self.default_xvar()
             self._xexpr = self._xvar
         else:
             self._yexpr = expr
             self._xvar = expr.free_symbols.pop()
             self._xexpr = self._xvar
-        self._ylamdba = None
+        self._ylambda = None
 
     @property
     def yexpr(self):
         return self._yexpr
 
-    def latex_yexpr(self):
+    def latex_yexpr(self, mode=None):
         """
         A
         :math:`\LaTeX`
         representation of the signal expression.
         """
-        return self.__str__()
+        return _latex_mode(sp.latex(self.yexpr), mode)
 
     def __str__(self):
         if hasattr(self.__class__, '_print'):
             return self._print()
-        if self._yexpr.is_number:
-            return sp.Basic.__str__(self._yexpr)
-        # TODO
         return sp.Basic.__str__(self._yexpr)
 
     def eval(self, x):
@@ -568,7 +566,7 @@ class _FunctionSignal(_Signal):
                     to_real = True
                     # break # ??
         try:
-            if self._ylamdba is None:
+            if self._ylambda is None:
                 self._ylambda = sp.lambdify(self._xvar, self._yexpr, 'numpy')
             y = self._ylambda(x)
             if not hasattr(y, "__len__"):
