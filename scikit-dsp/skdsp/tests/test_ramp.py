@@ -61,14 +61,14 @@ class RampTest(unittest.TestCase):
         d = ds.Ramp()
         self.assertTrue(d.is_discrete)
         self.assertFalse(d.is_continuous)
-        self.assertEqual(d.xvar, d._default_xvar())
+        self.assertEqual(d.xvar, d.default_xvar())
         self.assertEqual(d.xexpr, d.xvar)
         # shift
         shift = 5
         d = ds.Ramp().shift(shift)
         self.assertTrue(d.is_discrete)
         self.assertFalse(d.is_continuous)
-        self.assertEqual(d.xvar, d._default_xvar())
+        self.assertEqual(d.xvar, d.default_xvar())
         self.assertEqual(d.xexpr, d.xvar - shift)
         d = ds.Ramp(shift)
         self.assertEqual(d.xexpr, d.xvar - shift)
@@ -76,14 +76,14 @@ class RampTest(unittest.TestCase):
         d = ds.Ramp().flip()
         self.assertTrue(d.is_discrete)
         self.assertFalse(d.is_continuous)
-        self.assertEqual(d.xvar, d._default_xvar())
+        self.assertEqual(d.xvar, d.default_xvar())
         self.assertEqual(d.xexpr, -d.xvar)
         # shift and flip
         shift = 5
         d = ds.Ramp().shift(shift).flip()
         self.assertTrue(d.is_discrete)
         self.assertFalse(d.is_continuous)
-        self.assertEqual(d.xvar, d._default_xvar())
+        self.assertEqual(d.xvar, d.default_xvar())
         self.assertEqual(d.xexpr, -d.xvar - shift)
         d = ds.Ramp(shift).flip()
         self.assertEqual(d.xexpr, -d.xvar - shift)
@@ -92,7 +92,7 @@ class RampTest(unittest.TestCase):
         d = ds.Ramp().flip().shift(shift)
         self.assertTrue(d.is_discrete)
         self.assertFalse(d.is_continuous)
-        self.assertEqual(d.xvar, d._default_xvar())
+        self.assertEqual(d.xvar, d.default_xvar())
         self.assertEqual(d.xexpr, -d.xvar + shift)
 
     def test_yexpr_real_imag(self):
@@ -102,7 +102,7 @@ class RampTest(unittest.TestCase):
         d = ds.Ramp()
         # expresión
         self.assertEqual(d.yexpr, ds.Ramp._DiscreteRamp(
-            ds._DiscreteMixin._default_xvar()))
+            ds._DiscreteMixin.default_xvar()))
         self.assertTrue(np.issubdtype(d.dtype, np.float))
         self.assertTrue(d.is_real)
         self.assertFalse(d.is_complex)

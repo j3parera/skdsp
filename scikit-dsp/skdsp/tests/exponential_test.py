@@ -323,7 +323,7 @@ class ExponentialTest(unittest.TestCase):
         c = ds.Exponential(sp.exp(sp.I*3/2))
         self.assertEqual(c.frequency, 3/2)
         c = ds.Exponential(sp.exp(sp.I*sp.S.Pi/4))
-        self.assertEqual(c.phase_offset, 0)
+        self.assertEqual(c.phase, 0)
         # exponencial continua
         c = cs.Exponential(sp.exp(sp.I*sp.S.Pi/4))
         self.assertEqual(c.angular_frequency, sp.S.Pi/4)
@@ -341,7 +341,7 @@ class ExponentialTest(unittest.TestCase):
         self.assertEqual(c.angular_frequency, 3/2)
         self.assertEqual(c.frequency.evalf(), 3/(4*np.pi))
         c = cs.Exponential(sp.exp(sp.I*sp.S.Pi/4))
-        self.assertEqual(c.phase_offset, 0)
+        self.assertEqual(c.phase, 0)
 
     def test_latex(self):
         ''' Exponential (discrete/continuous): latex '''

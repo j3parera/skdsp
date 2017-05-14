@@ -21,7 +21,7 @@ class ConstantTest(unittest.TestCase):
         self.assertIsInstance(d, ds.DiscreteFunctionSignal)
         # no constante
         with self.assertRaises(ValueError):
-            d = ds.Constant(ds._DiscreteMixin._default_xvar())
+            d = ds.Constant(ds._DiscreteMixin.default_xvar())
 
     def test_name(self):
         ''' Constant: name.
@@ -57,34 +57,34 @@ class ConstantTest(unittest.TestCase):
         # variable independiente
         self.assertTrue(d.is_discrete)
         self.assertFalse(d.is_continuous)
-        self.assertEqual(d.xvar, d._default_xvar())
+        self.assertEqual(d.xvar, d.default_xvar())
         self.assertEqual(d.xexpr, d.xvar)
         # shift
         shift = 5
         d = ds.Constant(3).shift(shift)
         self.assertTrue(d.is_discrete)
         self.assertFalse(d.is_continuous)
-        self.assertEqual(d.xvar, d._default_xvar())
+        self.assertEqual(d.xvar, d.default_xvar())
         self.assertEqual(d.xexpr, d.xvar - shift)
         # flip
         d = ds.Constant(3).flip()
         self.assertTrue(d.is_discrete)
         self.assertFalse(d.is_continuous)
-        self.assertEqual(d.xvar, d._default_xvar())
+        self.assertEqual(d.xvar, d.default_xvar())
         self.assertEqual(d.xexpr, -d.xvar)
         # shift and flip
         shift = 5
         d = ds.Constant(3).shift(shift).flip()
         self.assertTrue(d.is_discrete)
         self.assertFalse(d.is_continuous)
-        self.assertEqual(d.xvar, d._default_xvar())
+        self.assertEqual(d.xvar, d.default_xvar())
         self.assertEqual(d.xexpr, -d.xvar - shift)
         # flip and shift
         shift = 5
         d = ds.Constant(3).flip().shift(shift)
         self.assertTrue(d.is_discrete)
         self.assertFalse(d.is_continuous)
-        self.assertEqual(d.xvar, d._default_xvar())
+        self.assertEqual(d.xvar, d.default_xvar())
         self.assertEqual(d.xexpr, -d.xvar + shift)
 
     def test_yexpr_real_imag(self):
@@ -138,7 +138,7 @@ class ConstantTest(unittest.TestCase):
         # str
         self.assertEqual(str(d), '-5.1 - 3.03*j')
         # latex
-        self.assertEqual(d.latex_yexpr(), '-5.1 - 3.03*\\mathrm{j}')
+        self.assertEqual(d.latex_yexpr(), r'-5.1 - 3.03 \mathrm{j}')
         # constante discreta
         d = ds.Constant(-3j)
         # repr
@@ -146,7 +146,7 @@ class ConstantTest(unittest.TestCase):
         # str
         self.assertEqual(str(d), '-3.0*j')
         # latex
-        self.assertEqual(d.latex_yexpr(), '-3.0*\\mathrm{j}')
+        self.assertEqual(d.latex_yexpr(), r'- 3.0 \mathrm{j}')
 
     def test_eval_sample(self):
         ''' Constant: eval(scalar), eval(range)

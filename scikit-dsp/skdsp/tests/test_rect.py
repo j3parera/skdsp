@@ -61,34 +61,34 @@ class RectTest(unittest.TestCase):
         d = ds.RectPulse()
         self.assertTrue(d.is_discrete)
         self.assertFalse(d.is_continuous)
-        self.assertEqual(d.xvar, d._default_xvar())
+        self.assertEqual(d.xvar, d.default_xvar())
         self.assertEqual(d.xexpr, d.xvar)
         # shift
         shift = 5
         d = ds.RectPulse().shift(shift)
         self.assertTrue(d.is_discrete)
         self.assertFalse(d.is_continuous)
-        self.assertEqual(d.xvar, d._default_xvar())
+        self.assertEqual(d.xvar, d.default_xvar())
         self.assertEqual(d.xexpr, d.xvar - shift)
         # flip
         d = ds.RectPulse().flip()
         self.assertTrue(d.is_discrete)
         self.assertFalse(d.is_continuous)
-        self.assertEqual(d.xvar, d._default_xvar())
+        self.assertEqual(d.xvar, d.default_xvar())
         self.assertEqual(d.xexpr, -d.xvar)
         # shift and flip
         shift = 5
         d = ds.RectPulse().shift(shift).flip()
         self.assertTrue(d.is_discrete)
         self.assertFalse(d.is_continuous)
-        self.assertEqual(d.xvar, d._default_xvar())
+        self.assertEqual(d.xvar, d.default_xvar())
         self.assertEqual(d.xexpr, -d.xvar - shift)
         # flip and shift
         shift = 5
         d = ds.RectPulse().flip().shift(shift)
         self.assertTrue(d.is_discrete)
         self.assertFalse(d.is_continuous)
-        self.assertEqual(d.xvar, d._default_xvar())
+        self.assertEqual(d.xvar, d.default_xvar())
         self.assertEqual(d.xexpr, -d.xvar + shift)
 
     def test_yexpr_real_imag(self):
@@ -97,7 +97,6 @@ class RectTest(unittest.TestCase):
         # pulso rectangular discreto
         d = ds.RectPulse()
         # expresión
-        print(d.yexpr)
         self.assertTrue(np.issubdtype(d.dtype, np.float))
         self.assertTrue(d.is_real)
         self.assertFalse(d.is_complex)

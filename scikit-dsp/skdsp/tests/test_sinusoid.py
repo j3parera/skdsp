@@ -53,34 +53,34 @@ class SinusoidTest(unittest.TestCase):
         c = ds.Sinusoid()
         self.assertTrue(c.is_discrete)
         self.assertFalse(c.is_continuous)
-        self.assertEqual(c.xvar, c._default_xvar())
+        self.assertEqual(c.xvar, c.default_xvar())
         self.assertEqual(c.xexpr, c.xvar)
         # shift
         shift = 5
         c = ds.Sinusoid().shift(shift)
         self.assertTrue(c.is_discrete)
         self.assertFalse(c.is_continuous)
-        self.assertEqual(c.xvar, c._default_xvar())
+        self.assertEqual(c.xvar, c.default_xvar())
         self.assertEqual(c.xexpr, c.xvar - shift)
         # flip
         c = ds.Sinusoid().flip()
         self.assertTrue(c.is_discrete)
         self.assertFalse(c.is_continuous)
-        self.assertEqual(c.xvar, c._default_xvar())
+        self.assertEqual(c.xvar, c.default_xvar())
         self.assertEqual(c.xexpr, -c.xvar)
         # shift and flip
         shift = 5
         c = ds.Sinusoid().shift(shift).flip()
         self.assertTrue(c.is_discrete)
         self.assertFalse(c.is_continuous)
-        self.assertEqual(c.xvar, c._default_xvar())
+        self.assertEqual(c.xvar, c.default_xvar())
         self.assertEqual(c.xexpr, -c.xvar - shift)
         # flip and shift
         shift = 5
         c = ds.Sinusoid().flip().shift(shift)
         self.assertTrue(c.is_discrete)
         self.assertFalse(c.is_continuous)
-        self.assertEqual(c.xvar, c._default_xvar())
+        self.assertEqual(c.xvar, c.default_xvar())
         self.assertEqual(c.xexpr, -c.xvar + shift)
 
     def test_yexpr_real_imag(self):
@@ -89,7 +89,7 @@ class SinusoidTest(unittest.TestCase):
         # sinusoide discreta
         c = ds.Sinusoid()
         # expresión
-        self.assertEqual(c.yexpr, sp.cos(ds._DiscreteMixin._default_xvar()))
+        self.assertEqual(c.yexpr, sp.cos(ds._DiscreteMixin.default_xvar()))
         self.assertTrue(np.issubdtype(c.dtype, np.float))
         self.assertTrue(c.is_real)
         self.assertFalse(c.is_complex)
@@ -109,6 +109,12 @@ class SinusoidTest(unittest.TestCase):
         c = ds.Sinusoid(1, 3*sp.S.Pi/8)
         self.assertTrue(c.is_periodic)
         self.assertEqual(c.period, 16)
+        c = ds.Sinusoid(1, -3*sp.S.Pi/8)
+        self.assertTrue(c.is_periodic)
+        self.assertEqual(c.period, 16)
+        c = ds.Sinusoid(1, 0.83*sp.S.Pi)
+        self.assertTrue(c.is_periodic)
+        self.assertEqual(c.period, 200)
         c = ds.Sinusoid(1, 3/8)
         self.assertFalse(c.is_periodic)
         self.assertEqual(c.period, sp.oo)
@@ -134,8 +140,8 @@ class SinusoidTest(unittest.TestCase):
         # str
         self.assertEqual(str(c), '3*cos(pi/4*n + pi/8)')
         # latex
-        self.assertEqual(c.latex_yexpr(), (r'3\cos\left(\frac{\pi}{4}n' +
-                                           r' + \frac{\pi}{8}\right)'))
+        self.assertEqual(c.latex_yexpr(), (r'3 \cos{\left (\frac{\pi n}{4}' +
+                                           r' + \frac{\pi}{8} \right )}'))
         # sinusoide discreta
         c = ds.Sinusoid(-5, 10)
         # repr
@@ -144,16 +150,16 @@ class SinusoidTest(unittest.TestCase):
         self.assertEqual(str(c), '-5*cos(10*n)')
         # latex
         self.assertEqual(c.latex_yexpr(),
-                         '-5\\cos\\left(10n\\right)')
+                         r'- 5 \cos{\left (10 n \right )}')
         c = ds.Sinusoid(3, sp.S.Pi/4, sp.S.Pi/8).flip().delay(2)
         # repr
         self.assertEqual(repr(c), 'Sinusoid(3, pi/4, pi/8)')
         # str
         self.assertEqual(str(c), '3*cos(pi/4*(-n + 2) + pi/8)')
         # latex
-        self.assertEqual(c.latex_yexpr(), (r'3\cos\left(\frac{\pi}{4}' +
-                                           r'\left(-n + 2\right)' +
-                                           r' + \frac{\pi}{8}\right)'))
+        self.assertEqual(c.latex_yexpr(), (r'3 \sin{\left (\frac{\pi}{4}' +
+                                           r' \left(n - 2\right)' +
+                                           r' + \frac{3 \pi}{8} \right )}'))
 
     def test_eval_sample(self):
         ''' Sinusoid (discrete): eval(scalar) '''
@@ -268,13 +274,13 @@ class SinusoidTest(unittest.TestCase):
         c = ds.Sinusoid(1, 3/2)
         self.assertEqual(c.frequency, 3/2)
         c = ds.Sinusoid(1, sp.S.Pi/4, sp.S.Pi)
-        self.assertEqual(c.phase_offset, -sp.S.Pi)
+        self.assertEqual(c.phase, -sp.S.Pi)
         c = ds.Sinusoid(1, sp.S.Pi/4, 1/2)
-        self.assertEqual(c.phase_offset, 1/2)
+        self.assertEqual(c.phase, 1/2)
         c = ds.Sinusoid(1, sp.S.Pi/4, 2*sp.S.Pi)
-        self.assertEqual(c.phase_offset, 0)
+        self.assertEqual(c.phase, 0)
         c = ds.Sinusoid(1, sp.S.Pi/4, 3*sp.S.Pi)
-        self.assertEqual(c.phase_offset, -sp.S.Pi)
+        self.assertEqual(c.phase, -sp.S.Pi)
 
     def test_as_euler(self):
         ''' Sinusoid (discrete): as_euler '''
@@ -329,10 +335,10 @@ class SinusoidTest(unittest.TestCase):
         self.assertEqual(s0, ds.Sinusoid(3*sp.cos(sp.S.Pi/4), sp.S.Pi/8, 0))
         s1 = s.in_quadrature
         self.assertEqual(s1, ds.Sinusoid(-3*sp.sin(sp.S.Pi/4),
-                                         -3*sp.S.Pi/8, 0))
+                                         sp.S.Pi/8, -sp.S.Pi/2))
         s1 = s.Q
         self.assertEqual(s1, ds.Sinusoid(-3*sp.sin(sp.S.Pi/4),
-                                         -3*sp.S.Pi/8, 0))
+                                         sp.S.Pi/8, -sp.S.Pi/2))
 
 if __name__ == "__main__":
     unittest.main()
