@@ -36,6 +36,12 @@ def _extract_omega(x):
     return px.evalf()
 
 
+def _extract_phase(x):
+    if _is_real_scalar(x):
+        return 0 if x >= 0 else sp.S.Pi
+    return sp.arg(x)
+
+
 def _is_real_scalar(x):
     """ Checks if argument is a real valued scalar.
 
