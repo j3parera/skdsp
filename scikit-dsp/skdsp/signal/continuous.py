@@ -345,7 +345,7 @@ class _TrigMixin(object):
         return self._omega0/(2*sp.S.Pi)
 
     @property
-    def phase_offset(self):
+    def phase(self):
         return self._phi0
 
     @property
