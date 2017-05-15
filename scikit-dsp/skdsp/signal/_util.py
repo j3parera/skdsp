@@ -6,7 +6,10 @@ __all__ = [s for s in dir() if not s.startswith('_')]
 
 
 def _extract_omega(x):
-    px = sp.arg(x)
+    if x.func == sp.exp:
+        px, _ = x.args[0].as_coeff_mul(sp.I)
+    else:
+        px = sp.arg(x)
     pc = _pi_coeff(px)
     if pc is not None:
         return sp.S.Pi*pc

@@ -996,9 +996,10 @@ class Exponential(_TrigMixin, DiscreteFunctionSignal):
     def amplitude(self):
         return self.args[1]
 
+    @property
     def is_periodic(self):
-        mod1 = sp.Abs(self.base) == 1
-        return mod1 and _Signal.is_periodic(self)
+        mod1 = sp.Abs(self.base) == sp.S.One
+        return mod1 and super().is_periodic
 
     @property
     def phasor(self):
@@ -1017,6 +1018,14 @@ class Exponential(_TrigMixin, DiscreteFunctionSignal):
             o = -o
         s = Exponential(sp.exp(sp.I*o))
         return s
+
+    def __str__(self):
+        s = '{0}'.format(str(self.yexpr))
+        return s
+
+    def __repr__(self):
+        return 'Exponential({0}, {1})'.format(str(self.amplitude),
+                                              str(self.base))
 
 
 class DeltaTrain(DiscreteFunctionSignal):
