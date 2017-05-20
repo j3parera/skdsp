@@ -294,10 +294,8 @@ class SinusoidTest(unittest.TestCase):
         # sinusoide discreta
         s = ds.Sinusoid(3, sp.S.Pi/4, sp.S.Pi/12)
         self.assertEqual(3, s.amplitude)
-        s.amplitude = 4
-        self.assertEqual(4, s.amplitude)
         with self.assertRaises(ValueError):
-            s.amplitude = 2+2j
+            s = ds.Sinusoid(3+3j, sp.S.Pi/4, sp.S.Pi/12)
 
     def test_magnitude(self):
         ''' Sinusoid (discrete): magnitude '''
