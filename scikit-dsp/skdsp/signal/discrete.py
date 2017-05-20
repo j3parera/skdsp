@@ -3,7 +3,6 @@ from ..operator.operator import ShiftOperator
 from ._signal import _Signal, _FunctionSignal, _SignalOp
 from ._util import _is_complex_scalar, _is_integer_scalar
 from ._util import _latex_mode, _extract_omega, _extract_phase
-from copy import deepcopy
 from numbers import Number
 from sympy.core.compatibility import iterable
 from sympy.core.evaluate import evaluate, global_evaluate
@@ -538,16 +537,10 @@ class DiscreteFunctionSignal(_DiscreteMixin, _FunctionSignal):
             y = np.asscalar(y)
         return y
 
-    def __abs__(self):
-        s = deepcopy(self)
-        return _FunctionSignal.__abs__(s)
-
     def magnitude(self, dB=False):
         m = abs(self)
         if dB:
-            mdb = deepcopy(self)
-            mdb._yexpr = 20*sp.log(m._yexpr, 10)
-            return mdb
+            m._yexpr = 20*sp.log(m._yexpr, 10)
         return m
 
 
@@ -608,13 +601,13 @@ class Delta(DiscreteFunctionSignal):
         delay = sp.sympify(delay)
         if not delay.is_integer:
             raise ValueError('delay/advance must be integer')
-        # expression
-        expr = Delta._DiscreteDelta(_DiscreteMixin.default_xvar())
-        return _Signal.__new__(cls, expr, delay)
+        return _Signal.__new__(cls, delay)
 
     def __init__(self, delay=0, **kwargs):
-        DiscreteFunctionSignal.__init__(self, self.args[0], **kwargs)
-        delay = self.args[1]
+        # expression
+        expr = Delta._DiscreteDelta(_DiscreteMixin.default_xvar())
+        DiscreteFunctionSignal.__init__(self, expr, **kwargs)
+        delay = self.args[0]
         if delay != 0:
             self._xexpr = ShiftOperator.apply(self._xvar, self.xexpr, delay)
             self._yexpr = ShiftOperator.apply(self._xvar, self.yexpr, delay)
@@ -634,7 +627,7 @@ class Delta(DiscreteFunctionSignal):
         return 'd[{0}]'.format(str(self.xexpr))
 
     def __repr__(self):
-        return 'Delta(' + str(self.args[1]) + ')'
+        return 'Delta(' + str(self.args[0]) + ')'
 
 
 class Step(DiscreteFunctionSignal):
@@ -665,13 +658,13 @@ class Step(DiscreteFunctionSignal):
         delay = sp.sympify(delay)
         if not delay.is_integer:
             raise ValueError('delay/advance must be integer')
-        # expression
-        expr = Step._DiscreteStep(_DiscreteMixin.default_xvar())
-        return _Signal.__new__(cls, expr, delay)
+        return _Signal.__new__(cls, delay)
 
     def __init__(self, delay=0, **kwargs):
-        DiscreteFunctionSignal.__init__(self, self.args[0], **kwargs)
-        delay = self.args[1]
+        # expression
+        expr = Step._DiscreteStep(_DiscreteMixin.default_xvar())
+        DiscreteFunctionSignal.__init__(self, expr, **kwargs)
+        delay = self.args[0]
         if delay != 0:
             self._xexpr = ShiftOperator.apply(self._xvar, self.xexpr, delay)
             self._yexpr = ShiftOperator.apply(self._xvar, self.yexpr, delay)
@@ -691,7 +684,7 @@ class Step(DiscreteFunctionSignal):
         return 'u[{0}]'.format(str(self.xexpr))
 
     def __repr__(self):
-        return 'Step(' + str(self.args[1]) + ')'
+        return 'Step(' + str(self.args[0]) + ')'
 
 
 class Ramp(DiscreteFunctionSignal):
@@ -722,13 +715,13 @@ class Ramp(DiscreteFunctionSignal):
         delay = sp.sympify(delay)
         if not delay.is_integer:
             raise ValueError('delay/advance must be integer')
-        # expression
-        expr = Ramp._DiscreteRamp(_DiscreteMixin.default_xvar())
-        return _Signal.__new__(cls, expr, delay)
+        return _Signal.__new__(cls, delay)
 
     def __init__(self, delay=0, **kwargs):
-        DiscreteFunctionSignal.__init__(self, self.args[0], **kwargs)
-        delay = self.args[1]
+        # expression
+        expr = Ramp._DiscreteRamp(_DiscreteMixin.default_xvar())
+        DiscreteFunctionSignal.__init__(self, expr, **kwargs)
+        delay = self.args[0]
         if delay != 0:
             self._xexpr = ShiftOperator.apply(self._xvar, self.xexpr, delay)
             self._yexpr = ShiftOperator.apply(self._xvar, self.yexpr, delay)
@@ -748,7 +741,7 @@ class Ramp(DiscreteFunctionSignal):
         return 'r[{0}]'.format(str(self.xexpr))
 
     def __repr__(self):
-        return 'Ramp(' + str(self.args[1]) + ')'
+        return 'Ramp(' + str(self.args[0]) + ')'
 
 
 class RectPulse(DiscreteFunctionSignal):
@@ -758,21 +751,21 @@ class RectPulse(DiscreteFunctionSignal):
         width = sp.sympify(width)
         if not width.is_integer or not width.is_nonnegative:
             raise ValueError('width must be a non-negative integer')
+        return _Signal.__new__(cls, width)
+
+    def __init__(self, width=16, **kwargs):
         # expression
         n = _DiscreteMixin.default_xvar()
         expr = sp.Piecewise((1, sp.Abs(n) <= width), (0, True))
         # expr = (Step._DiscreteStep(n + width) -
         #         Step._DiscreteStep(n - (width + 1)))
-        return _Signal.__new__(cls, expr, width)
-
-    def __init__(self, width=16, **kwargs):
-        DiscreteFunctionSignal.__init__(self, self.args[0], **kwargs)
+        DiscreteFunctionSignal.__init__(self, expr, **kwargs)
         # period
         self._period = sp.oo
 
     @property
     def width(self):
-        return self.args[1]
+        return self.args[0]
 
     def latex_yexpr(self, mode=None):
         """
@@ -798,20 +791,20 @@ class TriangPulse(DiscreteFunctionSignal):
         width = sp.sympify(width)
         if not width.is_integer or not width.is_positive:
             raise ValueError('width must be a positive integer')
+        return _Signal.__new__(cls, width)
+
+    def __init__(self, width=16, **kwargs):
         # expression
         n = _DiscreteMixin.default_xvar()
         expr = sp.Piecewise((1.0, n == 0), (1.0 - sp.Abs(n)/width,
                                             sp.Abs(n) <= width), (0, True))
-        return _Signal.__new__(cls, expr, width)
-
-    def __init__(self, width=16, **kwargs):
-        DiscreteFunctionSignal.__init__(self, self.args[0], **kwargs)
+        DiscreteFunctionSignal.__init__(self, expr, **kwargs)
         # period
         self._period = sp.oo
 
     @property
     def width(self):
-        return self.args[1]
+        return self.args[0]
 
     def latex_yexpr(self, mode=None):
         """
@@ -888,27 +881,18 @@ class Sinusoid(_TrigMixin, DiscreteFunctionSignal):
             raise ValueError("Amplitude can't be complex.")
         omega0 = sp.sympify(omega0)
         phi = sp.sympify(phi)
+        return _Signal.__new__(cls, A, omega0, phi)
+
+    def __init__(self, A=1, omega0=1, phi=0, **kwargs):
         # expression
         n = _DiscreteMixin.default_xvar()
         expr = A*sp.cos(omega0*n + phi)
-        return _Signal.__new__(cls, expr, A, omega0, phi)
-
-    def __init__(self, A=1, omega0=1, phi=0, **kwargs):
-        DiscreteFunctionSignal.__init__(self, self.args[0], **kwargs)
-        _TrigMixin.__init__(self, self.args[2], self.args[3])
+        DiscreteFunctionSignal.__init__(self, expr, **kwargs)
+        _TrigMixin.__init__(self, self.args[1], self.args[2])
 
     @property
     def amplitude(self):
-        return self.args[1]
-
-    @amplitude.setter
-    def amplitude(self, A):
-        A = sp.sympify(A)
-        _, Ai = A.as_real_imag()
-        if Ai.is_nonzero:
-            raise ValueError("Amplitude can't be complex.")
-        self._yexpr = A / self.amplitude
-        self._args[1] = A
+        return self.args[0]
 
     @property
     def in_phase(self):
@@ -974,27 +958,27 @@ class Exponential(_TrigMixin, DiscreteFunctionSignal):
         # arguments
         A = sp.sympify(A)
         alpha = sp.sympify(alpha)
-        # expression
-        expr = A*sp.Pow(alpha, _DiscreteMixin.default_xvar())
-        return _Signal.__new__(cls, expr, A, alpha)
+        return _Signal.__new__(cls, A, alpha)
 
     def __init__(self, A=1, alpha=1, **kwargs):
-        A = self.args[1]
-        alpha = self.args[2]
-        DiscreteFunctionSignal.__init__(self, self.args[0], **kwargs)
+        A = self.args[0]
+        alpha = self.args[1]
+        # expression
+        expr = A*sp.Pow(alpha, _DiscreteMixin.default_xvar())
+        DiscreteFunctionSignal.__init__(self, expr, **kwargs)
         _TrigMixin.__init__(self, _extract_omega(alpha), _extract_phase(A))
-        _, Ai = self.args[1].as_real_imag()
-        _, ai = self.args[2].as_real_imag()
+        _, Ai = A.as_real_imag()
+        _, ai = alpha.as_real_imag()
         if Ai.is_nonzero or ai.is_nonzero:
             self.dtype = np.complex_
 
     @property
     def base(self):
-        return self.args[2]
+        return self.args[1]
 
     @property
     def amplitude(self):
-        return self.args[1]
+        return self.args[0]
 
     @property
     def is_periodic(self):

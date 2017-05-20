@@ -11,17 +11,14 @@ from ..operator.operator import ImaginaryPartOperator
 from ..operator.operator import ScaleOperator
 from ._util import _is_real_scalar
 from ._util import _latex_mode
-from abc import ABC, abstractproperty
-from copy import deepcopy
+from abc import abstractproperty
 from numbers import Number
 import numpy as np
 import re
 import sympy as sp
-from operator import __truediv__
 
 
-class _Signal(ABC):
-    # TODO Cambiar ABC por sp.Basic, pero deja ya no puede usarse deepcopy
+class _Signal(sp.Basic):
     """
     Abstract base class for all kind of signals.
 
@@ -82,16 +79,22 @@ class _Signal(ABC):
             raise ValueError("Signal names 'xk' are reserved.")
         return name
 
-    def __new__(cls, *args):
-        """
-        Signal common allocation.
+#     def __new__(cls, *args):
+#         """
+#         Signal common allocation.
+#
+#         Args:
+#             args (str): Whatever list of arguments to be internally held.
+#         """
+#         obj = object.__new__(cls)
+#         obj._args = list(args)
+#         return obj
 
-        Args:
-            args (str): Whatever list of arguments to be internally held.
-        """
-        obj = object.__new__(cls)
-        obj._args = list(args)
-        return obj
+    def _clone(self):
+        s = self.func(*self.args)
+        s._xexpr = self._xexpr
+        s._yexpr = self._yexpr
+        return s
 
     def __del__(self):
         """
@@ -392,7 +395,7 @@ class _Signal(ABC):
             A signal copy with the independent variable inverted.
 
         """
-        s = deepcopy(self)
+        s = self._clone()
         s._xexpr = FlipOperator.apply(s._xvar, s._xexpr)
         return s
 
@@ -409,7 +412,7 @@ class _Signal(ABC):
             A signal copy with the independent variable shifted.
 
         """
-        s = deepcopy(self)
+        s = self._clone()
         s._xexpr = ShiftOperator.apply(s._xvar, s._xexpr, k)
         return s
 
@@ -443,7 +446,7 @@ class _Signal(ABC):
             A signal copy with the independent variable scaled.
 
         """
-        s = deepcopy(self)
+        s = self._clone()
         s._xexpr = ScaleOperator.apply(s._xvar, s._xexpr, v, mul)
         return s
 
@@ -457,7 +460,7 @@ class _Signal(ABC):
             A signal copy with the real part of the signal.
 
         """
-        s = deepcopy(self)
+        s = self._clone()
         if self.is_complex:
             s._yexpr = RealPartOperator.apply(s._xvar, s._yexpr)
             s._dtype = np.float_
@@ -473,7 +476,7 @@ class _Signal(ABC):
             complex, else None.
         """
         if self.is_complex:
-            s = deepcopy(self)
+            s = self._clone()
             s._yexpr = ImaginaryPartOperator.apply(s._xvar, s._yexpr)
             s._dtype = np.float_
             return s
@@ -611,7 +614,7 @@ class _FunctionSignal(_Signal):
         return s
 
     def __abs__(self):
-        s = deepcopy(self)
+        s = self._clone()
         s._yexpr = AbsOperator.apply(s._xvar, s._yexpr)
         return s
 
@@ -623,20 +626,20 @@ class _FunctionSignal(_Signal):
 
     @property
     def even(self):
-        s1 = deepcopy(self)
-        s2 = deepcopy(self)
+        s1 = self._clone()
+        s2 = self._clone()
         s2._yexpr = HermitianOperator.apply(s2._xvar, s2._yexpr)
         return sp.Rational(1, 2)*(s1 + s2)
 
     @property
     def odd(self):
-        s1 = deepcopy(self)
-        s2 = deepcopy(self)
+        s1 = self._clone()
+        s2 = self._clone()
         s2._yexpr = HermitianOperator.apply(s2._xvar, s2._yexpr)
         return sp.Rational(1, 2)*(s1 - s2)
 
     @property
     def conjugate(self):
-        s = deepcopy(self)
+        s = self._clone()
         s._yexpr = ConjugateOperator.apply(s._xvar, s._yexpr)
         return s
