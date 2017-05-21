@@ -29,25 +29,21 @@ class ConstantTest(unittest.TestCase):
         # constante discreta
         d = ds.Constant(3, name='y0')
         self.assertEqual(d.name, 'y0')
-        self.assertEqual(d.latex_name(), 'y_{0}')
-        self.assertEqual(d.latex_name('inline'), '$y_{0}$')
+        self.assertEqual(d.latex_name, 'y_{0}')
         d.name = 'z'
         self.assertEqual(d.name, 'z')
-        self.assertEqual(d.latex_name(), 'z')
-        self.assertEqual(d.latex_name('inline'), '$z$')
+        self.assertEqual(d.latex_name, 'z')
         with self.assertRaises(ValueError):
             d.name = 'x0'
         with self.assertRaises(ValueError):
             d.name = 'y0'
         d = ds.Constant(3, name='y0')
         self.assertEqual(d.name, 'y0')
-        self.assertEqual(d.latex_name(), 'y_{0}')
-        self.assertEqual(d.latex_name('inline'), '$y_{0}$')
+        self.assertEqual(d.latex_name, 'y_{0}')
         del d
         d = ds.Constant(3, name='yupi')
         self.assertEqual(d.name, 'yupi')
-        self.assertEqual(d.latex_name(), 'yupi')
-        self.assertEqual(d.latex_name('inline'), '$yupi$')
+        self.assertEqual(d.latex_name, 'yupi')
 
     def test_xvar_xexpr(self):
         ''' Constant: independent variable and expression.
@@ -129,24 +125,18 @@ class ConstantTest(unittest.TestCase):
         self.assertEqual(repr(d), 'Constant(3)')
         # str
         self.assertEqual(str(d), '3')
-        # latex
-        self.assertEqual(d.latex_yexpr(), '3')
         # constante discreta
         d = ds.Constant(-5.10-3.03j)
         # repr
         self.assertEqual(repr(d), 'Constant(-5.1 - 3.03*j)')
         # str
         self.assertEqual(str(d), '-5.1 - 3.03*j')
-        # latex
-        self.assertEqual(d.latex_yexpr(), r'-5.1 - 3.03 \mathrm{j}')
         # constante discreta
         d = ds.Constant(-3j)
         # repr
         self.assertEqual(repr(d), 'Constant(-3.0*j)')
         # str
         self.assertEqual(str(d), '-3.0*j')
-        # latex
-        self.assertEqual(d.latex_yexpr(), r'- 3.0 \mathrm{j}')
 
     def test_eval_sample(self):
         ''' Constant: eval(scalar), eval(range)

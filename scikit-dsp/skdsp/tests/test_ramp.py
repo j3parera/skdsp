@@ -34,25 +34,21 @@ class RampTest(unittest.TestCase):
         # rampa discreta
         d = ds.Ramp(3, name='y0')
         self.assertEqual(d.name, 'y0')
-        self.assertEqual(d.latex_name(), 'y_{0}')
-        self.assertEqual(d.latex_name('inline'), '$y_{0}$')
+        self.assertEqual(d.latex_name, 'y_{0}')
         d.name = 'z'
         self.assertEqual(d.name, 'z')
-        self.assertEqual(d.latex_name(), 'z')
-        self.assertEqual(d.latex_name('inline'), '$z$')
+        self.assertEqual(d.latex_name, 'z')
         with self.assertRaises(ValueError):
             d.name = 'x0'
         with self.assertRaises(ValueError):
             d.name = 'y0'
         d = ds.Ramp(3, name='y0')
         self.assertEqual(d.name, 'y0')
-        self.assertEqual(d.latex_name(), 'y_{0}')
-        self.assertEqual(d.latex_name('inline'), '$y_{0}$')
+        self.assertEqual(d.latex_name, 'y_{0}')
         del d
         d = ds.Ramp(3, name='yupi')
         self.assertEqual(d.name, 'yupi')
-        self.assertEqual(d.latex_name(), 'yupi')
-        self.assertEqual(d.latex_name('inline'), '$yupi$')
+        self.assertEqual(d.latex_name, 'yupi')
 
     def test_xvar_xexpr(self):
         ''' Ramp: independent variable and expression.
@@ -127,16 +123,12 @@ class RampTest(unittest.TestCase):
         self.assertEqual(repr(d), 'Ramp(3)')
         # str
         self.assertEqual(str(d), 'r[n - 3]')
-        # latex
-        self.assertEqual(d.latex_yexpr(), 'r\\left[n - 3\\right]')
         # rampa discreta
         d = ds.Ramp(-5)
         # repr
         self.assertEqual(repr(d), 'Ramp(-5)')
         # str
         self.assertEqual(str(d), 'r[n + 5]')
-        # latex
-        self.assertEqual(d.latex_yexpr(), 'r\\left[n + 5\\right]')
 
     def test_eval_sample(self):
         ''' Ramp: eval(scalar), eval(range)

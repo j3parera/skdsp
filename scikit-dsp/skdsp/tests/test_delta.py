@@ -34,25 +34,21 @@ class DeltaTest(unittest.TestCase):
         # delta discreta
         d = ds.Delta(3, name='y0')
         self.assertEqual(d.name, 'y0')
-        self.assertEqual(d.latex_name(), 'y_{0}')
-        self.assertEqual(d.latex_name('inline'), '$y_{0}$')
+        self.assertEqual(d.latex_name, 'y_{0}')
         d.name = 'z'
         self.assertEqual(d.name, 'z')
-        self.assertEqual(d.latex_name(), 'z')
-        self.assertEqual(d.latex_name('inline'), '$z$')
+        self.assertEqual(d.latex_name, 'z')
         with self.assertRaises(ValueError):
             d.name = 'x0'
         with self.assertRaises(ValueError):
             d.name = 'y0'
         d = ds.Delta(3, name='y0')
         self.assertEqual(d.name, 'y0')
-        self.assertEqual(d.latex_name(), 'y_{0}')
-        self.assertEqual(d.latex_name('inline'), '$y_{0}$')
+        self.assertEqual(d.latex_name, 'y_{0}')
         del d
         d = ds.Delta(3, name='yupi')
         self.assertEqual(d.name, 'yupi')
-        self.assertEqual(d.latex_name(), 'yupi')
-        self.assertEqual(d.latex_name('inline'), '$yupi$')
+        self.assertEqual(d.latex_name, 'yupi')
 
     def test_xvar_xexpr(self):
         ''' Delta: independent variable and expression.
@@ -127,16 +123,12 @@ class DeltaTest(unittest.TestCase):
         self.assertEqual(repr(d), 'Delta(3)')
         # str
         self.assertEqual(str(d), 'd[n - 3]')
-        # latex
-        self.assertEqual(d.latex_yexpr(), '\\delta\\left[n - 3\\right]')
         # delta discreta
         d = ds.Delta(-5)
         # repr
         self.assertEqual(repr(d), 'Delta(-5)')
         # str
         self.assertEqual(str(d), 'd[n + 5]')
-        # latex
-        self.assertEqual(d.latex_yexpr(), '\\delta\\left[n + 5\\right]')
 
     def test_eval_sample(self):
         ''' Delta: eval(scalar), eval(range)

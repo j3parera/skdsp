@@ -34,25 +34,21 @@ class RectTest(unittest.TestCase):
         # pulso rectangular discreto
         d = ds.RectPulse(3, name='y0')
         self.assertEqual(d.name, 'y0')
-        self.assertEqual(d.latex_name(), 'y_{0}')
-        self.assertEqual(d.latex_name('inline'), '$y_{0}$')
+        self.assertEqual(d.latex_name, 'y_{0}')
         d.name = 'z'
         self.assertEqual(d.name, 'z')
-        self.assertEqual(d.latex_name(), 'z')
-        self.assertEqual(d.latex_name('inline'), '$z$')
+        self.assertEqual(d.latex_name, 'z')
         with self.assertRaises(ValueError):
             d.name = 'x0'
         with self.assertRaises(ValueError):
             d.name = 'y0'
         d = ds.RectPulse(3, name='y0')
         self.assertEqual(d.name, 'y0')
-        self.assertEqual(d.latex_name(), 'y_{0}')
-        self.assertEqual(d.latex_name('inline'), '$y_{0}$')
+        self.assertEqual(d.latex_name, 'y_{0}')
         del d
         d = ds.RectPulse(3, name='yupi')
         self.assertEqual(d.name, 'yupi')
-        self.assertEqual(d.latex_name(), 'yupi')
-        self.assertEqual(d.latex_name('inline'), '$yupi$')
+        self.assertEqual(d.latex_name, 'yupi')
 
     def test_xvar_xexpr(self):
         ''' RectPulse: independent variable and expression.
@@ -121,16 +117,12 @@ class RectTest(unittest.TestCase):
         self.assertEqual(repr(d), 'RectPulse(3)')
         # str
         self.assertEqual(str(d), 'Pi3[n]')
-        # latex
-        self.assertEqual(d.latex_yexpr(), '\\Pi_{3}\\left[n\\right]')
         # pulso rectangular discreto
         d = ds.RectPulse(4)
         # repr
         self.assertEqual(repr(d), 'RectPulse(4)')
         # str
         self.assertEqual(str(d), 'Pi4[n]')
-        # latex
-        self.assertEqual(d.latex_yexpr(), '\\Pi_{4}\\left[n\\right]')
 
     def test_eval_sample(self):
         ''' RectPulse: eval(scalar), eval(range)

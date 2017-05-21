@@ -26,25 +26,21 @@ class SinusoidTest(unittest.TestCase):
         # sinusoide discreta
         c = ds.Sinusoid(name='y0')
         self.assertEqual(c.name, 'y0')
-        self.assertEqual(c.latex_name(), 'y_{0}')
-        self.assertEqual(c.latex_name('inline'), '$y_{0}$')
+        self.assertEqual(c.latex_name, 'y_{0}')
         c.name = 'z'
         self.assertEqual(c.name, 'z')
-        self.assertEqual(c.latex_name(), 'z')
-        self.assertEqual(c.latex_name('inline'), '$z$')
+        self.assertEqual(c.latex_name, 'z')
         with self.assertRaises(ValueError):
             c.name = 'x0'
         with self.assertRaises(ValueError):
             c.name = 'y0'
         c = ds.Sinusoid(name='y0')
         self.assertEqual(c.name, 'y0')
-        self.assertEqual(c.latex_name(), 'y_{0}')
-        self.assertEqual(c.latex_name('inline'), '$y_{0}$')
+        self.assertEqual(c.latex_name, 'y_{0}')
         del c
         c = ds.Sinusoid(name='yupi')
         self.assertEqual(c.name, 'yupi')
-        self.assertEqual(c.latex_name(), 'yupi')
-        self.assertEqual(c.latex_name('inline'), '$yupi$')
+        self.assertEqual(c.latex_name, 'yupi')
 
     def test_xvar_xexpr(self):
         ''' Sinusoid: independent variable and expression.
@@ -139,27 +135,17 @@ class SinusoidTest(unittest.TestCase):
         self.assertEqual(repr(c), 'Sinusoid(3, pi/4, pi/8)')
         # str
         self.assertEqual(str(c), '3*cos(pi/4*n + pi/8)')
-        # latex
-        self.assertEqual(c.latex_yexpr(), (r'3 \cos{\left (\frac{\pi n}{4}' +
-                                           r' + \frac{\pi}{8} \right )}'))
         # sinusoide discreta
         c = ds.Sinusoid(-5, 10)
         # repr
         self.assertEqual(repr(c), 'Sinusoid(-5, 10, 0)')
         # str
         self.assertEqual(str(c), '-5*cos(10*n)')
-        # latex
-        self.assertEqual(c.latex_yexpr(),
-                         r'- 5 \cos{\left (10 n \right )}')
         c = ds.Sinusoid(3, sp.S.Pi/4, sp.S.Pi/8).flip().delay(2)
         # repr
         self.assertEqual(repr(c), 'Sinusoid(3, pi/4, pi/8)')
         # str
         self.assertEqual(str(c), '3*cos(pi/4*(-n + 2) + pi/8)')
-        # latex
-        self.assertEqual(c.latex_yexpr(), (r'3 \sin{\left (\frac{\pi}{4}' +
-                                           r' \left(n - 2\right)' +
-                                           r' + \frac{3 \pi}{8} \right )}'))
 
     def test_eval_sample(self):
         ''' Sinusoid (discrete): eval(scalar) '''

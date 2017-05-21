@@ -34,25 +34,21 @@ class StepTest(unittest.TestCase):
         # escalón discreto
         d = ds.Step(3, name='y0')
         self.assertEqual(d.name, 'y0')
-        self.assertEqual(d.latex_name(), 'y_{0}')
-        self.assertEqual(d.latex_name('inline'), '$y_{0}$')
+        self.assertEqual(d.latex_name, 'y_{0}')
         d.name = 'z'
         self.assertEqual(d.name, 'z')
-        self.assertEqual(d.latex_name(), 'z')
-        self.assertEqual(d.latex_name('inline'), '$z$')
+        self.assertEqual(d.latex_name, 'z')
         with self.assertRaises(ValueError):
             d.name = 'x0'
         with self.assertRaises(ValueError):
             d.name = 'y0'
         d = ds.Step(3, name='y0')
         self.assertEqual(d.name, 'y0')
-        self.assertEqual(d.latex_name(), 'y_{0}')
-        self.assertEqual(d.latex_name('inline'), '$y_{0}$')
+        self.assertEqual(d.latex_name, 'y_{0}')
         del d
         d = ds.Step(3, name='yupi')
         self.assertEqual(d.name, 'yupi')
-        self.assertEqual(d.latex_name(), 'yupi')
-        self.assertEqual(d.latex_name('inline'), '$yupi$')
+        self.assertEqual(d.latex_name, 'yupi')
 
     def test_xvar_xexpr(self):
         ''' Step: independent variable and expression.
@@ -127,16 +123,12 @@ class StepTest(unittest.TestCase):
         self.assertEqual(repr(d), 'Step(3)')
         # str
         self.assertEqual(str(d), 'u[n - 3]')
-        # latex
-        self.assertEqual(d.latex_yexpr(), 'u\\left[n - 3\\right]')
         # escalón discreto
         d = ds.Step(-5)
         # repr
         self.assertEqual(repr(d), 'Step(-5)')
         # str
         self.assertEqual(str(d), 'u[n + 5]')
-        # latex
-        self.assertEqual(d.latex_yexpr(), 'u\\left[n + 5\\right]')
 
     def test_eval_sample(self):
         ''' Step: eval(scalar), eval(range)

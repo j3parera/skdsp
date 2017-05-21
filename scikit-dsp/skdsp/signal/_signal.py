@@ -10,7 +10,6 @@ from ..operator.operator import FlipOperator, ShiftOperator
 from ..operator.operator import ImaginaryPartOperator
 from ..operator.operator import ScaleOperator
 from ._util import _is_real_scalar
-from ._util import _latex_mode
 from abc import abstractproperty
 from numbers import Number
 import numpy as np
@@ -149,22 +148,19 @@ class _Signal(sp.Basic):
             return
         self._name = self._check_name(value)
 
-    def latex_name(self, mode=None):
+    @property
+    def latex_name(self):
         """
         The signal's name in
         :math:`\LaTeX`
         .
-
-        Args:
-            mode (str): if mode='inline' the signal's name is surrounded by
-            $ signs.
         """
         m = re.match(r'(\D+)(\d+)', self._name)
         if m:
             s = m.group(1) + '_{{0}}'.format(m.group(2))
         else:
             s = self._name
-        return _latex_mode(s, mode)
+        return s
 
     @property
     def dtype(self):
@@ -483,9 +479,10 @@ class _Signal(sp.Basic):
         return None
 
     # --- utilities -----------------------------------------------------------
+    @property
     def latex_xexpr(self):
         if self.xexpr == self.xvar:
-            sn = ' ' + sp.latex(self._xexpr)
+            sn = sp.latex(self._xexpr)
         else:
             # just in case it appears '- n' with space
             s0 = sp.latex(self.xexpr)
@@ -494,6 +491,7 @@ class _Signal(sp.Basic):
             sn = r'\left(' + s0 + r'\right)'
         return sn
 
+    @property
     def str_xexpr(self):
         if self.xexpr == self.xvar:
             sn = sp.latex(self._xexpr)
@@ -537,14 +535,6 @@ class _FunctionSignal(_Signal):
     @property
     def yexpr(self):
         return self._yexpr
-
-    def latex_yexpr(self, mode=None):
-        """
-        A
-        :math:`\LaTeX`
-        representation of the signal expression.
-        """
-        return _latex_mode(sp.latex(self.yexpr), mode)
 
     def __str__(self):
         if hasattr(self.__class__, '_print'):

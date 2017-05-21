@@ -109,9 +109,3 @@ def _is_integer_scalar(x):
         ok = np.isscalar(x) and _is_integer_obj(x)
     return ok
 
-
-def _latex_mode(s, mode):
-    if mode == 'inline':
-        return r'$' + s + '$'
-    else:
-        return s

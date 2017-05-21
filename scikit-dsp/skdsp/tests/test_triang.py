@@ -34,25 +34,21 @@ class TriangTest(unittest.TestCase):
         # pulso triangular discreto
         d = ds.TriangPulse(3, name='y0')
         self.assertEqual(d.name, 'y0')
-        self.assertEqual(d.latex_name(), 'y_{0}')
-        self.assertEqual(d.latex_name('inline'), '$y_{0}$')
+        self.assertEqual(d.latex_name, 'y_{0}')
         d.name = 'z'
         self.assertEqual(d.name, 'z')
-        self.assertEqual(d.latex_name(), 'z')
-        self.assertEqual(d.latex_name('inline'), '$z$')
+        self.assertEqual(d.latex_name, 'z')
         with self.assertRaises(ValueError):
             d.name = 'x0'
         with self.assertRaises(ValueError):
             d.name = 'y0'
         d = ds.TriangPulse(3, name='y0')
         self.assertEqual(d.name, 'y0')
-        self.assertEqual(d.latex_name(), 'y_{0}')
-        self.assertEqual(d.latex_name('inline'), '$y_{0}$')
+        self.assertEqual(d.latex_name, 'y_{0}')
         del d
         d = ds.TriangPulse(3, name='yupi')
         self.assertEqual(d.name, 'yupi')
-        self.assertEqual(d.latex_name(), 'yupi')
-        self.assertEqual(d.latex_name('inline'), '$yupi$')
+        self.assertEqual(d.latex_name, 'yupi')
 
     def test_xvar_xexpr(self):
         ''' TriangPulse: independent variable and expression.
@@ -121,16 +117,12 @@ class TriangTest(unittest.TestCase):
         self.assertEqual(repr(d), 'TriangPulse(3)')
         # str
         self.assertEqual(str(d), 'Delta3[n]')
-        # latex
-        self.assertEqual(d.latex_yexpr(), '\\Delta_{3}\\left[n\\right]')
         # pulso triangular discreto
         d = ds.TriangPulse(4)
         # repr
         self.assertEqual(repr(d), 'TriangPulse(4)')
         # str
         self.assertEqual(str(d), 'Delta4[n]')
-        # latex
-        self.assertEqual(d.latex_yexpr(), '\\Delta_{4}\\left[n\\right]')
 
     def test_eval_sample(self):
         ''' TriangPulse: eval(scalar), eval(range)

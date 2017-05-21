@@ -2,15 +2,13 @@
 from ..operator.operator import ShiftOperator
 from ._signal import _Signal, _FunctionSignal, _SignalOp
 from ._util import _is_complex_scalar, _is_integer_scalar
-from ._util import _latex_mode, _extract_omega, _extract_phase
+from ._util import _extract_omega, _extract_phase
 from numbers import Number
 from sympy.core.compatibility import iterable
 from sympy.core.evaluate import evaluate, global_evaluate
 import numpy as np
 import sympy as sp
 
-
-# TODO Quitar latex, str ... y seguir el método sympy
 
 class _DiscreteMixin(object):
     """
@@ -562,15 +560,6 @@ class Constant(DiscreteFunctionSignal):
         # period
         self._period = sp.oo
 
-    def latex_yexpr(self, mode=None):
-        """
-        A
-        :math:`\LaTeX`
-        representation of the signal.
-        """
-        s = super().latex_yexpr().replace('i', '\mathrm{j}')
-        return _latex_mode(s, mode)
-
     def __repr__(self):
         return 'Constant(' + str(self) + ')'
 
@@ -613,15 +602,6 @@ class Delta(DiscreteFunctionSignal):
             self._yexpr = ShiftOperator.apply(self._xvar, self.yexpr, delay)
         # period
         self._period = sp.oo
-
-    def latex_yexpr(self, mode=None):
-        """
-        A
-        :math:`\LaTeX`
-        representation of the signal.
-        """
-        s = r'\delta\left[{0}\right]'.format(sp.latex(self.xexpr))
-        return _latex_mode(s, mode)
 
     def __str__(self):
         return 'd[{0}]'.format(str(self.xexpr))
@@ -671,15 +651,6 @@ class Step(DiscreteFunctionSignal):
         # period
         self._period = sp.oo
 
-    def latex_yexpr(self, mode=None):
-        """
-        A
-        :math:`\LaTeX`
-        representation of the signal.
-        """
-        s = r'u\left[{0}\right]'.format(sp.latex(self.xexpr))
-        return _latex_mode(s, mode)
-
     def __str__(self):
         return 'u[{0}]'.format(str(self.xexpr))
 
@@ -728,15 +699,6 @@ class Ramp(DiscreteFunctionSignal):
         # period
         self._period = sp.oo
 
-    def latex_yexpr(self, mode=None):
-        """
-        A
-        :math:`\LaTeX`
-        representation of the signal.
-        """
-        s = r'r\left[{0}\right]'.format(sp.latex(self.xexpr))
-        return _latex_mode(s, mode)
-
     def __str__(self):
         return 'r[{0}]'.format(str(self.xexpr))
 
@@ -767,18 +729,8 @@ class RectPulse(DiscreteFunctionSignal):
     def width(self):
         return self.args[0]
 
-    def latex_yexpr(self, mode=None):
-        """
-        A
-        :math:`\LaTeX`
-        representation of the signal.
-        """
-        s = r'\Pi_{{{0}}}\left[{1}\right]'.format(self.width,
-                                                  sp.latex(self.xexpr))
-        return _latex_mode(s, mode)
-
     def __str__(self):
-        return 'Pi{0}[{1}]'.format(self.width, str(self.xexpr))
+        return 'Pi{0}[{1}]'.format(self.width, self.latex_xexpr)
 
     def __repr__(self):
         return 'RectPulse(' + str(self.width) + ')'
@@ -806,18 +758,8 @@ class TriangPulse(DiscreteFunctionSignal):
     def width(self):
         return self.args[0]
 
-    def latex_yexpr(self, mode=None):
-        """
-        A
-        :math:`\LaTeX`
-        representation of the signal.
-        """
-        s = r'\Delta_{{{0}}}\left[{1}\right]'.format(self.width,
-                                                     sp.latex(self.xexpr))
-        return _latex_mode(s, mode)
-
     def __str__(self):
-        return 'Delta{0}[{1}]'.format(self.width, str(self.xexpr))
+        return 'Delta{0}[{1}]'.format(self.width, self.str_xexpr)
 
     def __repr__(self):
         return 'TriangPulse(' + str(self.width) + ')'
@@ -916,29 +858,9 @@ class Sinusoid(_TrigMixin, DiscreteFunctionSignal):
     def Q(self):
         return self.in_quadrature
 
-#     def latex_yexpr(self, mode=None):
-#         """
-#         A
-#         :math:`\LaTeX`
-#         representation of the signal.
-#         """
-#         if self.amplitude == 1:
-#             s = r'\cos\left({0}{1}'.format(sp.latex(self.frequency),
-#                                            self.latex_xexpr())
-#         else:
-#             s = r'{0}\cos\left({1}{2}'.format(sp.latex(self.amplitude),
-#                                               sp.latex(self.frequency),
-#                                               self.latex_xexpr())
-#         phi = self.phase
-#         if phi != 0:
-#             s += ' {0} {1}'.format('-' if phi.is_negative else '+',
-#                                    sp.latex(abs(phi)))
-#         s += r'\right)'
-#         return _latex_mode(s, mode)
-
     def __str__(self):
         s = '{0}*cos({1}*{2}'.format(str(self.amplitude), str(self.frequency),
-                                     self.str_xexpr())
+                                     self.str_xexpr)
         phi = self.phase
         if phi != 0:
             s += ' {0} {1}'.format('-' if phi.is_negative else '+',
@@ -1016,33 +938,25 @@ class DeltaTrain(DiscreteFunctionSignal):
     """
     Discrete delta train signal.
     """
-
-    class _DiscreteDeltaTrain(sp.Function):
-
-        nargs = 1
-
-        @classmethod
-        def eval(cls, arg):
-            if arg.is_Number:
-                if arg.is_nonzero:
-                    return sp.S.Zero
-                else:
-                    return sp.S.One
-
-        @staticmethod
-        def _imp_(n):
-            return np.equal(np.asarray(n, dtype=np.float_), 0)
+    def __new__(cls, N=16, **kwargs):
+        # arguments
+        N = sp.sympify(N)
+        return _Signal.__new__(cls, N)
 
     def __init__(self, N=16):
         if N <= 0:
             raise ValueError('N must be greater than 0')
         # nm = sp.Mod(self.default_xvar(), N)
-        expr = DeltaTrain._DiscreteDeltaTrain(sp.Mod(self.default_xvar(), N))
+        expr = Delta._DiscreteDelta(sp.Mod(self.default_xvar(), N))
         DiscreteFunctionSignal.__init__(self, expr)
         self._period = N
 
-    def _print(self):
-        return 'III[{0},{1}]'.format(str(self._xexpr), self._period)
+    def __str__(self):
+        s = '{0}'.format(str(self.yexpr))
+        return s
+
+    def __repr__(self):
+        return 'DeltaTrain({0})'.format(str(self.period))
 
 
 class Sawtooth(DiscreteFunctionSignal):
