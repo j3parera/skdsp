@@ -216,5 +216,6 @@ class ConstantTest(unittest.TestCase):
         np.testing.assert_array_equal(d[-3:3], d.scale(3)[-3:3])
         np.testing.assert_array_equal(d[-3:3], d.scale(0.25)[-12:12:4])
 
+
 if __name__ == "__main__":
     unittest.main()

@@ -108,4 +108,3 @@ def _is_integer_scalar(x):
     else:
         ok = np.isscalar(x) and _is_integer_obj(x)
     return ok
-

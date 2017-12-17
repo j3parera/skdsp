@@ -1,4 +1,5 @@
-from skdsp.signal._signal import _Signal, _FunctionSignal
+from ..signal._signal import _Signal, _FunctionSignal
+from ..signal.printer import latex
 import numpy as np
 import skdsp.signal.discrete as ds
 import sympy as sp
@@ -117,12 +118,18 @@ class TriangTest(unittest.TestCase):
         self.assertEqual(repr(d), 'TriangPulse(3)')
         # str
         self.assertEqual(str(d), 'Delta3[n]')
+        # latex
+        self.assertEqual(latex(d, mode='inline'),
+                         r'$\Delta_{3} \left[ n \right]$')
         # pulso triangular discreto
         d = ds.TriangPulse(4)
         # repr
         self.assertEqual(repr(d), 'TriangPulse(4)')
         # str
         self.assertEqual(str(d), 'Delta4[n]')
+        # latex
+        self.assertEqual(latex(d.shift(1), mode='inline'),
+                         r'$\Delta_{4} \left[ n - 1 \right]$')
 
     def test_eval_sample(self):
         ''' TriangPulse: eval(scalar), eval(range)
@@ -265,6 +272,7 @@ class TriangTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             d = ds.TriangPulse(-8)
             d = ds.TriangPulse(sp.Symbol('L', integer=True))
+
 
 if __name__ == "__main__":
     unittest.main()

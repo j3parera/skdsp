@@ -1,4 +1,6 @@
+
 from skdsp.signal._signal import _Signal, _FunctionSignal
+from skdsp.signal.printer import latex
 import numpy as np
 import skdsp.signal.discrete as ds
 import sympy as sp
@@ -120,15 +122,21 @@ class DeltaTest(unittest.TestCase):
         # delta discreta
         d = ds.Delta(3)
         # repr
-        self.assertEqual(repr(d), 'Delta(3)')
+        self.assertEqual(repr(d), 'Delta(n - 3)')
         # str
-        self.assertEqual(str(d), 'd[n - 3]')
+        self.assertEqual(str(d), 'Delta(3)')
+        # latex
+        self.assertEqual(latex(d, mode='inline'),
+                         r'$\delta \left[ n - 3 \right]$')
         # delta discreta
         d = ds.Delta(-5)
         # repr
-        self.assertEqual(repr(d), 'Delta(-5)')
+        self.assertEqual(repr(d), 'Delta(n + 5)')
         # str
-        self.assertEqual(str(d), 'd[n + 5]')
+        self.assertEqual(str(d), 'Delta(-5)')
+        # latex
+        self.assertEqual(latex(d, mode='inline'),
+                         r'$\delta \left[ n + 5 \right]$')
 
     def test_eval_sample(self):
         ''' Delta: eval(scalar), eval(range)
@@ -251,6 +259,7 @@ class DeltaTest(unittest.TestCase):
         d = ds.Delta(1).scale(1.5)
         np.testing.assert_array_equal(d[-12:12:4],
                                       np.array([0, 0, 0, 0, 0, 0]))
+
 
 if __name__ == "__main__":
     unittest.main()

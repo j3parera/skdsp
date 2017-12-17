@@ -10,6 +10,7 @@ from ..operator.operator import FlipOperator, ShiftOperator
 from ..operator.operator import ImaginaryPartOperator
 from ..operator.operator import ScaleOperator
 from ._util import _is_real_scalar
+from .printer import latex
 from abc import abstractproperty
 from numbers import Number
 import numpy as np
@@ -27,6 +28,12 @@ class _Signal(sp.Basic):
             :math:`k`
             an autoincremented integer.
     """
+
+    is_Signal = True
+    is_FunctionSignal = False
+    is_Continuous = False
+    is_Discrete = False
+    is_DataSignal = False
 
     """
     Signal registry. Maintains a dictionary of created signals names to avoid
@@ -61,7 +68,7 @@ class _Signal(sp.Basic):
         """
         try:
             del cls._registry[name]
-        except:
+        except BaseException:
             pass
 
     @classmethod
@@ -114,7 +121,7 @@ class _Signal(sp.Basic):
         self._period = None
         self._xvar = None
         self._xexpr = None
-        if 'cmplx' in kwargs and kwargs['cmplx'] == True:
+        if 'cmplx' in kwargs and kwargs['cmplx'] is True:
             self._dtype = np.complex_
         else:
             self._dtype = np.float_
@@ -221,15 +228,25 @@ class _Signal(sp.Basic):
         """ Tests whether the signal is complex valued."""
         return self._dtype == np.complex_
 
-    @abstractproperty
-    def is_discrete(self):
-        """ Tests whether the signal is discrete."""
-        pass
-
-    @abstractproperty
+    @property
     def is_continuous(self):
-        """ Tests whether the signal is continuous."""
-        pass
+        return self.is_Continuous
+
+    @property
+    def is_discrete(self):
+        return self.is_Discrete
+
+    @property
+    def is_data(self):
+        return self.is_DataSignal
+
+    @property
+    def is_function(self):
+        return self.is_FunctionSignal
+
+    @property
+    def is_signal(self):
+        return self.is_Signal
 
     @property
     def is_periodic(self):
@@ -258,13 +275,20 @@ class _Signal(sp.Basic):
         """ Signal's `repr()`esentation. """
         return "Generic '_Signal' object"
 
+    def _latex(self, *args, **kwargs):
+        return latex(self)
+
+    __str__ = __repr__
+    _sympystr = __repr__
+    _sympyrepr = __repr__
+
     def __eq__(self, other):
         """ Tests equality with other signal. """
         equal = other._dtype == self._dtype and other._period == self._period
         if not equal:
             return False
         return sp.Eq(other._xexpr.xreplace({other._xvar: self._xvar}) -
-                     self._xexpr, 0) == True
+                     self._xexpr, 0) == sp.S.true
 
     # --- eval wrappers -------------------------------------------------------
     @abstractproperty
@@ -511,6 +535,9 @@ class _FunctionSignal(_Signal):
     """
     Generic class for a signal defined by a mathematical expression.
     """
+
+    is_FunctionSignal = True
+
     def __init__(self, expr, **kwargs):
         """
         Common initialization for all functional signals.
@@ -612,7 +639,7 @@ class _FunctionSignal(_Signal):
         if not super().__eq__(other):
             return False
         return sp.Eq(other._yexpr.xreplace({other._xvar: self._xvar}) -
-                     self._yexpr, 0) == True
+                     self._yexpr, 0) == sp.S.true
 
     @property
     def even(self):

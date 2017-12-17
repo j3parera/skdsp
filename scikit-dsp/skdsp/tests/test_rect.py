@@ -1,4 +1,5 @@
-from skdsp.signal._signal import _Signal, _FunctionSignal
+from ..signal._signal import _Signal, _FunctionSignal
+from ..signal.printer import latex
 import numpy as np
 import skdsp.signal.discrete as ds
 import sympy as sp
@@ -117,12 +118,18 @@ class RectTest(unittest.TestCase):
         self.assertEqual(repr(d), 'RectPulse(3)')
         # str
         self.assertEqual(str(d), 'Pi3[n]')
+        # latex
+        self.assertEqual(latex(d, mode='inline'),
+                         r'$\Pi_{3} \left[ n \right]$')
         # pulso rectangular discreto
         d = ds.RectPulse(4)
         # repr
         self.assertEqual(repr(d), 'RectPulse(4)')
         # str
         self.assertEqual(str(d), 'Pi4[n]')
+        # latex
+        self.assertEqual(latex(d.shift(1), mode='inline'),
+                         r'$\Pi_{4} \left[ n - 1 \right]$')
 
     def test_eval_sample(self):
         ''' RectPulse: eval(scalar), eval(range)
@@ -256,6 +263,7 @@ class RectTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             d = ds.RectPulse(-8)
             d = ds.RectPulse(sp.Symbol('L', integer=True))
+
 
 if __name__ == "__main__":
     unittest.main()

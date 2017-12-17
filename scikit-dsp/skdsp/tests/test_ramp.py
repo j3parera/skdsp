@@ -1,4 +1,5 @@
-from skdsp.signal._signal import _Signal, _FunctionSignal
+from ..signal._signal import _Signal, _FunctionSignal
+from ..signal.printer import latex
 import numpy as np
 import skdsp.signal.discrete as ds
 import sympy as sp
@@ -123,12 +124,18 @@ class RampTest(unittest.TestCase):
         self.assertEqual(repr(d), 'Ramp(3)')
         # str
         self.assertEqual(str(d), 'r[n - 3]')
+        # latex
+        self.assertEqual(latex(d, mode='inline'),
+                         r'$r \left[ n - 3 \right]$')
         # rampa discreta
         d = ds.Ramp(-5)
         # repr
         self.assertEqual(repr(d), 'Ramp(-5)')
         # str
         self.assertEqual(str(d), 'r[n + 5]')
+        # latex
+        self.assertEqual(latex(d, mode='inline'),
+                         r'$r \left[ n + 5 \right]$')
 
     def test_eval_sample(self):
         ''' Ramp: eval(scalar), eval(range)
@@ -251,6 +258,7 @@ class RampTest(unittest.TestCase):
         d = ds.Ramp(1).scale(1.5)
         np.testing.assert_array_equal(d[-12:12:4],
                                       np.array([0, 0, 0, 0, 3, 7]))
+
 
 if __name__ == "__main__":
     unittest.main()

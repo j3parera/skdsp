@@ -418,7 +418,7 @@ class Sinusoid(Cosine):
         return A1*Cosine(self._omega0)
 
     @property
-    def I(self):
+    def i(self):
         return self.in_phase
 
     @property
@@ -427,7 +427,7 @@ class Sinusoid(Cosine):
         return A2*Sine(self._omega0)
 
     @property
-    def Q(self):
+    def q(self):
         return self.in_quadrature
 
 

@@ -306,23 +306,24 @@ class SinusoidTest(unittest.TestCase):
         s = ds.Sinusoid()
         s0 = s.in_phase
         self.assertEqual(s0, ds.Sinusoid())
-        s0 = s.I
+        s0 = s.i
         self.assertEqual(s0, ds.Sinusoid())
         s1 = s.in_quadrature
         self.assertEqual(s1, ds.Constant(0))
-        s1 = s.Q
+        s1 = s.q
         self.assertEqual(s1, ds.Constant(0))
         s = ds.Sinusoid(3, sp.S.Pi/8, sp.S.Pi/4)
         s0 = s.in_phase
         self.assertEqual(s0, ds.Sinusoid(3*sp.cos(sp.S.Pi/4), sp.S.Pi/8, 0))
-        s0 = s.I
+        s0 = s.i
         self.assertEqual(s0, ds.Sinusoid(3*sp.cos(sp.S.Pi/4), sp.S.Pi/8, 0))
         s1 = s.in_quadrature
         self.assertEqual(s1, ds.Sinusoid(-3*sp.sin(sp.S.Pi/4),
                                          sp.S.Pi/8, -sp.S.Pi/2))
-        s1 = s.Q
+        s1 = s.q
         self.assertEqual(s1, ds.Sinusoid(-3*sp.sin(sp.S.Pi/4),
                                          sp.S.Pi/8, -sp.S.Pi/2))
+
 
 if __name__ == "__main__":
     unittest.main()

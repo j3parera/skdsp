@@ -2,6 +2,7 @@ from fractions import Fraction
 from skdsp.signal._signal import _Signal, _FunctionSignal
 import numpy as np
 import skdsp.signal.discrete as ds
+from skdsp.signal.printer import latex
 import sympy as sp
 import unittest
 
@@ -31,25 +32,21 @@ class ExponentialTest(unittest.TestCase):
         # exponencial discreta
         c = ds.Exponential(name='y0')
         self.assertEqual(c.name, 'y0')
-        self.assertEqual(c.latex_name(), 'y_{0}')
-        self.assertEqual(c.latex_name('inline'), '$y_{0}$')
+        self.assertEqual(c.latex_name, 'y_{0}')
         c.name = 'z'
         self.assertEqual(c.name, 'z')
-        self.assertEqual(c.latex_name(), 'z')
-        self.assertEqual(c.latex_name('inline'), '$z$')
+        self.assertEqual(c.latex_name, 'z')
         with self.assertRaises(ValueError):
             c.name = 'x0'
         with self.assertRaises(ValueError):
             c.name = 'y0'
         c = ds.Exponential(name='y0')
         self.assertEqual(c.name, 'y0')
-        self.assertEqual(c.latex_name(), 'y_{0}')
-        self.assertEqual(c.latex_name('inline'), '$y_{0}$')
+        self.assertEqual(c.latex_name, 'y_{0}')
         del c
         c = ds.Exponential(name='yupi')
         self.assertEqual(c.name, 'yupi')
-        self.assertEqual(c.latex_name(), 'yupi')
-        self.assertEqual(c.latex_name('inline'), '$yupi$')
+        self.assertEqual(c.latex_name, 'yupi')
 
     def test_xvar_xexpr(self):
         ''' Exponential: independent variable and expression.
@@ -165,7 +162,8 @@ class ExponentialTest(unittest.TestCase):
         self.assertEqual(str(c), '3*exp(j*pi*n/4)')
         # latex
         # TODO e --> \mathrm{e}, i -- \mathrm{j}
-        self.assertEqual(c.latex_yexpr(), r'3 e^{\frac{i \pi}{4} n}')
+        self.assertEqual(latex(c, mode='inline'),
+                         r'$3 {\rm{e}}^{\,{\rm{j}}(pi / 4)n}$')
         # exponencial discreta
         c = ds.Exponential(-5, sp.exp(sp.I*10))
         # repr
@@ -173,7 +171,7 @@ class ExponentialTest(unittest.TestCase):
         # str
         self.assertEqual(str(c), '-5*exp(10*j*n)')
         # latex
-        self.assertEqual(c.latex_yexpr(),
+        self.assertEqual(latex(c, mode='inline'),
                          r'- 5 e^{10 i n}')
         c = ds.Exponential(1, -1)
         # repr
@@ -181,14 +179,14 @@ class ExponentialTest(unittest.TestCase):
         # str
         self.assertEqual(str(c), '(-1)**n')
         # latex
-        self.assertEqual(c.latex_yexpr(), r'\left(-1\right)^{n}')
+        self.assertEqual(latex(c, mode='inline'), r'\left(-1\right)^{n}')
         c = ds.Exponential(3, sp.exp(sp.I*sp.S.Pi/4)).flip().delay(2)
         # repr
         self.assertEqual(repr(c), 'Exponential(3, exp(j*pi/4))')
         # str
         self.assertEqual(str(c), '3*exp(-j*pi*(n - 2)/4)')
         # latex
-        self.assertEqual(c.latex_yexpr(),
+        self.assertEqual(latex(c, mode='inline'),
                          r'3 e^{- \frac{i \pi}{4} \left(n - 2\right)}')
         c = ds.Exponential(1+1j, sp.exp(sp.I*sp.S.Pi/4)).flip().delay(2)
         # repr
@@ -196,7 +194,7 @@ class ExponentialTest(unittest.TestCase):
         # str
         self.assertEqual(str(c), '(1.0 + 1.0*j)*exp(-j*pi*(n - 2)/4)')
         # latex
-        self.assertEqual(c.latex_yexpr(),
+        self.assertEqual(latex(c, mode='inline'),
                          (r'\left(1.0 + 1.0 i\right) e^{- \frac{i \pi}{4} ' +
                           r'\left(n - 2\right)}'))
 
@@ -328,6 +326,7 @@ class ExponentialTest(unittest.TestCase):
         d = ds.Exponential(1, sp.Rational(1, 2)).scale(1.5)
         np.testing.assert_array_equal(d[-12:12:4],
                                       np.power(0.5, np.arange(-12, 12, 4)))
+
     def test_frequency(self):
         ''' Exponential (discrete): frequency '''
         # exponencial discreta
@@ -364,6 +363,7 @@ class ExponentialTest(unittest.TestCase):
 #         self.assertEqual(s0, ds.Constant(1))
 #         s1 = s.carrier
 #         self.assertEqual(s1, ds.Constant(1))
+
 
 if __name__ == "__main__":
     unittest.main()

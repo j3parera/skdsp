@@ -1,4 +1,5 @@
-from skdsp.signal._signal import _Signal, _FunctionSignal
+from ..signal._signal import _Signal, _FunctionSignal
+from ..signal.printer import latex
 import numpy as np
 import skdsp.signal.discrete as ds
 import sympy as sp
@@ -123,12 +124,18 @@ class StepTest(unittest.TestCase):
         self.assertEqual(repr(d), 'Step(3)')
         # str
         self.assertEqual(str(d), 'u[n - 3]')
+        # latex
+        self.assertEqual(latex(d, mode='inline'),
+                         r'$u \left[ n - 3 \right]$')
         # escalón discreto
         d = ds.Step(-5)
         # repr
         self.assertEqual(repr(d), 'Step(-5)')
         # str
         self.assertEqual(str(d), 'u[n + 5]')
+        # latex
+        self.assertEqual(latex(d, mode='inline'),
+                         r'$u \left[ n + 5 \right]$')
 
     def test_eval_sample(self):
         ''' Step: eval(scalar), eval(range)
@@ -251,6 +258,7 @@ class StepTest(unittest.TestCase):
         d = ds.Step(1).scale(1.5)
         np.testing.assert_array_equal(d[-12:12:4],
                                       np.array([0, 0, 0, 0, 1, 1]))
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,12 +1,12 @@
-from ._signal import _FunctionSignal
-from .continuous import ContinuousFunctionSignal
-from .discrete import DiscreteFunctionSignal, Exponential
+
 from sympy.printing.latex import LatexPrinter
 from sympy.printing.str import StrPrinter
 import sympy as sp
 
 
 class CustomStrPrinter(StrPrinter):
+
+    printmethod = '_sigstr'
 
     def _print_ImaginaryUnit(self, expr):
         return 'j'
@@ -17,50 +17,52 @@ class CustomStrPrinter(StrPrinter):
 
 class CustomLatexPrinter(LatexPrinter):
 
+    printmethod = '_siglatex'
+
     def _print_ImaginaryUnit(self, expr):
         return 'j'
 
-    def _print__DiscreteDelta(self, e):
-        if isinstance(e, sp.Expr):
-            return r'\delta\left[{0}\right]'.format(self._print(e.args[0]))
-        elif isinstance(e, ContinuousFunctionSignal):
-            return r'\delta\left[{0}\right]'.format(self._print(e._xexpr))
-        return r'\delta[?\right]'
+#    def _print__DiscreteDelta(self, e):
+#         if isinstance(e, sp.Expr):
+#             return r'\delta\left[{0}\right]'.format(self._print(e.args[0]))
+#         elif isinstance(e, ContinuousFunctionSignal):
+#             return r'\delta\left[{0}\right]'.format(self._print(e._xexpr))
+#        return r'\delta[?\right]'
 
-    def _print__DiscreteDeltaTrain(self, e):
-        return self._print__DiscreteDelta(e)
+#     def _print__DiscreteDeltaTrain(self, e):
+#         return self._print__DiscreteDelta(e)
 
-    def _print__DiscreteStep(self, e):
-        if isinstance(e, sp.Expr):
-            return r'u\left[{0}\right]'.format(self._print(e.args[0]))
-        elif isinstance(e, ContinuousFunctionSignal):
-            return r'u\left[{0}\right]'.format(self._print(e._xexpr))
-        return r'u\left[?\right]'
+#    def _print__DiscreteStep(self, e):
+#         if isinstance(e, sp.Expr):
+#             return r'u\left[{0}\right]'.format(self._print(e.args[0]))
+#         elif isinstance(e, ContinuousFunctionSignal):
+#             return r'u\left[{0}\right]'.format(self._print(e._xexpr))
+#        return r'u\left[?\right]'
 
-    def _print__DiscreteRamp(self, e):
-        if isinstance(e, sp.Expr):
-            return r'r\left[{0}\right]'.format(self._print(e.args[0]))
-        elif isinstance(e, DiscreteFunctionSignal):
-            return r'r\left[{0}\right]'.format(self._print(e._xexpr))
-        return r'r\left[?\right]'
+#    def _print__DiscreteRamp(self, e):
+#         if isinstance(e, sp.Expr):
+#             return r'r\left[{0}\right]'.format(self._print(e.args[0]))
+#         elif isinstance(e, DiscreteFunctionSignal):
+#             return r'r\left[{0}\right]'.format(self._print(e._xexpr))
+#        return r'r\left[?\right]'
 
-    def _print__DiscreteCosine(self, e):
-        sv = r'{}'.format(self._make_var(e._xexpr, True))
-        return self._make_s(r'\cos', sv, e, True)
+#     def _print__DiscreteCosine(self, e):
+#         sv = r'{}'.format(self._make_var(e._xexpr, True))
+#         return self._make_s(r'\cos', sv, e, True)
 
-    def _print__ContinuousRamp(self, e):
-        if isinstance(e, sp.Expr):
-            return r'r\left({0}\right)'.format(self._print(e.args[0]))
-        elif isinstance(e, ContinuousFunctionSignal):
-            return r'r\left({0}\right)'.format(self._print(e._xexpr))
-        return r'r\left(?\right)'
+#     def _print__ContinuousRamp(self, e):
+#         if isinstance(e, sp.Expr):
+#             return r'r\left({0}\right)'.format(self._print(e.args[0]))
+#         elif isinstance(e, ContinuousFunctionSignal):
+#             return r'r\left({0}\right)'.format(self._print(e._xexpr))
+#        return r'r\left(?\right)'
 
-    def _print_Heaviside(self, e):
-        if isinstance(e, sp.Expr):
-            return r'u\left({0}\right)'.format(self._print(e.args[0]))
-        elif isinstance(e, ContinuousFunctionSignal):
-            return r'u\left({0}\right)'.format(self._print(e._xexpr))
-        return r'u(?)'
+#    def _print_Heaviside(self, e):
+#         if isinstance(e, sp.Expr):
+#             return r'u\left({0}\right)'.format(self._print(e.args[0]))
+#         elif isinstance(e, ContinuousFunctionSignal):
+#             return r'u\left({0}\right)'.format(self._print(e._xexpr))
+#        return r'u(?)'
 
     def _make_var(self, expr, simple=False):
         if simple or isinstance(expr, sp.Symbol):
@@ -70,49 +72,43 @@ class CustomLatexPrinter(LatexPrinter):
         return s1
 
     def _make_s(self, pre, var, e, simple=False):
-        if simple or isinstance(e, ContinuousFunctionSignal):
-            s = pre + r'\left({}\right)'
-        elif isinstance(e, DiscreteFunctionSignal):
-            s = pre + r'\left[{}\right]'
+        if simple or e.is_continuous:
+            s = pre + r'\left( {0} \right)'
         else:
-            s = r'?{}'
+            s = pre + r'\left[ {0} \right]'
         return s.format(var)
 
     def _print_Mod(self, e):
         return '(({0}))_{{{1}}}'.format(e.args[0], e.args[1])
 
     def _print_Delta(self, e):
-        sv = r'{}'.format(self._make_var(e._xexpr, True))
-        return self._make_s(r'\delta', sv, e)
+        sv = r'{}'.format(self._make_var(e.xexpr, True))
+        return self._make_s(r'\delta ', sv, e)
 
     def _print_Step(self, e):
-        sv = r'{}'.format(self._make_var(e._xexpr, True))
-        return self._make_s(r'u', sv, e)
+        sv = r'{}'.format(self._make_var(e.xexpr, True))
+        return self._make_s(r'u ', sv, e)
 
     def _print_Ramp(self, e):
-        sv = r'{}'.format(self._make_var(e._xexpr, True))
-        return self._make_s(r'r', sv, e)
+        sv = r'{}'.format(self._make_var(e.xexpr, True))
+        return self._make_s(r'r ', sv, e)
 
-    def _print_Rect(self, e):
-        sv = r'{}/{}'.format(self._make_var(e._xexpr),
-                             self._print(e._width))
-        return self._make_s(r'\Pi', sv, e)
+    def _print_RectPulse(self, e):
+        sv = r'{0}'.format(self._make_var(e.xexpr, True))
+        s = self._make_s(r'\Pi_${0}% '.format(self._print(e.width)), sv, e)
+        s = s.replace('$', '{')
+        s = s.replace('%', '}')
+        return s
 
-    def _print_Triang(self, e):
-        sv = r'{}/{}'.format(self._make_var(e._xexpr),
-                             self._print(e._width))
-        return self._make_s(r'\Delta', sv, e)
-
-    def _print_cos(self, e):
-        sv = r'{}'.format(self._make_var(e._xexpr, True))
-        return self._make_s(r'\cos', sv, e, True)
-
-    def _print_Sine(self, e):
-        sv = r'{}'.format(self._make_var(e._xexpr, True))
-        return self._make_s(r'\sin', sv, e, True)
+    def _print_TriangPulse(self, e):
+        sv = r'{0}'.format(self._make_var(e.xexpr, True))
+        s = self._make_s(r'\Delta_${0}% '.format(self._print(e.width)), sv, e)
+        s = s.replace('$', '{')
+        s = s.replace('%', '}')
+        return s
 
     def _print_exp(self, e):
-        sb = r'{{\rm{{e}}}}^{{{0}}}'
+        sb = r'{{\mathrm{{e}}}}^{{{0}}}'
         se = ''
         exponent = sp.im(e.args[0])
         if exponent.is_negative:
@@ -149,28 +145,30 @@ class CustomLatexPrinter(LatexPrinter):
         return s
 
     def _print_Exponential(self, e):
-        if isinstance(e._base, sp.exp):
-            s = self._print_complex_exponent(e._base, e._xexpr)
-        elif isinstance(e._base, sp.Mul):
-            s = self._print(e._base.args[0])
-            s += self._print_complex_exponent(e._base.args[1], e._xexpr)
+        if isinstance(e.base, sp.exp):
+            s = self._print_complex_exponent(e.base, e._xexpr)
+        elif isinstance(e.base, sp.Mul):
+            s = self._print(e.base.args[0])
+            s += self._print_complex_exponent(e.base.args[1], e._xexpr)
         else:
             sv = r'{0}'.format(self._make_var(e._xexpr))
             if len(sv) != 1:
                 sv = '{' + sv + '}'
-            sb = self._print(sp.nsimplify(e._base))
-            if e._base < 0 or 'frac' in sb:
+            sb = self._print(sp.nsimplify(e.base))
+            if e.base < 0 or 'frac' in sb:
                 s = r'\left({0}\right)^{1}'.format(sb, sv)
             else:
                 s = r'{0}^{1}'.format(sb, sv)
+        if e.amplitude != sp.S.One:
+            s = self._print(e.amplitude) + ' ' + s
         return s
 
-    def _print_Pow(self, e):
-        exp = Exponential(e.args[0])
-        exp._xexpr = e.args[1]
-        exp._yexpr = e
-        exp._xvar = e.free_symbols.pop()
-        return self._print_Exponential(exp)
+#     def _print_Pow(self, e):
+#         exp = ds.Exponential(e.args[0])
+#         exp._xexpr = e.args[1]
+#         exp._yexpr = e
+#         exp._xvar = e.free_symbols.pop()
+#         return self._print_Exponential(exp)
 
     def _print_ComplexSinusoid(self, e):
         s1 = self._print(e.phasor)
@@ -206,8 +204,9 @@ class CustomLatexPrinter(LatexPrinter):
 
 
 def latex(signal, **settings):
-    toprint = r'{0}\left[{1}\right]'.format(signal.name, signal._xexpr)
-    if isinstance(signal, _FunctionSignal):
-        toprint = signal._yexpr
-    clp = CustomLatexPrinter(settings)
-    return clp.doprint(toprint)
+    p = CustomLatexPrinter(settings)
+    if signal.is_function:
+        return p.doprint(signal)
+    else:
+        sv = r'{}'.format(p._make_var(signal.xexpr, True))
+        return p._make_s(signal.latex_name, sv, signal.yexpr)

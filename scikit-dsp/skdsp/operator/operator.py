@@ -158,7 +158,7 @@ class ScaleOperator(Operator, UnaryOperatorMixin):
         """ Escala la variable independiente args[0] unidades:
         expr(var) -> expr(args[0]*var)
         """
-        if args[1] == True:
+        if args[1] is True:
             return expr.xreplace({var: var*args[0]})
         else:
             return expr.xreplace({var: var/args[0]})

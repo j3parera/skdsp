@@ -1,8 +1,8 @@
 
 from ..operator.operator import ShiftOperator
 from ._signal import _Signal, _FunctionSignal, _SignalOp
-from ._util import _is_complex_scalar, _is_integer_scalar
 from ._util import _extract_omega, _extract_phase
+from ._util import _is_complex_scalar, _is_integer_scalar
 from numbers import Number
 from sympy.core.compatibility import iterable
 from sympy.core.evaluate import evaluate, global_evaluate
@@ -17,15 +17,9 @@ class _DiscreteMixin(object):
     and other useful stuff.
     """
 
+    is_Discrete = True
+
     _default_xvar = sp.Symbol('n', integer=True)
-
-    @property
-    def is_continuous(self):
-        return False
-
-    @property
-    def is_discrete(self):
-        return True
 
     @property
     def period(self):
@@ -89,38 +83,49 @@ class _DiscreteMixin(object):
         Mixin class initialization.
         """
 
+    def _post_op(self, other, yexpr):
+        if yexpr.is_constant():
+            return Constant(yexpr)
+        cmplx = self.is_complex or other.is_complex
+        return DiscreteFunctionSignal(yexpr, cmplx=cmplx)
+
     def _add(self, other):
+        if other.yexpr == sp.S.Zero:
+            return self
+        if self.yexpr == sp.S.Zero:
+            return other
         if isinstance(self, _FunctionSignal):
             if isinstance(other, _FunctionSignal):
                 yexpr1, xvar1 = self.yexpr, self.xvar
                 yexpr2, xvar2 = other.yexpr, other.xvar
                 yexpr = yexpr1 + yexpr2.subs(xvar2, xvar1)
-                if yexpr.is_constant():
-                    return Constant(yexpr)
-                cmplx = self.is_complex or other.is_complex
-                return DiscreteFunctionSignal(yexpr, cmplx=cmplx)
+                return self._post_op(other, yexpr)
 
     def _mul(self, other):
+        if other.yexpr == sp.S.One:
+            return self
+        if self.yexpr == sp.S.One:
+            return other
+        if self.yexpr == sp.S.Zero or other.yexpr == sp.S.Zero:
+            return Constant(0)
         if isinstance(self, _FunctionSignal):
             if isinstance(other, _FunctionSignal):
                 yexpr1, xvar1 = self.yexpr, self.xvar
                 yexpr2, xvar2 = other.yexpr, other.xvar
                 yexpr = yexpr1 * yexpr2.subs(xvar2, xvar1)
-                if yexpr.is_constant():
-                    return Constant(yexpr)
-                cmplx = self.is_complex or other.is_complex
-                return DiscreteFunctionSignal(yexpr, cmplx=cmplx)
+                return self._post_op(other, yexpr)
 
     def _pow(self, other):
+        if other.yexpr == sp.S.One:
+            return self
+        if other.yexpr == sp.S.Zero:
+            return Constant(0)
         if isinstance(self, _FunctionSignal):
             if isinstance(other, _FunctionSignal):
                 yexpr1, xvar1 = self.yexpr, self.xvar
                 yexpr2, xvar2 = other.yexpr, other.xvar
                 yexpr = yexpr1 ** yexpr2.subs(xvar2, xvar1)
-                if yexpr.is_constant():
-                    return Constant(yexpr)
-                cmplx = self.is_complex or other.is_complex
-                return DiscreteFunctionSignal(yexpr, cmplx=cmplx)
+                return self._post_op(other, yexpr)
 
     # --- independent variable operations -------------------------------------
     def shift(self, k):
@@ -151,11 +156,15 @@ class _DiscreteMixin(object):
     def compress(self, n):
         if not _is_integer_scalar(n):
             raise ValueError('compress factor must be integer')
+        if n == sp.S.One:
+            return self
         return _Signal.scale(self, n, mul=False)
 
     def expand(self, n):
         if not _is_integer_scalar(n):
             raise ValueError('expand factor must be integer')
+        if n == sp.S.One:
+            return self
         return _Signal.scale(self, n, mul=True)
 
     def __rshift__(self, k):
@@ -197,7 +206,7 @@ class _DiscreteMixin(object):
 
     def __neg__(self):
         with evaluate(True):
-            return self * Constant(-1)
+            return Constant(-1) * self
 
     def __mul__(self, other):
         if isinstance(other, Number):
@@ -275,7 +284,7 @@ class _DiscreteMixin(object):
 
 
 class _DiscreteSignalOp(_DiscreteMixin, _SignalOp):
-    pass
+    is_Discrete = True
 
 
 class DiscreteSignalAdd(_DiscreteSignalOp):
@@ -325,12 +334,12 @@ class DiscreteSignalAdd(_DiscreteSignalOp):
                 for id2, t in enumerate(args):
                     if id1 == id2:
                         continue
-                    new_seq = s._add(t)
+                    new_sgn = s._add(t)
                     # This returns None if s does not know how to add
-                    # with t. Returns the newly added sequence otherwise
-                    if new_seq is not None:
+                    # with t. Returns the newly added signal otherwise
+                    if new_sgn is not None:
                         new_args = [a for a in args if a not in (s, t)]
-                        new_args.append(new_seq)
+                        new_args.append(new_sgn)
                         break
                 if new_args:
                     args = new_args
@@ -392,12 +401,12 @@ class DiscreteSignalMul(_DiscreteSignalOp):
                 for id2, t in enumerate(args):
                     if id1 == id2:
                         continue
-                    new_seq = s._mul(t)
+                    new_sgn = s._mul(t)
                     # This returns None if s does not know how to add
-                    # with t. Returns the newly added sequence otherwise
-                    if new_seq is not None:
+                    # with t. Returns the newly added signal otherwise
+                    if new_sgn is not None:
                         new_args = [a for a in args if a not in (s, t)]
-                        new_args.append(new_seq)
+                        new_args.append(new_sgn)
                         break
                 if new_args:
                     args = new_args
@@ -462,12 +471,12 @@ class DiscreteSignalPow(_DiscreteSignalOp):
                 for id2, t in enumerate(args):
                     if id1 == id2:
                         continue
-                    new_seq = s._pow(t)
+                    new_sgn = s._pow(t)
                     # This returns None if s does not know how to add
-                    # with t. Returns the newly added sequence otherwise
-                    if new_seq is not None:
+                    # with t. Returns the newly added signal otherwise
+                    if new_sgn is not None:
                         new_args = [a for a in args if a not in (s, t)]
-                        new_args.append(new_seq)
+                        new_args.append(new_sgn)
                         break
                 if new_args:
                     args = new_args
@@ -488,6 +497,8 @@ class DiscreteSignalPow(_DiscreteSignalOp):
 
 
 class DataSignal(_Signal, _DiscreteMixin):
+
+    is_DataSignal = True
 
     def __init__(self, data, span):
         super.__init__()
@@ -583,7 +594,7 @@ class Delta(DiscreteFunctionSignal):
 
         @staticmethod
         def _imp_(n):
-            return np.equal(np.asarray(n, dtype=np.float_), 0)
+            return np.equal(n, 0).astype(np.float_)
 
     def __new__(cls, delay=0, **kwargs):
         # delay
@@ -603,11 +614,11 @@ class Delta(DiscreteFunctionSignal):
         # period
         self._period = sp.oo
 
-    def __str__(self):
-        return 'd[{0}]'.format(str(self.xexpr))
-
-    def __repr__(self):
+    def __str__(self, *args, **kwargs):
         return 'Delta(' + str(self.args[0]) + ')'
+
+    def __repr__(self, *args, **kwargs):
+        return 'Delta(' + str(self.xexpr) + ')'
 
 
 class Step(DiscreteFunctionSignal):
@@ -844,7 +855,7 @@ class Sinusoid(_TrigMixin, DiscreteFunctionSignal):
         return Sinusoid(A, self.frequency)
 
     @property
-    def I(self):
+    def i(self):
         return self.in_phase
 
     @property
@@ -855,7 +866,7 @@ class Sinusoid(_TrigMixin, DiscreteFunctionSignal):
         return Sinusoid(A, self.frequency, -sp.S.Pi/2)
 
     @property
-    def Q(self):
+    def q(self):
         return self.in_quadrature
 
     def __str__(self):
