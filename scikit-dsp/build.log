@@ -1,0 +1,110 @@
+warning: Debugger speedups using cython not found. Run '"/usr/bin/python3" "/home/pepo/.p2/pool/plugins/org.python.pydev_6.2.0.201711281614/pysrc/setup_cython.py" build_ext --inplace' to build.
+pydev debugger: starting (pid: 6529)
+/usr/lib/python3.6/distutils/dist.py:261: UserWarning: Unknown distribution option: 'configuration'
+  warnings.warn(msg)
+running install
+running build
+running build_py
+creating build/lib
+creating build/lib/skdsp
+copying skdsp/version.py -> build/lib/skdsp
+copying skdsp/cosas.py -> build/lib/skdsp
+copying skdsp/__init__.py -> build/lib/skdsp
+copying skdsp/zplane.py -> build/lib/skdsp
+copying skdsp/example_google.py -> build/lib/skdsp
+copying skdsp/util.py -> build/lib/skdsp
+creating build/lib/skdsp/signal
+copying skdsp/signal/_util.py -> build/lib/skdsp/signal
+copying skdsp/signal/__init__.py -> build/lib/skdsp/signal
+copying skdsp/signal/_signal.py -> build/lib/skdsp/signal
+copying skdsp/signal/discrete.py -> build/lib/skdsp/signal
+copying skdsp/signal/printer.py -> build/lib/skdsp/signal
+copying skdsp/signal/continuous.py -> build/lib/skdsp/signal
+creating build/lib/skdsp/operator
+copying skdsp/operator/__init__.py -> build/lib/skdsp/operator
+copying skdsp/operator/operator.py -> build/lib/skdsp/operator
+creating build/lib/skdsp/tests
+copying skdsp/tests/test_sinusoid.py -> build/lib/skdsp/tests
+copying skdsp/tests/__init__.py -> build/lib/skdsp/tests
+copying skdsp/tests/test_arithmetic.py -> build/lib/skdsp/tests
+copying skdsp/tests/test_delta.py -> build/lib/skdsp/tests
+copying skdsp/tests/test_step.py -> build/lib/skdsp/tests
+copying skdsp/tests/test_ramp.py -> build/lib/skdsp/tests
+copying skdsp/tests/test_constant.py -> build/lib/skdsp/tests
+copying skdsp/tests/test_timeop.py -> build/lib/skdsp/tests
+copying skdsp/tests/test_exponential.py -> build/lib/skdsp/tests
+copying skdsp/tests/test_triang.py -> build/lib/skdsp/tests
+copying skdsp/tests/test_rect.py -> build/lib/skdsp/tests
+creating build/lib/skdsp/transform
+copying skdsp/transform/__init__.py -> build/lib/skdsp/transform
+copying skdsp/transform/discrete.py -> build/lib/skdsp/transform
+running egg_info
+writing scikit_dsp.egg-info/PKG-INFO
+writing dependency_links to scikit_dsp.egg-info/dependency_links.txt
+writing top-level names to scikit_dsp.egg-info/top_level.txt
+reading manifest file 'scikit_dsp.egg-info/SOURCES.txt'
+writing manifest file 'scikit_dsp.egg-info/SOURCES.txt'
+running install_lib
+creating /home/pepo/git/skdsp/scikit-dsp/build/testenv/lib/python3.6/site-packages/skdsp
+copying build/lib/skdsp/version.py -> /home/pepo/git/skdsp/scikit-dsp/build/testenv/lib/python3.6/site-packages/skdsp
+copying build/lib/skdsp/cosas.py -> /home/pepo/git/skdsp/scikit-dsp/build/testenv/lib/python3.6/site-packages/skdsp
+copying build/lib/skdsp/__init__.py -> /home/pepo/git/skdsp/scikit-dsp/build/testenv/lib/python3.6/site-packages/skdsp
+creating /home/pepo/git/skdsp/scikit-dsp/build/testenv/lib/python3.6/site-packages/skdsp/signal
+copying build/lib/skdsp/signal/_util.py -> /home/pepo/git/skdsp/scikit-dsp/build/testenv/lib/python3.6/site-packages/skdsp/signal
+copying build/lib/skdsp/signal/__init__.py -> /home/pepo/git/skdsp/scikit-dsp/build/testenv/lib/python3.6/site-packages/skdsp/signal
+copying build/lib/skdsp/signal/_signal.py -> /home/pepo/git/skdsp/scikit-dsp/build/testenv/lib/python3.6/site-packages/skdsp/signal
+copying build/lib/skdsp/signal/discrete.py -> /home/pepo/git/skdsp/scikit-dsp/build/testenv/lib/python3.6/site-packages/skdsp/signal
+copying build/lib/skdsp/signal/printer.py -> /home/pepo/git/skdsp/scikit-dsp/build/testenv/lib/python3.6/site-packages/skdsp/signal
+copying build/lib/skdsp/signal/continuous.py -> /home/pepo/git/skdsp/scikit-dsp/build/testenv/lib/python3.6/site-packages/skdsp/signal
+copying build/lib/skdsp/zplane.py -> /home/pepo/git/skdsp/scikit-dsp/build/testenv/lib/python3.6/site-packages/skdsp
+creating /home/pepo/git/skdsp/scikit-dsp/build/testenv/lib/python3.6/site-packages/skdsp/operator
+copying build/lib/skdsp/operator/__init__.py -> /home/pepo/git/skdsp/scikit-dsp/build/testenv/lib/python3.6/site-packages/skdsp/operator
+copying build/lib/skdsp/operator/operator.py -> /home/pepo/git/skdsp/scikit-dsp/build/testenv/lib/python3.6/site-packages/skdsp/operator
+copying build/lib/skdsp/example_google.py -> /home/pepo/git/skdsp/scikit-dsp/build/testenv/lib/python3.6/site-packages/skdsp
+creating /home/pepo/git/skdsp/scikit-dsp/build/testenv/lib/python3.6/site-packages/skdsp/tests
+copying build/lib/skdsp/tests/test_sinusoid.py -> /home/pepo/git/skdsp/scikit-dsp/build/testenv/lib/python3.6/site-packages/skdsp/tests
+copying build/lib/skdsp/tests/__init__.py -> /home/pepo/git/skdsp/scikit-dsp/build/testenv/lib/python3.6/site-packages/skdsp/tests
+copying build/lib/skdsp/tests/test_arithmetic.py -> /home/pepo/git/skdsp/scikit-dsp/build/testenv/lib/python3.6/site-packages/skdsp/tests
+copying build/lib/skdsp/tests/test_delta.py -> /home/pepo/git/skdsp/scikit-dsp/build/testenv/lib/python3.6/site-packages/skdsp/tests
+copying build/lib/skdsp/tests/test_step.py -> /home/pepo/git/skdsp/scikit-dsp/build/testenv/lib/python3.6/site-packages/skdsp/tests
+copying build/lib/skdsp/tests/test_ramp.py -> /home/pepo/git/skdsp/scikit-dsp/build/testenv/lib/python3.6/site-packages/skdsp/tests
+copying build/lib/skdsp/tests/test_constant.py -> /home/pepo/git/skdsp/scikit-dsp/build/testenv/lib/python3.6/site-packages/skdsp/tests
+copying build/lib/skdsp/tests/test_timeop.py -> /home/pepo/git/skdsp/scikit-dsp/build/testenv/lib/python3.6/site-packages/skdsp/tests
+copying build/lib/skdsp/tests/test_exponential.py -> /home/pepo/git/skdsp/scikit-dsp/build/testenv/lib/python3.6/site-packages/skdsp/tests
+copying build/lib/skdsp/tests/test_triang.py -> /home/pepo/git/skdsp/scikit-dsp/build/testenv/lib/python3.6/site-packages/skdsp/tests
+copying build/lib/skdsp/tests/test_rect.py -> /home/pepo/git/skdsp/scikit-dsp/build/testenv/lib/python3.6/site-packages/skdsp/tests
+copying build/lib/skdsp/util.py -> /home/pepo/git/skdsp/scikit-dsp/build/testenv/lib/python3.6/site-packages/skdsp
+creating /home/pepo/git/skdsp/scikit-dsp/build/testenv/lib/python3.6/site-packages/skdsp/transform
+copying build/lib/skdsp/transform/__init__.py -> /home/pepo/git/skdsp/scikit-dsp/build/testenv/lib/python3.6/site-packages/skdsp/transform
+copying build/lib/skdsp/transform/discrete.py -> /home/pepo/git/skdsp/scikit-dsp/build/testenv/lib/python3.6/site-packages/skdsp/transform
+byte-compiling /home/pepo/git/skdsp/scikit-dsp/build/testenv/lib/python3.6/site-packages/skdsp/version.py to version.cpython-36.pyc
+byte-compiling /home/pepo/git/skdsp/scikit-dsp/build/testenv/lib/python3.6/site-packages/skdsp/cosas.py to cosas.cpython-36.pyc
+byte-compiling /home/pepo/git/skdsp/scikit-dsp/build/testenv/lib/python3.6/site-packages/skdsp/__init__.py to __init__.cpython-36.pyc
+byte-compiling /home/pepo/git/skdsp/scikit-dsp/build/testenv/lib/python3.6/site-packages/skdsp/signal/_util.py to _util.cpython-36.pyc
+byte-compiling /home/pepo/git/skdsp/scikit-dsp/build/testenv/lib/python3.6/site-packages/skdsp/signal/__init__.py to __init__.cpython-36.pyc
+byte-compiling /home/pepo/git/skdsp/scikit-dsp/build/testenv/lib/python3.6/site-packages/skdsp/signal/_signal.py to _signal.cpython-36.pyc
+byte-compiling /home/pepo/git/skdsp/scikit-dsp/build/testenv/lib/python3.6/site-packages/skdsp/signal/discrete.py to discrete.cpython-36.pyc
+byte-compiling /home/pepo/git/skdsp/scikit-dsp/build/testenv/lib/python3.6/site-packages/skdsp/signal/printer.py to printer.cpython-36.pyc
+byte-compiling /home/pepo/git/skdsp/scikit-dsp/build/testenv/lib/python3.6/site-packages/skdsp/signal/continuous.py to continuous.cpython-36.pyc
+byte-compiling /home/pepo/git/skdsp/scikit-dsp/build/testenv/lib/python3.6/site-packages/skdsp/zplane.py to zplane.cpython-36.pyc
+byte-compiling /home/pepo/git/skdsp/scikit-dsp/build/testenv/lib/python3.6/site-packages/skdsp/operator/__init__.py to __init__.cpython-36.pyc
+byte-compiling /home/pepo/git/skdsp/scikit-dsp/build/testenv/lib/python3.6/site-packages/skdsp/operator/operator.py to operator.cpython-36.pyc
+byte-compiling /home/pepo/git/skdsp/scikit-dsp/build/testenv/lib/python3.6/site-packages/skdsp/example_google.py to example_google.cpython-36.pyc
+byte-compiling /home/pepo/git/skdsp/scikit-dsp/build/testenv/lib/python3.6/site-packages/skdsp/tests/test_sinusoid.py to test_sinusoid.cpython-36.pyc
+byte-compiling /home/pepo/git/skdsp/scikit-dsp/build/testenv/lib/python3.6/site-packages/skdsp/tests/__init__.py to __init__.cpython-36.pyc
+byte-compiling /home/pepo/git/skdsp/scikit-dsp/build/testenv/lib/python3.6/site-packages/skdsp/tests/test_arithmetic.py to test_arithmetic.cpython-36.pyc
+byte-compiling /home/pepo/git/skdsp/scikit-dsp/build/testenv/lib/python3.6/site-packages/skdsp/tests/test_delta.py to test_delta.cpython-36.pyc
+byte-compiling /home/pepo/git/skdsp/scikit-dsp/build/testenv/lib/python3.6/site-packages/skdsp/tests/test_step.py to test_step.cpython-36.pyc
+byte-compiling /home/pepo/git/skdsp/scikit-dsp/build/testenv/lib/python3.6/site-packages/skdsp/tests/test_ramp.py to test_ramp.cpython-36.pyc
+byte-compiling /home/pepo/git/skdsp/scikit-dsp/build/testenv/lib/python3.6/site-packages/skdsp/tests/test_constant.py to test_constant.cpython-36.pyc
+byte-compiling /home/pepo/git/skdsp/scikit-dsp/build/testenv/lib/python3.6/site-packages/skdsp/tests/test_timeop.py to test_timeop.cpython-36.pyc
+byte-compiling /home/pepo/git/skdsp/scikit-dsp/build/testenv/lib/python3.6/site-packages/skdsp/tests/test_exponential.py to test_exponential.cpython-36.pyc
+byte-compiling /home/pepo/git/skdsp/scikit-dsp/build/testenv/lib/python3.6/site-packages/skdsp/tests/test_triang.py to test_triang.cpython-36.pyc
+byte-compiling /home/pepo/git/skdsp/scikit-dsp/build/testenv/lib/python3.6/site-packages/skdsp/tests/test_rect.py to test_rect.cpython-36.pyc
+byte-compiling /home/pepo/git/skdsp/scikit-dsp/build/testenv/lib/python3.6/site-packages/skdsp/util.py to util.cpython-36.pyc
+byte-compiling /home/pepo/git/skdsp/scikit-dsp/build/testenv/lib/python3.6/site-packages/skdsp/transform/__init__.py to __init__.cpython-36.pyc
+byte-compiling /home/pepo/git/skdsp/scikit-dsp/build/testenv/lib/python3.6/site-packages/skdsp/transform/discrete.py to discrete.cpython-36.pyc
+running install_egg_info
+Copying scikit_dsp.egg-info to /home/pepo/git/skdsp/scikit-dsp/build/testenv/lib/python3.6/site-packages/scikit_dsp-0.0.5.dev0-py3.6.egg-info
+running install_scripts
+writing list of installed files to '/home/pepo/git/skdsp/scikit-dsp/build/testenv/record.lst'
