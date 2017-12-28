@@ -117,7 +117,7 @@ class RectPulseTest(unittest.TestCase):
         # pulso rectangular discreto
         d = ds.RectPulse(ds.n, 3)
         # repr
-        self.assertEqual(repr(d), 'RectPulse(3)')
+        self.assertEqual(repr(d), 'RectPulse(n, 3)')
         # str
         self.assertEqual(str(d), 'Pi3[n]')
         # latex
@@ -126,7 +126,7 @@ class RectPulseTest(unittest.TestCase):
         # pulso rectangular discreto
         d = ds.RectPulse(ds.n, 4)
         # repr
-        self.assertEqual(repr(d), 'RectPulse(4)')
+        self.assertEqual(repr(d), 'RectPulse(n, 4)')
         # str
         self.assertEqual(str(d), 'Pi4[n]')
         # latex

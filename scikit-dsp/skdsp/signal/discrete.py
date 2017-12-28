@@ -745,10 +745,10 @@ class RectPulse(DiscreteFunctionSignal):
         return self.args[1]
 
     def __str__(self):
-        return 'Pi{0}[{1}]'.format(self.width, str(self.xexpr))
+        return 'Pi{0}[{1}]'.format(self.width, self.xexpr)
 
     def __repr__(self):
-        return 'RectPulse({0})'.format(self.width)
+        return 'RectPulse({0}, {1})'.format(self.xexpr, self.width)
 
 
 class TriangPulse(DiscreteFunctionSignal):
@@ -780,7 +780,7 @@ class TriangPulse(DiscreteFunctionSignal):
         return 'Delta{0}[{1}]'.format(self.width, str(self.xexpr))
 
     def __repr__(self):
-        return 'TriangPulse({0})'.format(self.width)
+        return 'TriangPulse({0}, {1})'.format(self.xexpr, self.width)
 
 
 class _TrigMixin(object):
@@ -887,9 +887,10 @@ class Sinusoid(_TrigMixin, DiscreteFunctionSignal):
         return s
 
     def __repr__(self):
-        return 'Sinusoid({0}, {1}, {2})'.format(str(self.amplitude),
-                                                str(self.frequency),
-                                                str(self.phase))
+        return 'Sinusoid({0}, {1}, {2}, {3})'.format(str(self.xexpr),
+                                                     str(self.amplitude),
+                                                     str(self.frequency),
+                                                     str(self.phase))
 
 
 class Exponential(_TrigMixin, DiscreteFunctionSignal):

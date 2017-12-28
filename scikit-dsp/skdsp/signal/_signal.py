@@ -3,7 +3,6 @@ This module defines an abstract base class for a `signal`.
 This class implements all the common methods of signals.
 
 """
-
 from ..operator.operator import AbsOperator, HermitianOperator
 from ..operator.operator import ConjugateOperator, RealPartOperator
 from ..operator.operator import FlipOperator, ShiftOperator
@@ -666,7 +665,6 @@ class _FunctionSignal(_Signal):
         s._yexpr = ConjugateOperator.apply(s._xvar, s._yexpr)
         return s
 
-    @property
     def magnitude(self, dB=False):
         m = abs(self)
         if dB:

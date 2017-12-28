@@ -115,7 +115,7 @@ class TriangPulseTest(unittest.TestCase):
         # pulso triangular discreto
         d = ds.TriangPulse(ds.n, 3)
         # repr
-        self.assertEqual(repr(d), 'TriangPulse(3)')
+        self.assertEqual(repr(d), 'TriangPulse(n, 3)')
         # str
         self.assertEqual(str(d), 'Delta3[n]')
         # latex
@@ -124,7 +124,7 @@ class TriangPulseTest(unittest.TestCase):
         # pulso triangular discreto
         d = ds.TriangPulse(ds.n, 4)
         # repr
-        self.assertEqual(repr(d), 'TriangPulse(4)')
+        self.assertEqual(repr(d), 'TriangPulse(n, 4)')
         # str
         self.assertEqual(str(d), 'Delta4[n]')
         # latex

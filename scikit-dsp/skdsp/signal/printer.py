@@ -110,6 +110,24 @@ class CustomLatexPrinter(LatexPrinter):
         s = s.replace('%', '}')
         return s
 
+    def _print_Sinusoid(self, e):
+        sv = r'{0}'.format(self._make_var(e.xexpr))
+        tex = ''
+        if e.amplitude != sp.S.One:
+            tex += self._print(e.amplitude) + ' '
+        old = self._settings['fold_short_frac']
+        self._settings['fold_short_frac'] = False
+        if not sp.Eq(e.phase, 0):
+            plus = '+ ' if sp.StrictGreaterThan(e.phase, 0) else ''
+            tex += r'\cos\left( {0} {1} {2}{3} \right)'.format(
+                self._print(e.frequency), sv,
+                plus, self._print(e.phase))
+        else:
+            tex += r'\cos\left( {0} {1} \right)'.format(
+                self._print(e.frequency), sv)
+        self._settings['fold_short_frac'] = old
+        return tex
+
     def _print_exp(self, e):
         sb = r'{{\mathrm{{e}}}}^{{{0}}}'
         se = ''
