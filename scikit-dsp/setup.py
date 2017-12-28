@@ -52,6 +52,7 @@ def get_version():
     mod = imp.load_source('version', os.path.join(PACKAGE_NAME, 'version.py'))
     return mod.__version__
 
+
 # Documentation building command
 try:
     from sphinx.setup_command import BuildDoc as SphinxBuildDoc

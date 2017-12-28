@@ -204,5 +204,6 @@ def build_project(args):
 
     return site_dir
 
+
 if __name__ == "__main__":
     main(argv=sys.argv[1:])

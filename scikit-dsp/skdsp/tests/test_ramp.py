@@ -15,25 +15,27 @@ class RampTest(unittest.TestCase):
         d = ds.Ramp()
         self.assertIsNotNone(d)
         # rampa discreta
-        d = ds.Ramp(3)
+        d = ds.Ramp(ds.n-3)
         # jerarquía
         self.assertIsInstance(d, _Signal)
         self.assertIsInstance(d, _FunctionSignal)
         self.assertIsInstance(d, ds.DiscreteFunctionSignal)
         # retardo simbólico
-        d = ds.Ramp(sp.Symbol('n0', integer=True))
+        d = ds.Ramp(sp.Symbol('r', integer=True))
         self.assertIsNotNone(d)
         # retardo no entero
         with self.assertRaises(ValueError):
-            d = ds.Ramp(sp.Symbol('x0', real=True))
+            ds.Ramp(sp.Symbol('z', real=True))
         with self.assertRaises(ValueError):
-            d = ds.Ramp(1.5)
+            ds.Ramp(ds.n-1.5)
+        with self.assertRaises(ValueError):
+            ds.Ramp(ds.n/3)
 
     def test_name(self):
         ''' Ramp: name.
         '''
         # rampa discreta
-        d = ds.Ramp(3, name='y0')
+        d = ds.Ramp(ds.n-3, name='y0')
         self.assertEqual(d.name, 'y0')
         self.assertEqual(d.latex_name, 'y_{0}')
         d.name = 'z'
@@ -43,11 +45,11 @@ class RampTest(unittest.TestCase):
             d.name = 'x0'
         with self.assertRaises(ValueError):
             d.name = 'y0'
-        d = ds.Ramp(3, name='y0')
+        d = ds.Ramp(ds.n-3, name='y0')
         self.assertEqual(d.name, 'y0')
         self.assertEqual(d.latex_name, 'y_{0}')
         del d
-        d = ds.Ramp(3, name='yupi')
+        d = ds.Ramp(ds.n-3, name='yupi')
         self.assertEqual(d.name, 'yupi')
         self.assertEqual(d.latex_name, 'yupi')
 
@@ -67,7 +69,7 @@ class RampTest(unittest.TestCase):
         self.assertFalse(d.is_continuous)
         self.assertEqual(d.xvar, d.default_xvar())
         self.assertEqual(d.xexpr, d.xvar - shift)
-        d = ds.Ramp(shift)
+        d = ds.Ramp(ds.n-shift)
         self.assertEqual(d.xexpr, d.xvar - shift)
         # flip
         d = ds.Ramp().flip()
@@ -82,7 +84,7 @@ class RampTest(unittest.TestCase):
         self.assertFalse(d.is_continuous)
         self.assertEqual(d.xvar, d.default_xvar())
         self.assertEqual(d.xexpr, -d.xvar - shift)
-        d = ds.Ramp(shift).flip()
+        d = ds.Ramp(ds.n-shift).flip()
         self.assertEqual(d.xexpr, -d.xvar - shift)
         # flip and shift
         shift = 5
@@ -101,8 +103,9 @@ class RampTest(unittest.TestCase):
         self.assertEqual(d.yexpr, ds.Ramp._DiscreteRamp(
             ds._DiscreteMixin.default_xvar()))
         self.assertTrue(np.issubdtype(d.dtype, np.float))
+        self.assertTrue(d.is_integer)
         self.assertTrue(d.is_real)
-        self.assertFalse(d.is_complex)
+        self.assertTrue(d.is_complex)
         self.assertEqual(d, d.real)
         self.assertEqual(ds.Constant(0), d.imag)
 
@@ -110,7 +113,7 @@ class RampTest(unittest.TestCase):
         ''' Ramp: period.
         '''
         # rampa discreta
-        d = ds.Ramp(3)
+        d = ds.Ramp(ds.n-3)
         # periodicidad
         self.assertFalse(d.is_periodic)
         self.assertEqual(d.period, sp.oo)
@@ -119,18 +122,18 @@ class RampTest(unittest.TestCase):
         ''' Ramp: repr, str and latex.
         '''
         # rampa discreta
-        d = ds.Ramp(3)
+        d = ds.Ramp(ds.n-3)
         # repr
-        self.assertEqual(repr(d), 'Ramp(3)')
+        self.assertEqual(repr(d), 'Ramp(n - 3)')
         # str
         self.assertEqual(str(d), 'r[n - 3]')
         # latex
         self.assertEqual(latex(d, mode='inline'),
                          r'$r \left[ n - 3 \right]$')
         # rampa discreta
-        d = ds.Ramp(-5)
+        d = ds.Ramp(ds.n+5)
         # repr
-        self.assertEqual(repr(d), 'Ramp(-5)')
+        self.assertEqual(repr(d), 'Ramp(n + 5)')
         # str
         self.assertEqual(str(d), 'r[n + 5]')
         # latex
@@ -157,7 +160,7 @@ class RampTest(unittest.TestCase):
         np.testing.assert_array_almost_equal(d.eval(np.arange(3, -2, -2)),
                                              np.array([3, 1, 0]))
         # scalar
-        d = ds.Ramp(1)
+        d = ds.Ramp(ds.n-1)
         self.assertAlmostEqual(d.eval(0), 0)
         self.assertAlmostEqual(d.eval(1), 0)
         self.assertAlmostEqual(d.eval(-1), 0)
@@ -196,7 +199,7 @@ class RampTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             d[0:2:0.5]
         # scalar
-        d = ds.Ramp(-1)
+        d = ds.Ramp(ds.n+1)
         self.assertAlmostEqual(d[0], 1)
         self.assertAlmostEqual(d[1], 2)
         self.assertAlmostEqual(d[-1], 0)
@@ -228,9 +231,9 @@ class RampTest(unittest.TestCase):
         ''' Ramp (discrete): flip '''
         d = ds.Ramp().flip()
         np.testing.assert_array_equal(d[-3:3], np.array([3, 2, 1, 0, 0, 0]))
-        d = ds.Ramp(1).flip()
+        d = ds.Ramp(ds.n-1).flip()
         np.testing.assert_array_equal(d[-3:3], np.array([2, 1, 0, 0, 0, 0]))
-        d = ds.Ramp(-1).flip()
+        d = ds.Ramp(ds.n+1).flip()
         np.testing.assert_array_equal(d[-3:3], np.array([4, 3, 2, 1, 0, 0]))
 
     def test_shift_delay(self):
@@ -255,7 +258,7 @@ class RampTest(unittest.TestCase):
         d = ds.Ramp().scale(0.75)
         np.testing.assert_array_equal(d[-12:12:4],
                                       np.array([0, 0, 0, 0, 4, 8]))
-        d = ds.Ramp(1).scale(1.5)
+        d = ds.Ramp(ds.n-1).scale(1.5)
         np.testing.assert_array_equal(d[-12:12:4],
                                       np.array([0, 0, 0, 0, 3, 7]))
 

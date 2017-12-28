@@ -29,6 +29,7 @@ class _Signal(sp.Basic):
             an autoincremented integer.
     """
 
+    # To be overridden with True in the appropriate subclasses
     is_Signal = True
     is_FunctionSignal = False
     is_Continuous = False
@@ -85,17 +86,6 @@ class _Signal(sp.Basic):
             raise ValueError("Signal names 'xk' are reserved.")
         return name
 
-#     def __new__(cls, *args):
-#         """
-#         Signal common allocation.
-#
-#         Args:
-#             args (str): Whatever list of arguments to be internally held.
-#         """
-#         obj = object.__new__(cls)
-#         obj._args = list(args)
-#         return obj
-
     def _clone(self):
         s = self.func(*self.args)
         s._xexpr = self._xexpr
@@ -106,7 +96,8 @@ class _Signal(sp.Basic):
         """
         Signal deallocation.
         """
-        self._deregister(self._name)
+        if hasattr(self, '_name'):
+            self._deregister(self._name)
 
     def __init__(self, **kwargs):
         """
@@ -219,12 +210,12 @@ class _Signal(sp.Basic):
         self._xvar = newvar
 
     @property
-    def is_real(self):
+    def dtype_is_real(self):
         """ Tests whether the signal is real valued."""
         return self._dtype == np.float_
 
     @property
-    def is_complex(self):
+    def dtype_is_complex(self):
         """ Tests whether the signal is complex valued."""
         return self._dtype == np.complex_
 
@@ -275,7 +266,7 @@ class _Signal(sp.Basic):
         """ Signal's `repr()`esentation. """
         return "Generic '_Signal' object"
 
-    def _latex(self, *args, **kwargs):
+    def _latex(self, *_args, **_kwargs):
         return latex(self)
 
     __str__ = __repr__
@@ -481,7 +472,7 @@ class _Signal(sp.Basic):
 
         """
         s = self._clone()
-        if self.is_complex:
+        if self.dtype_is_complex:
             s._yexpr = RealPartOperator.apply(s._xvar, s._yexpr)
             s._dtype = np.float_
         return s
@@ -495,7 +486,7 @@ class _Signal(sp.Basic):
             A signal copy with the imaginary part of the signal if it's
             complex, else None.
         """
-        if self.is_complex:
+        if self.dtype_is_complex:
             s = self._clone()
             s._yexpr = ImaginaryPartOperator.apply(s._xvar, s._yexpr)
             s._dtype = np.float_
@@ -538,7 +529,7 @@ class _FunctionSignal(_Signal):
 
     is_FunctionSignal = True
 
-    def __init__(self, expr, **kwargs):
+    def __init__(self, xexpr, yexpr, **kwargs):
         """
         Common initialization for all functional signals.
 
@@ -546,17 +537,11 @@ class _FunctionSignal(_Signal):
             expr: The sympy mathematical expression that defines the signal.
         """
         super().__init__(**kwargs)
-        if not isinstance(expr, sp.Expr):
-            raise TypeError("'expr' must be a sympy expression")
-        if expr.is_number:
-            # just in case is a symbol or constant
-            self._yexpr = expr
-            self._xvar = self.default_xvar()
-            self._xexpr = self._xvar
-        else:
-            self._yexpr = expr
-            self._xvar = expr.free_symbols.pop()
-            self._xexpr = self._xvar
+        self._xexpr = xexpr
+        self._yexpr = yexpr
+        fs = xexpr.free_symbols
+        # Si hay más de un símbolo, p.e. (k-n), (n-m), se selecciona el primero
+        self._xvar = self.default_xvar() if len(fs) == 0 else next(iter(fs))
         self._ylambda = None
 
     @property
@@ -642,21 +627,48 @@ class _FunctionSignal(_Signal):
                      self._yexpr, 0) == sp.S.true
 
     @property
+    def is_even(self):
+        return sp.Eq(self._yexpr,
+                     self._yexpr.xreplace({self._xvar: -self._xvar}), 0)
+
+    @property
+    def is_odd(self):
+        return sp.Eq(self._yexpr,
+                     -self._yexpr.xreplace({self._xvar: -self._xvar}), 0)
+
+    @property
     def even(self):
+        if self.is_even:
+            return self
+        if self.is_odd:
+            return sp.S.Zero
         s1 = self._clone()
         s2 = self._clone()
+        s2._xexpr = FlipOperator.apply(s2._xvar, s2._xexpr)
         s2._yexpr = HermitianOperator.apply(s2._xvar, s2._yexpr)
-        return sp.Rational(1, 2)*(s1 + s2)
+        return sp.S.Half*(s1 + s2)
 
     @property
     def odd(self):
+        if self.is_odd:
+            return self
+        if self.is_even:
+            return sp.S.Zero
         s1 = self._clone()
         s2 = self._clone()
+        s2._xexpr = FlipOperator.apply(s2._xvar, s2._xexpr)
         s2._yexpr = HermitianOperator.apply(s2._xvar, s2._yexpr)
-        return sp.Rational(1, 2)*(s1 - s2)
+        return sp.S.Half*(s1 - s2)
 
     @property
     def conjugate(self):
         s = self._clone()
         s._yexpr = ConjugateOperator.apply(s._xvar, s._yexpr)
         return s
+
+    @property
+    def magnitude(self, dB=False):
+        m = abs(self)
+        if dB:
+            m._yexpr = 20*sp.log(m._yexpr, 10)
+        return m

@@ -53,7 +53,7 @@ def stem_update(st, y, title=None):
         st[2].set_text(title)
 
 
-def buffer(x, N, P=0, opt=None, order='C', *args):
+def buffer(x, N, P=0, opt=None, order='C', *_args):
     """
     Pretende funcionar como buffer de matlab pero por filas en lugar de
     por columnas, salvo que order sea 'F'

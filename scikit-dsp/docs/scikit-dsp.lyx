@@ -209,12 +209,34 @@ Las señales son elementos de un espacio de Hilbert:
 La suma (resta) de dos señales es una señal.
 \end_layout
 
+\begin_deeper
+\begin_layout Itemize
+casos particulares: 
+\begin_inset Formula $\delta[n]+\delta[-n]=2\delta[n]$
+\end_inset
+
+, 
+\begin_inset Formula $\delta[n]-\delta[-n]=0$
+\end_inset
+
+
+\end_layout
+
+\end_deeper
 \begin_layout Itemize
 El producto (cociente) de dos señales es una señal.
 \end_layout
 
 \begin_layout Itemize
 La multiplicación por un escalar es una señal.
+\end_layout
+
+\begin_layout Itemize
+La exponenciación, ¿es una señal 
+\begin_inset Formula $x[n]^{y[n]}$
+\end_inset
+
+, en matlab x.^y?
 \end_layout
 
 \begin_layout Subsection
@@ -813,7 +835,7 @@ Más genérica que el coseno
 \begin_inset Text
 
 \begin_layout Plain Layout
-
+ok
 \end_layout
 
 \end_inset
@@ -918,7 +940,7 @@ No es ventana rectangular
 \begin_inset Text
 
 \begin_layout Plain Layout
-
+ok
 \end_layout
 
 \end_inset
@@ -966,7 +988,7 @@ No es ventana Bartlett
 \begin_inset Text
 
 \begin_layout Plain Layout
-
+ok
 \end_layout
 
 \end_inset
@@ -1156,6 +1178,93 @@ Periodo
 \end_inset
 
 
+\end_layout
+
+\begin_layout Subsubsection
+Constante
+\end_layout
+
+\begin_layout Itemize
+constructor:
+\end_layout
+
+\begin_deeper
+\begin_layout LyX-Code
+s = Constant(const=0)
+\end_layout
+
+\end_deeper
+\begin_layout Itemize
+es par, finita
+\end_layout
+
+\begin_layout Subsubsection
+Delta
+\end_layout
+
+\begin_layout Itemize
+constructores:
+\end_layout
+
+\begin_deeper
+\begin_layout LyX-Code
+s = Delta()
+\end_layout
+
+\begin_layout LyX-Code
+s = Delta(iexpr), iexpr: expresión entera: n, n-3, n-m, k, 2*n, pero no
+ n-1.5, n/2, x
+\end_layout
+
+\end_deeper
+\begin_layout Itemize
+es par, entera, finita y no-negativa
+\end_layout
+
+\begin_layout Subsubsection
+Escalón
+\end_layout
+
+\begin_layout Itemize
+constructores:
+\end_layout
+
+\begin_deeper
+\begin_layout LyX-Code
+s = Step()
+\end_layout
+
+\begin_layout LyX-Code
+s = Step(iexpr), iexpr: expresión entera: n, n-3, n-m, k, 2*n, pero no n-1.5,
+ n/2, x
+\end_layout
+
+\end_deeper
+\begin_layout Itemize
+es entera, finita y no-negativa
+\end_layout
+
+\begin_layout Subsubsection
+Rampa
+\end_layout
+
+\begin_layout Itemize
+constructores:
+\end_layout
+
+\begin_deeper
+\begin_layout LyX-Code
+s = Ramp()
+\end_layout
+
+\begin_layout LyX-Code
+s = Ramp(iexpr), iexpr: expresión entera: n, n-3, n-m, k, 2*n, pero no n-1.5,
+ n/2, x
+\end_layout
+
+\end_deeper
+\begin_layout Itemize
+es entera, finita y no-negativa
 \end_layout
 
 \begin_layout Subsection
@@ -1678,22 +1787,18 @@ x = 3*Delta().shift(-2) + 2*(Delta() << 1) + (2+2j)*Delta().shift(2) + 3*(Delta(
 \end_layout
 
 \begin_layout Itemize
-Como 
-\family typewriter
-Delta
-\family default
- y 
-\family typewriter
-Step
-\family default
- se usan mucho desplazadas, se puede pasar el retardo como parámetro al
- constructor:
-\begin_inset Newline newline
-\end_inset
+También :
+\end_layout
 
+\begin_deeper
+\begin_layout LyX-Code
+n = sympy.Symbol('n', integer=True)
+\end_layout
+
+\begin_layout LyX-Code
 
 \family typewriter
-x = 3*Delta(-2) + 2*Delta(-1) + (2+2j)*Delta(2) + 3*Delta(4)
+x = 3*Delta(n-2) + 2*Delta(n-1) + (2+2j)*Delta(n-2) + 3*Delta(n-4)
 \family default
 , es 
 \begin_inset Formula $x[n]=3\delta[n+2]+2\delta[n+1]+(2+2\mathrm{j})\delta[n-2]+3\delta[n-4]$
@@ -1702,6 +1807,7 @@ x = 3*Delta(-2) + 2*Delta(-1) + (2+2j)*Delta(2) + 3*Delta(4)
 .
 \end_layout
 
+\end_deeper
 \begin_layout Itemize
 Nótese que el desplazamiento 
 \begin_inset Formula $x[n-k]$
@@ -1927,7 +2033,8 @@ raíz enésima:
 
 \end_deeper
 \begin_layout Itemize
-derivada: dx(t)/dt o diferencia: x(n)-x(n-1)
+derivada: dx(t)/dt o diferencia: x(n)-x(n-1), diff(u[n], 1) = delta[n],
+ diff(r[n], 2) = delta[n]
 \end_layout
 
 \begin_layout Itemize

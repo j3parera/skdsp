@@ -131,7 +131,7 @@ class BinaryOperatorMixin(object):
 class FlipOperator(Operator, UnaryOperatorMixin):
 
     @staticmethod
-    def apply(var, expr, *args):
+    def apply(var, expr, *_args):
         """ Invierte la variable independiente:
         expr(var) -> expr(-var)
         """
@@ -187,7 +187,7 @@ class ScaleOperator(Operator, UnaryOperatorMixin):
 class GainOperator(Operator, UnaryOperatorMixin):
 
     @staticmethod
-    def apply(var, expr, *args):
+    def apply(_var, expr, *args):
         """ Amplifica la expresión por args[0]:
         expr(var) -> args[0]*expr(var)
         """
@@ -197,7 +197,7 @@ class GainOperator(Operator, UnaryOperatorMixin):
 class AbsOperator(Operator, UnaryOperatorMixin):
 
     @staticmethod
-    def apply(var, expr, *args):
+    def apply(_var, expr, *_args):
         """ Toma valor absoluto de la expresión:
         expr(var) -> abs(expr(var))
         """
@@ -207,7 +207,7 @@ class AbsOperator(Operator, UnaryOperatorMixin):
 class ConjugateOperator(Operator, UnaryOperatorMixin):
 
     @staticmethod
-    def apply(var, expr, *args):
+    def apply(_var, expr, *_args):
         """ Devuelve el conjugado de la expresión:
         expr(var) -> conj(expr(var))
         """
@@ -219,7 +219,7 @@ class ConjugateOperator(Operator, UnaryOperatorMixin):
 class RealPartOperator(Operator, UnaryOperatorMixin):
 
     @staticmethod
-    def apply(var, expr, *args):
+    def apply(_var, expr, *_args):
         """ Devuelve la parte real de la expresión:
         expr(var) -> Re(expr(var))
         """
@@ -230,7 +230,7 @@ class RealPartOperator(Operator, UnaryOperatorMixin):
 class ImaginaryPartOperator(Operator, UnaryOperatorMixin):
 
     @staticmethod
-    def apply(var, expr, *args):
+    def apply(_var, expr, *_args):
         """ Devuelve la parte imaginaria de la expresión:
         expr(var) -> Im(expr(var))
         """
@@ -241,7 +241,7 @@ class ImaginaryPartOperator(Operator, UnaryOperatorMixin):
 class HermitianOperator(Operator, UnaryOperatorMixin):
 
     @staticmethod
-    def apply(var, expr, *args):
+    def apply(var, expr, *_args):
         """ Devuelve el conjugado de la expresión invertida:
         expr(var) -> conj(expr(-var))
         """

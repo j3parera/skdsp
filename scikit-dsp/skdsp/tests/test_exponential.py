@@ -1,8 +1,8 @@
 from fractions import Fraction
 from skdsp.signal._signal import _Signal, _FunctionSignal
+from skdsp.signal.printer import latex
 import numpy as np
 import skdsp.signal.discrete as ds
-from skdsp.signal.printer import latex
 import sympy as sp
 import unittest
 
@@ -161,9 +161,18 @@ class ExponentialTest(unittest.TestCase):
         # str
         self.assertEqual(str(c), '3*exp(j*pi*n/4)')
         # latex
-        # TODO e --> \mathrm{e}, i -- \mathrm{j}
         self.assertEqual(latex(c, mode='inline'),
-                         r'$3 {\rm{e}}^{\,{\rm{j}}(pi / 4)n}$')
+                         r'$3 {\mathrm{e}}^{\,{\mathrm{j}}(\pi / 4)n}$')
+        # exponencial discreta
+        c = ds.Exponential(3, sp.exp(-sp.I*sp.S.Pi/4))
+        # repr
+        self.assertEqual(repr(c), 'Exponential(3, exp(-j*pi/4))')
+        # str
+        self.assertEqual(str(c), '3*exp(-j*pi*n/4)')
+        # latex
+        # TODO pinta mal los exponentes negativos 
+        self.assertEqual(latex(c, mode='inline'),
+                         r'$3 {\mathrm{e}}^{\,{\mathrm{-j}}(\pi / 4)n}$')
         # exponencial discreta
         c = ds.Exponential(-5, sp.exp(sp.I*10))
         # repr
@@ -172,22 +181,24 @@ class ExponentialTest(unittest.TestCase):
         self.assertEqual(str(c), '-5*exp(10*j*n)')
         # latex
         self.assertEqual(latex(c, mode='inline'),
-                         r'- 5 e^{10 i n}')
+                         r'$-5 {\mathrm{e}}^{\,{\mathrm{j}}(10)n}$')
         c = ds.Exponential(1, -1)
         # repr
         self.assertEqual(repr(c), 'Exponential(1, -1)')
         # str
         self.assertEqual(str(c), '(-1)**n')
         # latex
-        self.assertEqual(latex(c, mode='inline'), r'\left(-1\right)^{n}')
+        self.assertEqual(latex(c, mode='inline'), r'$\left(-1\right)^n$')
         c = ds.Exponential(3, sp.exp(sp.I*sp.S.Pi/4)).flip().delay(2)
+        # TODO ¿es correcto? porque faltaría el flip y el delay
         # repr
         self.assertEqual(repr(c), 'Exponential(3, exp(j*pi/4))')
         # str
         self.assertEqual(str(c), '3*exp(-j*pi*(n - 2)/4)')
         # latex
+        # TODO Mal
         self.assertEqual(latex(c, mode='inline'),
-                         r'3 e^{- \frac{i \pi}{4} \left(n - 2\right)}')
+                         r'$3 {\mathrm{e}}^{\,{\mathrm{j}}(\pi / 4) \left(n - 2\right)}$')
         c = ds.Exponential(1+1j, sp.exp(sp.I*sp.S.Pi/4)).flip().delay(2)
         # repr
         self.assertEqual(repr(c), 'Exponential(1.0 + 1.0*j, exp(j*pi/4))')

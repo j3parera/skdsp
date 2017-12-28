@@ -7,3 +7,14 @@
 /test_triang.cpython-35.pyc
 /test_sinusoid.cpython-35.pyc
 /test_exponential.cpython-35.pyc
+/__init__.cpython-36.pyc
+/test_arithmetic.cpython-36.pyc
+/test_constant.cpython-36.pyc
+/test_delta.cpython-36.pyc
+/test_exponential.cpython-36.pyc
+/test_ramp.cpython-36.pyc
+/test_rect.cpython-36.pyc
+/test_sinusoid.cpython-36.pyc
+/test_step.cpython-36.pyc
+/test_timeop.cpython-36.pyc
+/test_triang.cpython-36.pyc

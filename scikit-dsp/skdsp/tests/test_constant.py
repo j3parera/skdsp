@@ -21,7 +21,7 @@ class ConstantTest(unittest.TestCase):
         self.assertIsInstance(d, ds.DiscreteFunctionSignal)
         # no constante
         with self.assertRaises(ValueError):
-            d = ds.Constant(ds._DiscreteMixin.default_xvar())
+            ds.Constant(ds.n)
 
     def test_name(self):
         ''' Constant: name.
@@ -92,8 +92,8 @@ class ConstantTest(unittest.TestCase):
         # expresión
         self.assertEqual(d.yexpr, cte)
         self.assertTrue(np.issubdtype(d.dtype, np.float))
-        self.assertTrue(d.is_real)
-        self.assertFalse(d.is_complex)
+        self.assertTrue(d.dtype_is_real)
+        self.assertFalse(d.dtype_is_complex)
         self.assertEqual(d, d.real)
         self.assertEqual(ds.Constant(0), d.imag)
         # constante discreta
@@ -102,8 +102,8 @@ class ConstantTest(unittest.TestCase):
         # expresión
         self.assertEqual(d.yexpr, cte)
         self.assertTrue(np.issubdtype(d.dtype, np.complex))
-        self.assertFalse(d.is_real)
-        self.assertTrue(d.is_complex)
+        self.assertFalse(d.dtype_is_real)
+        self.assertTrue(d.dtype_is_complex)
         self.assertEqual(ds.Constant(-5.0), d.real)
         self.assertEqual(ds.Constant(-3.0), d.imag)
 

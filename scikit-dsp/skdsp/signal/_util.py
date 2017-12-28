@@ -45,6 +45,12 @@ def _extract_phase(x):
     return sp.arg(x)
 
 
+def _is_not_complex(x):
+    x = sp.sympify(x)
+    _, xi = x.as_real_imag()
+    return xi == sp.S.Zero
+
+
 def _is_real_scalar(x):
     """ Checks if argument is a real valued scalar.
 

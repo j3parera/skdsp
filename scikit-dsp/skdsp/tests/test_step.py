@@ -15,25 +15,30 @@ class StepTest(unittest.TestCase):
         d = ds.Step()
         self.assertIsNotNone(d)
         # escalón discreto
-        d = ds.Step(3)
+        d = ds.Step(ds.n)
+        self.assertIsNotNone(d)
+        # escalón discreto
+        d = ds.Step(ds.n-3)
         # jerarquía
         self.assertIsInstance(d, _Signal)
         self.assertIsInstance(d, _FunctionSignal)
         self.assertIsInstance(d, ds.DiscreteFunctionSignal)
         # retardo simbólico
-        d = ds.Step(sp.Symbol('n0', integer=True))
+        d = ds.Step(sp.Symbol('r', integer=True))
         self.assertIsNotNone(d)
         # retardo no entero
         with self.assertRaises(ValueError):
-            d = ds.Step(sp.Symbol('x0', real=True))
+            ds.Step(sp.Symbol('z', real=True))
         with self.assertRaises(ValueError):
-            d = ds.Step(1.5)
+            ds.Step(ds.n-1.5)
+        with self.assertRaises(ValueError):
+            ds.Step(ds.n/3)
 
     def test_name(self):
         ''' Step: name.
         '''
         # escalón discreto
-        d = ds.Step(3, name='y0')
+        d = ds.Step(ds.n-3, name='y0')
         self.assertEqual(d.name, 'y0')
         self.assertEqual(d.latex_name, 'y_{0}')
         d.name = 'z'
@@ -43,11 +48,11 @@ class StepTest(unittest.TestCase):
             d.name = 'x0'
         with self.assertRaises(ValueError):
             d.name = 'y0'
-        d = ds.Step(3, name='y0')
+        d = ds.Step(ds.n-3, name='y0')
         self.assertEqual(d.name, 'y0')
         self.assertEqual(d.latex_name, 'y_{0}')
         del d
-        d = ds.Step(3, name='yupi')
+        d = ds.Step(ds.n-3, name='yupi')
         self.assertEqual(d.name, 'yupi')
         self.assertEqual(d.latex_name, 'yupi')
 
@@ -67,7 +72,7 @@ class StepTest(unittest.TestCase):
         self.assertFalse(d.is_continuous)
         self.assertEqual(d.xvar, d.default_xvar())
         self.assertEqual(d.xexpr, d.xvar - shift)
-        d = ds.Step(shift)
+        d = ds.Step(ds.n-shift)
         self.assertEqual(d.xexpr, d.xvar - shift)
         # flip
         d = ds.Step().flip()
@@ -82,7 +87,7 @@ class StepTest(unittest.TestCase):
         self.assertFalse(d.is_continuous)
         self.assertEqual(d.xvar, d.default_xvar())
         self.assertEqual(d.xexpr, -d.xvar - shift)
-        d = ds.Step(shift).flip()
+        d = ds.Step(ds.n-shift).flip()
         self.assertEqual(d.xexpr, -d.xvar - shift)
         # flip and shift
         shift = 5
@@ -101,8 +106,9 @@ class StepTest(unittest.TestCase):
         self.assertEqual(d.yexpr, ds.Step._DiscreteStep(
             ds._DiscreteMixin.default_xvar()))
         self.assertTrue(np.issubdtype(d.dtype, np.float))
+        self.assertTrue(d.is_integer)
         self.assertTrue(d.is_real)
-        self.assertFalse(d.is_complex)
+        self.assertTrue(d.is_complex)
         self.assertEqual(d, d.real)
         self.assertEqual(ds.Constant(0), d.imag)
 
@@ -110,7 +116,7 @@ class StepTest(unittest.TestCase):
         ''' Step: period.
         '''
         # escalón discreto
-        d = ds.Step(3)
+        d = ds.Step(ds.n-3)
         # periodicidad
         self.assertFalse(d.is_periodic)
         self.assertEqual(d.period, sp.oo)
@@ -119,18 +125,18 @@ class StepTest(unittest.TestCase):
         ''' Step: repr, str and latex.
         '''
         # escalón discreto
-        d = ds.Step(3)
+        d = ds.Step(ds.n-3)
         # repr
-        self.assertEqual(repr(d), 'Step(3)')
+        self.assertEqual(repr(d), 'Step(n - 3)')
         # str
         self.assertEqual(str(d), 'u[n - 3]')
         # latex
         self.assertEqual(latex(d, mode='inline'),
                          r'$u \left[ n - 3 \right]$')
         # escalón discreto
-        d = ds.Step(-5)
+        d = ds.Step(ds.n+5)
         # repr
-        self.assertEqual(repr(d), 'Step(-5)')
+        self.assertEqual(repr(d), 'Step(n + 5)')
         # str
         self.assertEqual(str(d), 'u[n + 5]')
         # latex
@@ -157,7 +163,7 @@ class StepTest(unittest.TestCase):
         np.testing.assert_array_almost_equal(d.eval(np.arange(3, -2, -2)),
                                              np.array([1, 1, 0]))
         # scalar
-        d = ds.Step(1)
+        d = ds.Step(ds.n-1)
         self.assertAlmostEqual(d.eval(0), 0)
         self.assertAlmostEqual(d.eval(1), 1)
         self.assertAlmostEqual(d.eval(-1), 0)
@@ -196,7 +202,7 @@ class StepTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             d[0:2:0.5]
         # scalar
-        d = ds.Step(-1)
+        d = ds.Step(ds.n+1)
         self.assertAlmostEqual(d[0], 1)
         self.assertAlmostEqual(d[1], 1)
         self.assertAlmostEqual(d[-1], 1)
@@ -228,9 +234,9 @@ class StepTest(unittest.TestCase):
         ''' Step (discrete): flip '''
         d = ds.Step().flip()
         np.testing.assert_array_equal(d[-3:3], np.array([1, 1, 1, 1, 0, 0]))
-        d = ds.Step(1).flip()
+        d = ds.Step(ds.n-1).flip()
         np.testing.assert_array_equal(d[-3:3], np.array([1, 1, 1, 0, 0, 0]))
-        d = ds.Step(-1).flip()
+        d = ds.Step(ds.n+1).flip()
         np.testing.assert_array_equal(d[-3:3], np.array([1, 1, 1, 1, 1, 0]))
 
     def test_shift_delay(self):
@@ -255,7 +261,7 @@ class StepTest(unittest.TestCase):
         d = ds.Step().scale(0.75)
         np.testing.assert_array_equal(d[-12:12:4],
                                       np.array([0, 0, 0, 1, 1, 1]))
-        d = ds.Step(1).scale(1.5)
+        d = ds.Step(ds.n-1).scale(1.5)
         np.testing.assert_array_equal(d[-12:12:4],
                                       np.array([0, 0, 0, 0, 1, 1]))
 

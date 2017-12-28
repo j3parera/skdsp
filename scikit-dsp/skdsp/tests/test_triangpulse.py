@@ -6,7 +6,7 @@ import sympy as sp
 import unittest
 
 
-class TriangTest(unittest.TestCase):
+class TriangPulseTest(unittest.TestCase):
 
     def test_constructor(self):
         ''' TriangPulse: constructors.
@@ -15,7 +15,7 @@ class TriangTest(unittest.TestCase):
         d = ds.TriangPulse()
         self.assertIsNotNone(d)
         # pulso triangular discreto
-        d = ds.TriangPulse(3)
+        d = ds.TriangPulse(ds.n, 3)
         # jerarquía
         self.assertIsInstance(d, _Signal)
         self.assertIsInstance(d, _FunctionSignal)
@@ -33,7 +33,7 @@ class TriangTest(unittest.TestCase):
         ''' TriangPulse: name.
         '''
         # pulso triangular discreto
-        d = ds.TriangPulse(3, name='y0')
+        d = ds.TriangPulse(ds.n, 3, name='y0')
         self.assertEqual(d.name, 'y0')
         self.assertEqual(d.latex_name, 'y_{0}')
         d.name = 'z'
@@ -43,11 +43,11 @@ class TriangTest(unittest.TestCase):
             d.name = 'x0'
         with self.assertRaises(ValueError):
             d.name = 'y0'
-        d = ds.TriangPulse(3, name='y0')
+        d = ds.TriangPulse(ds.n, 3, name='y0')
         self.assertEqual(d.name, 'y0')
         self.assertEqual(d.latex_name, 'y_{0}')
         del d
-        d = ds.TriangPulse(3, name='yupi')
+        d = ds.TriangPulse(ds.n, 3, name='yupi')
         self.assertEqual(d.name, 'yupi')
         self.assertEqual(d.latex_name, 'yupi')
 
@@ -96,7 +96,7 @@ class TriangTest(unittest.TestCase):
         # expresión
         self.assertTrue(np.issubdtype(d.dtype, np.float))
         self.assertTrue(d.is_real)
-        self.assertFalse(d.is_complex)
+        self.assertTrue(d.is_complex)
         self.assertEqual(d, d.real)
         self.assertEqual(ds.Constant(0), d.imag)
 
@@ -104,7 +104,7 @@ class TriangTest(unittest.TestCase):
         ''' TriangPulse: period.
         '''
         # pulso triangular discreto
-        d = ds.TriangPulse(3)
+        d = ds.TriangPulse(ds.n, 3)
         # periodicidad
         self.assertFalse(d.is_periodic)
         self.assertEqual(d.period, sp.oo)
@@ -113,7 +113,7 @@ class TriangTest(unittest.TestCase):
         ''' TriangPulse: repr, str and latex.
         '''
         # pulso triangular discreto
-        d = ds.TriangPulse(3)
+        d = ds.TriangPulse(ds.n, 3)
         # repr
         self.assertEqual(repr(d), 'TriangPulse(3)')
         # str
@@ -122,7 +122,7 @@ class TriangTest(unittest.TestCase):
         self.assertEqual(latex(d, mode='inline'),
                          r'$\Delta_{3} \left[ n \right]$')
         # pulso triangular discreto
-        d = ds.TriangPulse(4)
+        d = ds.TriangPulse(ds.n, 4)
         # repr
         self.assertEqual(repr(d), 'TriangPulse(4)')
         # str
@@ -152,7 +152,7 @@ class TriangTest(unittest.TestCase):
                                              np.array([1 - 3/16, 1 - 1/16,
                                                        1 - 1/16]))
         # scalar
-        d = ds.TriangPulse(1)
+        d = ds.TriangPulse(ds.n, 1)
         self.assertAlmostEqual(d.eval(0), 1)
         self.assertAlmostEqual(d.eval(1), 0)
         self.assertAlmostEqual(d.eval(-1), 0)
@@ -192,7 +192,7 @@ class TriangTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             d[0:2:0.5]
         # scalar
-        d = ds.TriangPulse(1)
+        d = ds.TriangPulse(ds.n, 1)
         self.assertAlmostEqual(d[0], 1)
         self.assertAlmostEqual(d[1], 0)
         self.assertAlmostEqual(d[-1], 0)
@@ -212,7 +212,7 @@ class TriangTest(unittest.TestCase):
 
     def test_generator(self):
         ''' TriangPulse (discrete): generate '''
-        d = ds.TriangPulse(1)
+        d = ds.TriangPulse(ds.n, 1)
         with self.assertRaises(ValueError):
             d.generate(0, step=0.1)
         dg = d.generate(s0=-3, size=5, overlap=4)
@@ -224,9 +224,9 @@ class TriangTest(unittest.TestCase):
         ''' TriangPulse (discrete): flip '''
         d = ds.TriangPulse().flip()
         np.testing.assert_array_equal(d[-3:3], d.flip()[-3:3])
-        d = ds.TriangPulse(1).flip()
+        d = ds.TriangPulse(ds.n, 1).flip()
         np.testing.assert_array_equal(d[-3:3], np.array([0, 0, 0, 1, 0, 0]))
-        d = ds.TriangPulse(2).flip()
+        d = ds.TriangPulse(ds.n, 2).flip()
         np.testing.assert_array_equal(d[-3:3],
                                       np.array([0, 0, 1 - 1/2, 1, 1 - 1/2, 0]))
 
@@ -235,43 +235,44 @@ class TriangTest(unittest.TestCase):
         d = ds.TriangPulse()
         with self.assertRaises(ValueError):
             d.shift(0.5)
-        d = ds.TriangPulse(8).shift(2)
+        d = ds.TriangPulse(ds.n, 8).shift(2)
         np.testing.assert_array_equal(d[-3:3], np.array([1 - 5/8, 1 - 4/8,
                                                          1 - 3/8, 1 - 2/8,
                                                          1 - 1/8, 1]))
         with self.assertRaises(ValueError):
             d.delay(0.5)
-        d = ds.TriangPulse(8).delay(-2)
+        d = ds.TriangPulse(ds.n, 8).delay(-2)
         np.testing.assert_array_equal(d[-3:3], np.array([1 - 1/8, 1, 1 - 1/8,
                                                          1 - 2/8, 1 - 3/8,
                                                          1 - 4/8]))
 
     def test_scale(self):
         ''' TriangPulse (discrete): shift, delay '''
-        d = ds.TriangPulse(8)
+        d = ds.TriangPulse(ds.n, 8)
         with self.assertRaises(ValueError):
             d.scale(sp.pi)
-        d = ds.TriangPulse(8).scale(3)
+        d = ds.TriangPulse(ds.n, 8).scale(3)
         np.testing.assert_array_equal(d[-3:3],
                                       np.array([1 - 6/16, 1 - 4/16, 1 - 2/16,
                                                 1, 1 - 2/16, 1 - 4/16]))
-        d = ds.TriangPulse(8).scale(0.75)
+        d = ds.TriangPulse(ds.n, 8).scale(0.75)
         np.testing.assert_array_equal(d[-12:12:4],
                                       np.array([0, 0, 1 - 1/2, 1, 1 - 1/2, 0]))
-        d = ds.TriangPulse(8).scale(1.5)
+        d = ds.TriangPulse(ds.n, 8).scale(1.5)
         np.testing.assert_array_equal(d[-12:12:4],
                                       np.array([0, 0, 1 - 1/2, 1, 1 - 1/2, 0]))
 
     def test_width(self):
         ''' TriangPulse (discrete): shift, delay '''
-        d = ds.TriangPulse(8)
+        d = ds.TriangPulse(ds.n, 8)
         self.assertEqual(d.width, 8)
         N = sp.Symbol('N', integer=True, positive=True)
-        d = ds.TriangPulse(N)
+        d = ds.TriangPulse(ds.n, N)
         self.assertEqual(d.width, N)
         with self.assertRaises(ValueError):
-            d = ds.TriangPulse(-8)
-            d = ds.TriangPulse(sp.Symbol('L', integer=True))
+            ds.TriangPulse(ds.n, -8)
+        with self.assertRaises(ValueError):
+            ds.TriangPulse(ds.n, sp.Symbol('L', integer=True))  # debe ser Z+
 
 
 if __name__ == "__main__":

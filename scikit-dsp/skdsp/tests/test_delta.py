@@ -16,25 +16,34 @@ class DeltaTest(unittest.TestCase):
         d = ds.Delta()
         self.assertIsNotNone(d)
         # delta discreta
-        d = ds.Delta(3)
+        d = ds.Delta(ds.n)
+        self.assertIsNotNone(d)
+        # delta discreta
+        d = ds.Delta(ds.n-3)
         # jerarquía
         self.assertIsInstance(d, _Signal)
         self.assertIsInstance(d, _FunctionSignal)
         self.assertIsInstance(d, ds.DiscreteFunctionSignal)
         # retardo simbólico
-        d = ds.Delta(sp.Symbol('n0', integer=True))
+        d = ds.Delta(sp.Symbol('r', integer=True))
+        self.assertIsNotNone(d)
+        d = ds.Delta(ds.m)
+        self.assertIsNotNone(d)
+        d = ds.Delta(ds.n-ds.m)
         self.assertIsNotNone(d)
         # retardo no entero
         with self.assertRaises(ValueError):
-            d = ds.Delta(sp.Symbol('x0', real=True))
+            ds.Delta(sp.Symbol('z', real=True))
         with self.assertRaises(ValueError):
-            d = ds.Delta(1.5)
+            ds.Delta(ds.n-1.5)
+        with self.assertRaises(ValueError):
+            ds.Delta(ds.n/3)
 
     def test_name(self):
         ''' Delta: name.
         '''
         # delta discreta
-        d = ds.Delta(3, name='y0')
+        d = ds.Delta(ds.n-3, name='y0')
         self.assertEqual(d.name, 'y0')
         self.assertEqual(d.latex_name, 'y_{0}')
         d.name = 'z'
@@ -44,11 +53,11 @@ class DeltaTest(unittest.TestCase):
             d.name = 'x0'
         with self.assertRaises(ValueError):
             d.name = 'y0'
-        d = ds.Delta(3, name='y0')
+        d = ds.Delta(ds.n-3, name='y0')
         self.assertEqual(d.name, 'y0')
         self.assertEqual(d.latex_name, 'y_{0}')
         del d
-        d = ds.Delta(3, name='yupi')
+        d = ds.Delta(ds.n-3, name='yupi')
         self.assertEqual(d.name, 'yupi')
         self.assertEqual(d.latex_name, 'yupi')
 
@@ -68,7 +77,7 @@ class DeltaTest(unittest.TestCase):
         self.assertFalse(d.is_continuous)
         self.assertEqual(d.xvar, d.default_xvar())
         self.assertEqual(d.xexpr, d.xvar - shift)
-        d = ds.Delta(shift)
+        d = ds.Delta(ds.n-shift)
         self.assertEqual(d.xexpr, d.xvar - shift)
         # flip
         d = ds.Delta().flip()
@@ -83,7 +92,7 @@ class DeltaTest(unittest.TestCase):
         self.assertFalse(d.is_continuous)
         self.assertEqual(d.xvar, d.default_xvar())
         self.assertEqual(d.xexpr, -d.xvar - shift)
-        d = ds.Delta(shift).flip()
+        d = ds.Delta(ds.n-shift).flip()
         self.assertEqual(d.xexpr, -d.xvar - shift)
         # flip and shift
         shift = 5
@@ -102,8 +111,9 @@ class DeltaTest(unittest.TestCase):
         self.assertEqual(d.yexpr, ds.Delta._DiscreteDelta(
             ds._DiscreteMixin.default_xvar()))
         self.assertTrue(np.issubdtype(d.dtype, np.float))
+        self.assertTrue(d.is_integer)
         self.assertTrue(d.is_real)
-        self.assertFalse(d.is_complex)
+        self.assertTrue(d.is_complex)
         self.assertEqual(d, d.real)
         self.assertEqual(ds.Constant(0), d.imag)
 
@@ -111,7 +121,7 @@ class DeltaTest(unittest.TestCase):
         ''' Delta: period.
         '''
         # delta discreta
-        d = ds.Delta(3)
+        d = ds.Delta(ds.n-3)
         # periodicidad
         self.assertFalse(d.is_periodic)
         self.assertEqual(d.period, sp.oo)
@@ -120,20 +130,20 @@ class DeltaTest(unittest.TestCase):
         ''' Delta: repr, str and latex.
         '''
         # delta discreta
-        d = ds.Delta(3)
+        d = ds.Delta(ds.n-3)
         # repr
         self.assertEqual(repr(d), 'Delta(n - 3)')
         # str
-        self.assertEqual(str(d), 'Delta(3)')
+        self.assertEqual(str(d), 'delta[n - 3]')
         # latex
         self.assertEqual(latex(d, mode='inline'),
                          r'$\delta \left[ n - 3 \right]$')
         # delta discreta
-        d = ds.Delta(-5)
+        d = ds.Delta(ds.n+5)
         # repr
         self.assertEqual(repr(d), 'Delta(n + 5)')
         # str
-        self.assertEqual(str(d), 'Delta(-5)')
+        self.assertEqual(str(d), 'delta[n + 5]')
         # latex
         self.assertEqual(latex(d, mode='inline'),
                          r'$\delta \left[ n + 5 \right]$')
@@ -158,7 +168,7 @@ class DeltaTest(unittest.TestCase):
         np.testing.assert_array_almost_equal(d.eval(np.arange(3, -2, -2)),
                                              np.array([0, 0, 0]))
         # scalar
-        d = ds.Delta(1)
+        d = ds.Delta(ds.n-1)
         self.assertAlmostEqual(d.eval(0), 0)
         self.assertAlmostEqual(d.eval(1), 1)
         self.assertAlmostEqual(d.eval(-1), 0)
@@ -197,7 +207,7 @@ class DeltaTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             d[0:2:0.5]
         # scalar
-        d = ds.Delta(-1)
+        d = ds.Delta(ds.n+1)
         self.assertAlmostEqual(d[0], 0)
         self.assertAlmostEqual(d[1], 0)
         self.assertAlmostEqual(d[-1], 1)
@@ -229,9 +239,9 @@ class DeltaTest(unittest.TestCase):
         ''' Delta (discrete): flip '''
         d = ds.Delta()
         np.testing.assert_array_equal(d[-3:3], d.flip()[-3:3])
-        d = ds.Delta(1).flip()
+        d = ds.Delta(ds.n-1).flip()
         np.testing.assert_array_equal(d[-3:3], np.array([0, 0, 1, 0, 0, 0]))
-        d = ds.Delta(-1).flip()
+        d = ds.Delta(ds.n+1).flip()
         np.testing.assert_array_equal(d[-3:3], np.array([0, 0, 0, 0, 1, 0]))
 
     def test_shift_delay(self):
@@ -256,7 +266,7 @@ class DeltaTest(unittest.TestCase):
         d = ds.Delta().scale(0.75)
         np.testing.assert_array_equal(d[-12:12:4],
                                       np.array([0, 0, 0, 1, 0, 0]))
-        d = ds.Delta(1).scale(1.5)
+        d = ds.Delta(ds.n-1).scale(1.5)
         np.testing.assert_array_equal(d[-12:12:4],
                                       np.array([0, 0, 0, 0, 0, 0]))
 

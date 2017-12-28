@@ -22,6 +22,9 @@ class CustomLatexPrinter(LatexPrinter):
     def _print_ImaginaryUnit(self, expr):
         return 'j'
 
+    def _print_Pi(self, expr):
+        return r'\pi'
+
 #    def _print__DiscreteDelta(self, e):
 #         if isinstance(e, sp.Expr):
 #             return r'\delta\left[{0}\right]'.format(self._print(e.args[0]))
@@ -116,7 +119,7 @@ class CustomLatexPrinter(LatexPrinter):
             exponent = -exponent
         else:
             se = r'\,'
-        se += r'{\rm{j}}'
+        se += r'{\mathrm{j}}'
         s1 = self._print(exponent)
         if 'frac' in s1:
             se += s1
@@ -126,7 +129,7 @@ class CustomLatexPrinter(LatexPrinter):
         return s
 
     def _print_complex_exponent(self, expr, xexpr):
-        sb = r'{{\rm{{e}}}}^{{{0}}}'
+        sb = r'{{\mathrm{{e}}}}^{{{0}}}'
         se = ''
         exponent = sp.im(expr.args[0])
         if isinstance(xexpr, sp.Mul) and (xexpr.args[0] == -1):
@@ -134,7 +137,7 @@ class CustomLatexPrinter(LatexPrinter):
             xexpr = -xexpr
         else:
             se = r'\,'
-        se += r'{\rm{j}}'
+        se += r'{\mathrm{j}}'
         s1 = self._print(exponent)
         if 'frac' in s1:
             se += s1
