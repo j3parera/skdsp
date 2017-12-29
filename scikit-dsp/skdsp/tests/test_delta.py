@@ -1,4 +1,3 @@
-
 from skdsp.signal._signal import _Signal, _FunctionSignal
 from skdsp.signal.printer import latex
 import numpy as np

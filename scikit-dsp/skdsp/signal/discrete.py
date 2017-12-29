@@ -6,6 +6,7 @@ from sympy.core.compatibility import iterable
 from sympy.core.evaluate import evaluate, global_evaluate
 import numpy as np
 import sympy as sp
+from numpy import dtype
 
 n, m, k = sp.symbols('n, m, k', integer=True)
 
@@ -833,32 +834,33 @@ class Sinusoid(_TrigMixin, DiscreteFunctionSignal):
 
 class Exponential(_TrigMixin, DiscreteFunctionSignal):
 
-    def __new__(cls, A=1, alpha=1, **kwargs):
-        # arguments
+    is_real = True
+
+    def __new__(cls, xexpr=_DiscreteMixin._default_xvar, A=1, alpha=1,
+                **_kwargs):
+        return _Signal.__new__(cls, xexpr, A, alpha)
+
+    def __init__(self, xexpr=_DiscreteMixin._default_xvar, A=1, alpha=1,
+                 **kwargs):
         A = sp.sympify(A)
         alpha = sp.sympify(alpha)
-        return _Signal.__new__(cls, A, alpha)
-
-    def __init__(self, A=1, alpha=1, **kwargs):
-        A = self.args[0]
-        alpha = self.args[1]
-        # expression
-        expr = A*sp.Pow(alpha, _DiscreteMixin.default_xvar())
-        DiscreteFunctionSignal.__init__(self, expr, **kwargs)
         _TrigMixin.__init__(self, _extract_omega(alpha), _extract_phase(A))
+        xexpr = _DiscreteMixin._sympify_xexpr(xexpr)
+        yexpr = A*sp.Pow(alpha, xexpr)
+        DiscreteFunctionSignal.__init__(self, xexpr, yexpr, **kwargs)
         _, Ai = A.as_real_imag()
         _, ai = alpha.as_real_imag()
         if Ai.is_nonzero or ai.is_nonzero:
             self.dtype = np.complex_
-        self.period = self._compute_period()
-
-    @property
-    def base(self):
-        return self.args[1]
+            self.is_complex = True
 
     @property
     def amplitude(self):
-        return self.args[0]
+        return self.args[1]
+
+    @property
+    def base(self):
+        return self.args[2]
 
     @property
     def is_periodic(self):
@@ -880,16 +882,32 @@ class Exponential(_TrigMixin, DiscreteFunctionSignal):
         c, _ = self._xexpr.as_coeff_mul(self.xvar)
         if c.is_negative:
             o = -o
-        s = Exponential(sp.exp(sp.I*o))
+        s = Exponential(self.xvar, 1, sp.exp(sp.I*o))
+        if s.yexpr.is_constant():
+            s = Constant(s.yexpr)
         return s
 
     def __str__(self):
-        s = '{0}'.format(str(self.yexpr))
-        return s
+        # s = '{0}'.format(str(self.yexpr))
+        return str(self.yexpr)
 
     def __repr__(self):
-        return 'Exponential({0}, {1})'.format(str(self.amplitude),
-                                              str(self.base))
+        return 'Exponential({0}, {1}, {2})'.format(self.xexpr,
+                                                   self.amplitude,
+                                                   self.base)
+
+
+class RealExponential(Exponential):
+
+    def __new__(cls, xexpr=_DiscreteMixin._default_xvar, A=1, alpha=1,
+                **_kwargs):
+        return Exponential.__new__(cls, xexpr, A, alpha, **_kwargs)
+
+    def __init__(self, xexpr=_DiscreteMixin._default_xvar, A=1, alpha=1,
+                 **kwargs):
+        Exponential.__init__(self, xexpr, A, alpha, **kwargs)
+        if self.dtype_is_complex:
+            raise ValueError('amplitude and base must be real')
 
 
 class DeltaTrain(DiscreteFunctionSignal):

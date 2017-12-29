@@ -736,7 +736,7 @@ periódica o no
 \begin_inset Text
 
 \begin_layout Plain Layout
-
+Exponential
 \end_layout
 
 \end_inset
@@ -745,7 +745,7 @@ periódica o no
 \begin_inset Text
 
 \begin_layout Plain Layout
-
+ok
 \end_layout
 
 \end_inset
@@ -791,7 +791,7 @@ exponencial real:
 \begin_inset Text
 
 \begin_layout Plain Layout
-
+RealExponential
 \end_layout
 
 \end_inset
@@ -850,7 +850,7 @@ exponencial compleja:
 \begin_inset Text
 
 \begin_layout Plain Layout
-
+Exponential
 \end_layout
 
 \end_inset
@@ -1042,7 +1042,7 @@ ok
 \begin_inset Text
 
 \begin_layout Plain Layout
-tren de deltas
+
 \end_layout
 
 \end_inset
@@ -1051,9 +1051,6 @@ tren de deltas
 \begin_inset Text
 
 \begin_layout Plain Layout
-\begin_inset Formula $\delta\left[((n))_{N}\right]=\sum_{k=-\infty}^{\infty}\delta[n-kN]$
-\end_inset
-
 
 \end_layout
 
@@ -1063,10 +1060,6 @@ tren de deltas
 \begin_inset Text
 
 \begin_layout Plain Layout
-periódica, 
-\begin_inset Formula $N$
-\end_inset
-
 
 \end_layout
 
@@ -1096,7 +1089,7 @@ periódica,
 \begin_inset Text
 
 \begin_layout Plain Layout
-
+tren de deltas
 \end_layout
 
 \end_inset
@@ -1105,6 +1098,9 @@ periódica,
 \begin_inset Text
 
 \begin_layout Plain Layout
+\begin_inset Formula $\delta\left[((n))_{N}\right]=\sum_{k=-\infty}^{\infty}\delta[n-kN]$
+\end_inset
+
 
 \end_layout
 
@@ -1114,6 +1110,10 @@ periódica,
 \begin_inset Text
 
 \begin_layout Plain Layout
+periódica, 
+\begin_inset Formula $N$
+\end_inset
+
 
 \end_layout
 

@@ -150,9 +150,11 @@ class CustomLatexPrinter(LatexPrinter):
         sb = r'{{\mathrm{{e}}}}^{{{0}}}'
         se = ''
         exponent = sp.im(expr.args[0])
-        if isinstance(xexpr, sp.Mul) and (xexpr.args[0] == -1):
+        if exponent < 0:
+            # or isinstance(xexpr, sp.Mul) and (xexpr.args[0] == -1):
             se = '-'
-            xexpr = -xexpr
+            # xexpr = -xexpr
+            exponent = -exponent
         else:
             se = r'\,'
         se += r'{\mathrm{j}}'
@@ -161,7 +163,7 @@ class CustomLatexPrinter(LatexPrinter):
             se += s1
         else:
             se += r'(' + s1 + ')'
-        se += self._print(xexpr)
+        se += self._make_var(xexpr)
         s = sb.format(se)
         return s
 
