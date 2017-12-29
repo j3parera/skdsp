@@ -628,12 +628,12 @@ class _FunctionSignal(_Signal):
     @property
     def is_even(self):
         return sp.Eq(self._yexpr,
-                     self._yexpr.xreplace({self._xvar: -self._xvar}), 0)
+                     self._yexpr.xreplace({self._xvar: -self._xvar}))
 
     @property
     def is_odd(self):
         return sp.Eq(self._yexpr,
-                     -self._yexpr.xreplace({self._xvar: -self._xvar}), 0)
+                     -self._yexpr.xreplace({self._xvar: -self._xvar}))
 
     @property
     def even(self):

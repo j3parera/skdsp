@@ -436,8 +436,9 @@ Señales discretas funcionales simples
 \noindent
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="16" columns="4">
+<lyxtabular version="3" rows="15" columns="5">
 <features tabularvalignment="middle">
+<column alignment="left" valignment="top">
 <column alignment="left" valignment="top">
 <column alignment="left" valignment="top">
 <column alignment="left" valignment="top">
@@ -474,6 +475,15 @@ Notas
 \begin_inset Text
 
 \begin_layout Plain Layout
+Otras cosas
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
 
 \end_layout
 
@@ -498,6 +508,15 @@ constante
 \end_inset
 
 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+par, finita
 \end_layout
 
 \end_inset
@@ -547,6 +566,15 @@ delta
 \begin_inset Text
 
 \begin_layout Plain Layout
+par, entera, finita y no-negativa
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
 
 \end_layout
 
@@ -580,6 +608,15 @@ escalón unitario
 \end_inset
 
 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+entera, finita y no-negativa
 \end_layout
 
 \end_inset
@@ -624,6 +661,15 @@ n & n\ge0\\
 \end_inset
 
 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+entera, finita y no-negativa
 \end_layout
 
 \end_inset
@@ -681,6 +727,15 @@ exponencial
 \begin_inset Text
 
 \begin_layout Plain Layout
+periódica o no
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
 
 \end_layout
 
@@ -718,6 +773,15 @@ exponencial real:
 \begin_inset Formula $\alpha\in\mathbb{R}$
 \end_inset
 
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
 
 \end_layout
 
@@ -791,6 +855,15 @@ exponencial compleja:
 
 \end_inset
 </cell>
+<cell alignment="center" valignment="top" topline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
 </row>
 <row>
 <cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
@@ -826,6 +899,15 @@ sinusoide
 \begin_inset Text
 
 \begin_layout Plain Layout
+periódica o no
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
 Más genérica que el coseno
 \end_layout
 
@@ -836,63 +918,6 @@ Más genérica que el coseno
 
 \begin_layout Plain Layout
 ok
-\end_layout
-
-\end_inset
-</cell>
-</row>
-<row>
-<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
-\begin_inset Text
-
-\begin_layout Plain Layout
-
-\end_layout
-
-\end_inset
-</cell>
-<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
-\begin_inset Text
-
-\begin_layout Plain Layout
-constante 
-\begin_inset Formula $A$
-\end_inset
-
-, 
-\begin_inset Formula $\forall n$
-\end_inset
-
-, 
-\begin_inset Formula $A\in\mathbb{C}$
-\end_inset
-
-
-\end_layout
-
-\end_inset
-</cell>
-<cell alignment="center" valignment="top" topline="true" rightline="true" usebox="none">
-\begin_inset Text
-
-\begin_layout Plain Layout
-\begin_inset Formula $\omega_{0}=0$
-\end_inset
-
-, 
-\begin_inset Formula $\phi=0$
-\end_inset
-
-
-\end_layout
-
-\end_inset
-</cell>
-<cell alignment="center" valignment="top" topline="true" rightline="true" usebox="none">
-\begin_inset Text
-
-\begin_layout Plain Layout
-
 \end_layout
 
 \end_inset
@@ -922,6 +947,15 @@ pulso rectangular
 \begin_inset Formula $N\in\mathbb{N}^{0}$
 \end_inset
 
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
 
 \end_layout
 
@@ -979,6 +1013,15 @@ pulso triangular
 \begin_inset Text
 
 \begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
 No es ventana Bartlett
 \end_layout
 
@@ -1020,10 +1063,19 @@ tren de deltas
 \begin_inset Text
 
 \begin_layout Plain Layout
-Periodo 
+periódica, 
 \begin_inset Formula $N$
 \end_inset
 
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
 
 \end_layout
 
@@ -1050,6 +1102,15 @@ Periodo
 \end_inset
 </cell>
 <cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" rightline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
@@ -1106,10 +1167,19 @@ diente de sierra
 \begin_inset Text
 
 \begin_layout Plain Layout
-Periodo 
+periódica, 
 \begin_inset Formula $N$
 \end_inset
 
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
 
 \end_layout
 
@@ -1154,10 +1224,19 @@ cuadrada
 \begin_inset Text
 
 \begin_layout Plain Layout
-Periodo 
+periódica, 
 \begin_inset Formula $N$
 \end_inset
 
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
 
 \end_layout
 
@@ -1181,7 +1260,7 @@ Periodo
 \end_layout
 
 \begin_layout Subsubsection
-Constante
+Constructores
 \end_layout
 
 \begin_layout Itemize
