@@ -139,38 +139,38 @@ class DeltaTrainTest(unittest.TestCase):
         # repr
         self.assertEqual(repr(d), 'DeltaTrain(n, 16)')
         # str
-        self.assertEqual(str(d), 'delta[n, 16]')
+        self.assertEqual(str(d), 'delta[((n))16]')
         # latex
         self.assertEqual(latex(d, mode='inline'),
-                         r'$\sum_{k=-\infty}^{\infty} \delta [n + 16k]$')
+                         r'$\delta \left[ ((n))_{16} \right]$')
         # delta discreta
         d = ds.DeltaTrain(ds.n, sp.Symbol('L', integer=True, positive=True))
         # repr
         self.assertEqual(repr(d), 'DeltaTrain(n, L)')
         # str
-        self.assertEqual(str(d), 'delta[n, L]')
+        self.assertEqual(str(d), 'delta[((n))L]')
         # latex
         self.assertEqual(latex(d, mode='inline'),
-                         r'$\sum_{k=-\infty}^{\infty} \delta [n + kL]$')
+                         r'$\delta \left[ ((n))_{L} \right]$')
         # delta discreta
         d = ds.DeltaTrain(ds.n+5, 25)
         # repr
         self.assertEqual(repr(d), 'DeltaTrain(n + 5, 25)')
         # str
-        self.assertEqual(str(d), 'delta[n + 5, 25]')
+        self.assertEqual(str(d), 'delta[((n + 5))25]')
         # latex
         self.assertEqual(latex(d, mode='inline'),
-                         r'$\sum_{k=-\infty}^{\infty} \delta [(n + 5) + 25k]$')
+                         r'$\delta \left[ ((n + 5))_{25} \right]$')
 
         # delta discreta
         d = ds.DeltaTrain(ds.n-5, 25)
         # repr
         self.assertEqual(repr(d), 'DeltaTrain(n - 5, 25)')
         # str
-        self.assertEqual(str(d), 'delta[n - 5, 25]')
+        self.assertEqual(str(d), 'delta[((n - 5))25]')
         # latex
         self.assertEqual(latex(d, mode='inline'),
-                         r'$\sum_{k=-\infty}^{\infty} \delta [(n - 5) + 25k]$')
+                         r'$\delta \left[ ((n - 5))_{25} \right]$')
 
     def test_eval_sample(self):
         ''' DeltaTrain: eval(scalar), eval(range)

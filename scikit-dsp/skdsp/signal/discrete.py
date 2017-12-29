@@ -931,7 +931,7 @@ class DeltaTrain(DiscreteFunctionSignal):
         self.period = N
 
     def __str__(self, *_args, **_kwargs):
-        return 'delta[{0}, {1}]'.format(self.xexpr, self.period)
+        return 'delta[(({0})){1}]'.format(self.xexpr, self.period)
 
         return str(self.yexpr)
 

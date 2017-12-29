@@ -187,13 +187,8 @@ class CustomLatexPrinter(LatexPrinter):
         return s
 
     def _print_DeltaTrain(self, e):
-        tex = r'\sum_{k=-\infty}^{\infty} \delta [' + self._make_var(e.xexpr)
-        N = e.period
-        if N.is_number:
-            tex += r' + {0}k]'.format(N)
-        else:
-            tex += r' + k{0}]'.format(N)
-        return tex
+        return r'\delta \left[ ((' + self._make_var(e.xexpr, simple=True) + \
+            '))_{{{0}}} \\right]'.format(e.period)
 
 #     def _print_Pow(self, e):
 #         exp = ds.Exponential(e.args[0])
