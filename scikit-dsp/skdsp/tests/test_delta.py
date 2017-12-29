@@ -106,10 +106,10 @@ class DeltaTest(unittest.TestCase):
         ''' Delta: function expression.
         '''
         # delta discreta
-        d = ds.Delta()
+        d = ds.Delta(sp.Symbol('k', integer=True))
         # expresión
-        self.assertEqual(d.yexpr, ds.Delta._DiscreteDelta(
-            ds._DiscreteMixin.default_xvar()))
+        self.assertEqual(d.yexpr, sp.Piecewise((1, sp.Eq(d._xvar, 0)),
+                                               (0, True)))
         self.assertTrue(np.issubdtype(d.dtype, np.float))
         self.assertTrue(d.is_integer)
         self.assertTrue(d.is_real)

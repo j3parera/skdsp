@@ -593,31 +593,12 @@ class Delta(DiscreteFunctionSignal):
     is_integer = True
     is_nonnegative = True
 
-    class _DiscreteDelta(sp.Function):
-
-        nargs = 1
-        is_finite = True
-        is_integer = True
-        is_nonnegative = True
-
-        @classmethod
-        def eval(cls, arg):
-            if arg.is_Number:
-                if arg.is_nonzero:
-                    return sp.S.Zero
-                else:
-                    return sp.S.One
-
-        @staticmethod
-        def _imp_(n):
-            return np.equal(n, 0).astype(np.float_)
-
     def __new__(cls, xexpr=_DiscreteMixin._default_xvar, **_kwargs):
         return _Signal.__new__(cls, xexpr)
 
     def __init__(self, xexpr=_DiscreteMixin._default_xvar, **kwargs):
         xexpr = _DiscreteMixin._sympify_xexpr(xexpr)
-        yexpr = Delta._DiscreteDelta(xexpr)
+        yexpr = sp.Piecewise((1, sp.Eq(xexpr, 0)), (0, True))
         DiscreteFunctionSignal.__init__(self, xexpr, yexpr, **kwargs)
         self._period = sp.oo
         # TODO transformadas
@@ -638,33 +619,12 @@ class Step(DiscreteFunctionSignal):
     is_integer = True
     is_nonnegative = True
 
-    class _DiscreteStep(sp.Function):
-
-        nargs = 1
-        is_finite = True
-        is_integer = True
-        is_nonnegative = True
-
-        @classmethod
-        def eval(cls, arg):
-            arg = sp.sympify(arg)
-            if arg is sp.S.NaN:
-                return sp.S.NaN
-            elif arg.is_negative:
-                return sp.S.Zero
-            elif arg.is_zero or arg.is_positive:
-                return sp.S.One
-
-        @staticmethod
-        def _imp_(n):
-            return np.greater_equal(n, 0).astype(np.float_)
-
     def __new__(cls, xexpr=_DiscreteMixin._default_xvar, **_kwargs):
         return _Signal.__new__(cls, xexpr)
 
     def __init__(self, xexpr=_DiscreteMixin._default_xvar, **kwargs):
         xexpr = _DiscreteMixin._sympify_xexpr(xexpr)
-        yexpr = Step._DiscreteStep(xexpr)
+        yexpr = sp.Piecewise((1, xexpr >= 0), (0, True))
         DiscreteFunctionSignal.__init__(self, xexpr, yexpr, **kwargs)
         self._period = sp.oo
         # TODO transformadas
@@ -685,33 +645,12 @@ class Ramp(DiscreteFunctionSignal):
     is_integer = True
     is_nonnegative = True
 
-    class _DiscreteRamp(sp.Function):
-
-        nargs = 1
-        is_finite = False
-        is_integer = True
-        is_nonnegative = True
-
-        @classmethod
-        def eval(cls, arg):
-            arg = sp.sympify(arg)
-            if arg is sp.S.NaN:
-                return sp.S.NaN
-            elif arg.is_negative:
-                return sp.S.Zero
-            elif arg.is_zero or arg.is_positive:
-                return arg
-
-        @staticmethod
-        def _imp_(n):
-            return n*np.greater_equal(n, 0).astype(np.float_)
-
     def __new__(cls, xexpr=_DiscreteMixin._default_xvar, **_kwargs):
         return _Signal.__new__(cls, xexpr)
 
     def __init__(self, xexpr=_DiscreteMixin._default_xvar, **kwargs):
         xexpr = _DiscreteMixin._sympify_xexpr(xexpr)
-        yexpr = Ramp._DiscreteRamp(xexpr)
+        yexpr = sp.Piecewise((xexpr, xexpr >= 0), (0, True))
         DiscreteFunctionSignal.__init__(self, xexpr, yexpr, **kwargs)
         self._period = sp.oo
 
@@ -765,10 +704,9 @@ class TriangPulse(DiscreteFunctionSignal):
         if not width.is_integer or not width.is_nonnegative:
             raise ValueError('width must be a non-negative integer')
         xexpr = _DiscreteMixin._sympify_xexpr(xexpr)
-        yexpr = sp.Piecewise((1.0, xexpr == 0),
+        yexpr = sp.Piecewise((1.0, sp.Eq(xexpr, 0)),
                              (1.0 - sp.Abs(xexpr)/width,
-                              sp.Abs(xexpr) <= width),
-                             (0, True))
+                              sp.Abs(xexpr) <= width), (0, True))
         DiscreteFunctionSignal.__init__(self, xexpr, yexpr, **kwargs)
         self._period = sp.oo
 

@@ -1,4 +1,69 @@
 import numpy as np
+import sympy as sp
+
+
+class _DiscreteDelta(sp.Function):
+
+    nargs = 1
+    is_finite = True
+    is_integer = True
+    is_nonnegative = True
+
+    @classmethod
+    def eval(cls, arg):
+        if arg.is_Number:
+            if arg.is_nonzero:
+                return sp.S.Zero
+            else:
+                return sp.S.One
+
+    @staticmethod
+    def _imp_(n):
+        return np.equal(n, 0).astype(np.float_)
+
+
+class _DiscreteStep(sp.Function):
+
+    nargs = 1
+    is_finite = True
+    is_integer = True
+    is_nonnegative = True
+
+    @classmethod
+    def eval(cls, arg):
+        arg = sp.sympify(arg)
+        if arg is sp.S.NaN:
+            return sp.S.NaN
+        elif arg.is_negative:
+            return sp.S.Zero
+        elif arg.is_zero or arg.is_positive:
+            return sp.S.One
+
+    @staticmethod
+    def _imp_(n):
+        return np.greater_equal(n, 0).astype(np.float_)
+
+
+class _DiscreteRamp(sp.Function):
+
+    nargs = 1
+    is_finite = False
+    is_integer = True
+    is_nonnegative = True
+
+    @classmethod
+    def eval(cls, arg):
+        arg = sp.sympify(arg)
+        if arg is sp.S.NaN:
+            return sp.S.NaN
+        elif arg.is_negative:
+            return sp.S.Zero
+        elif arg.is_zero or arg.is_positive:
+            return arg
+
+    @staticmethod
+    def _imp_(n):
+        return n*np.greater_equal(n, 0).astype(np.float_)
 
 
 def cconv(x1, x2, N=None):
