@@ -186,6 +186,15 @@ class CustomLatexPrinter(LatexPrinter):
             s = self._print(e.amplitude) + ' ' + s
         return s
 
+    def _print_DeltaTrain(self, e):
+        tex = r'\sum_{k=-\infty}^{\infty} \delta [' + self._make_var(e.xexpr)
+        N = e.period
+        if N.is_number:
+            tex += r' + {0}k]'.format(N)
+        else:
+            tex += r' + k{0}]'.format(N)
+        return tex
+
 #     def _print_Pow(self, e):
 #         exp = ds.Exponential(e.args[0])
 #         exp._xexpr = e.args[1]
@@ -193,14 +202,14 @@ class CustomLatexPrinter(LatexPrinter):
 #         exp._xvar = e.free_symbols.pop()
 #         return self._print_Exponential(exp)
 
-    def _print_ComplexSinusoid(self, e):
-        s1 = self._print(e.phasor)
-        s2 = self._print(e.carrier)
-        if s1 == '1':
-            s = s2
-        else:
-            s = s1 + s2
-        return s
+#     def _print_ComplexSinusoid(self, e):
+#         s1 = self._print(e.phasor)
+#         s2 = self._print(e.carrier)
+#         if s1 == '1':
+#             s = s2
+#         else:
+#             s = s1 + s2
+#         return s
 
 #     def _print_Add(self, expr, order=None):
 #         # TODO or not

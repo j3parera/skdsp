@@ -6,7 +6,6 @@ from sympy.core.compatibility import iterable
 from sympy.core.evaluate import evaluate, global_evaluate
 import numpy as np
 import sympy as sp
-from numpy import dtype
 
 n, m, k = sp.symbols('n, m, k', integer=True)
 
@@ -31,7 +30,8 @@ class _DiscreteMixin(object):
     @period.setter
     def period(self, value):
         v = sp.sympify(value)
-        if _is_integer_scalar(v) or v.equals(sp.oo):
+        if _is_integer_scalar(v) or v.equals(sp.oo) \
+                or isinstance(v, sp.Symbol):
             self._period = v
         else:
             raise ValueError("'period' must be an integer scalar")
@@ -914,25 +914,29 @@ class DeltaTrain(DiscreteFunctionSignal):
     """
     Discrete delta train signal.
     """
-    def __new__(cls, N=16, **kwargs):
-        # arguments
-        N = sp.sympify(N)
-        return _Signal.__new__(cls, N)
+    is_finite = True
+    is_integer = True
+    is_nonnegative = True
 
-    def __init__(self, N=16):
+    def __new__(cls, xexpr=_DiscreteMixin._default_xvar, N=16, **_kwargs):
+        return _Signal.__new__(cls, xexpr, N)
+
+    def __init__(self, xexpr=_DiscreteMixin._default_xvar, N=16, **kwargs):
+        N = sp.sympify(N)
         if N <= 0:
             raise ValueError('N must be greater than 0')
-        # nm = sp.Mod(self.default_xvar(), N)
-        expr = Delta._DiscreteDelta(sp.Mod(self.default_xvar(), N))
-        DiscreteFunctionSignal.__init__(self, expr)
-        self._period = N
+        xexpr = _DiscreteMixin._sympify_xexpr(xexpr)
+        yexpr = sp.Piecewise((1, sp.Eq(sp.Mod(xexpr, N), 0)), (0, True))
+        DiscreteFunctionSignal.__init__(self, xexpr, yexpr, **kwargs)
+        self.period = N
 
-    def __str__(self):
-        s = '{0}'.format(str(self.yexpr))
-        return s
+    def __str__(self, *_args, **_kwargs):
+        return 'delta[{0}, {1}]'.format(self.xexpr, self.period)
+
+        return str(self.yexpr)
 
     def __repr__(self):
-        return 'DeltaTrain({0})'.format(str(self.period))
+        return 'DeltaTrain({0}, {1})'.format(self.xexpr, self.period)
 
 
 class Sawtooth(DiscreteFunctionSignal):
@@ -948,8 +952,8 @@ class Sawtooth(DiscreteFunctionSignal):
         expr = sp.Piecewise((-1+(2*nm)/width, nm < width),
                             (1-2*(nm-width)/(N-width), nm < N))
         DiscreteFunctionSignal.__init__(self, expr)
-        self._period = N
-        self._width = width
+        self.period = N
+        self.width = width
 
     def _print(self):
         return 'saw[{0}, {1}, {2}]'.format(str(self._xexpr), self._period,
@@ -968,8 +972,8 @@ class Square(DiscreteFunctionSignal):
         nm = sp.Mod(self.default_xvar(), N)
         expr = sp.Piecewise((1, nm < width), (-1, nm < N))
         DiscreteFunctionSignal.__init__(self, expr)
-        self._period = N
-        self._width = width
+        self.period = N
+        self.width = width
 
     def _print(self):
         return 'square[{0}, {1}, {2}]'.format(str(self._xexpr), self._period,
