@@ -7,7 +7,114 @@ from sympy.core.evaluate import evaluate, global_evaluate
 import numpy as np
 import sympy as sp
 
+# frequently used symbols
 n, m, k = sp.symbols('n, m, k', integer=True)
+
+
+# functions
+class UnitDelta(sp.Function):
+
+    nargs = 1
+    is_finite = True
+    is_integer = True
+    is_nonnegative = True
+
+    @classmethod
+    def eval(cls, arg):
+        arg = sp.sympify(arg)
+        if sp.logic.fuzzy_not(arg.is_integer):
+            raise ValueError('Function defined only for integer values')
+        if arg.is_zero:
+            return sp.S.One
+        elif arg.is_nonzero:
+            return sp.S.Zero
+
+    def _eval_rewrite_as_Piecewise(self, arg):
+        return sp.Piecewise((1, sp.Eq(arg, 0)), (0, True))
+
+    def _eval_rewrite_as_UnitStep(self, arg):
+        return UnitStep(arg) - UnitStep(arg-1)
+
+    @staticmethod
+    def _imp_(n):
+        return np.equal(n, 0).astype(np.float_)
+
+    @staticmethod
+    def _latex_no_arg(_printer):
+        return r'\delta'
+
+
+class UnitStep(sp.Function):
+
+    nargs = 1
+    is_finite = True
+    is_integer = True
+    is_nonnegative = True
+
+    @classmethod
+    def eval(cls, arg):
+        arg = sp.sympify(arg)
+        if sp.logic.fuzzy_not(arg.is_integer):
+            raise ValueError('Function defined only for integer values')
+        if arg.is_negative:
+            return sp.S.Zero
+        elif arg.is_nonnegative:
+            return sp.S.One
+
+    def _eval_rewrite_as_Piecewise(self, arg):
+        return sp.Piecewise((1, arg >= 0), (0, True))
+
+    def _eval_rewrite_as_UnitDelta(self, arg):
+        k = sp.Dummy(integer=True)
+        return sp.Sum(UnitDelta(k), (k, -sp.oo, arg))
+
+    def _eval_rewrite_as_UnitRamp(self, arg):
+        return UnitRamp(arg+1) - UnitRamp(arg)
+
+    @staticmethod
+    def _imp_(n):
+        return np.greater_equal(n, 0).astype(np.float_)
+
+    @staticmethod
+    def _latex_no_arg(_printer):
+        return r'\u'
+
+
+class UnitRamp(sp.Function):
+
+    nargs = 1
+    is_integer = True
+    is_nonnegative = True
+
+    @classmethod
+    def eval(cls, arg):
+        arg = sp.sympify(arg)
+        if sp.logic.fuzzy_not(arg.is_integer):
+            raise ValueError('Function defined only for integer values')
+        if arg.is_negative:
+            return sp.S.Zero
+        elif arg.is_nonnegative:
+            return arg
+
+    def _eval_rewrite_as_Piecewise(self, arg):
+        return sp.Piecewise((arg, arg >= 0), (0, True))
+
+    def _eval_rewrite_as_UnitStep(self, arg):
+        return arg*UnitStep(arg)
+
+    def _eval_rewrite_as_Max(self, arg):
+        return sp.Max(0, arg)
+
+    def _eval_rewrite_as_Abs(self, arg):
+        return sp.S.Half*(arg + sp.Abs(arg))
+
+    @staticmethod
+    def _imp_(n):
+        return n*np.greater_equal(n, 0).astype(np.float_)
+
+    @staticmethod
+    def _latex_no_arg(_printer):
+        return r'\r'
 
 
 class _DiscreteMixin(object):
@@ -599,7 +706,8 @@ class Delta(DiscreteFunctionSignal):
 
     def __init__(self, xexpr=_DiscreteMixin._default_xvar, **kwargs):
         xexpr = _DiscreteMixin._sympify_xexpr(xexpr)
-        yexpr = sp.Piecewise((1, sp.Eq(xexpr, 0)), (0, True))
+        # yexpr = sp.Piecewise((1, sp.Eq(xexpr, 0)), (0, True))
+        yexpr = UnitDelta(xexpr)
         DiscreteFunctionSignal.__init__(self, xexpr, yexpr, **kwargs)
         self._period = sp.oo
         # TODO transformadas
@@ -625,7 +733,8 @@ class Step(DiscreteFunctionSignal):
 
     def __init__(self, xexpr=_DiscreteMixin._default_xvar, **kwargs):
         xexpr = _DiscreteMixin._sympify_xexpr(xexpr)
-        yexpr = sp.Piecewise((1, xexpr >= 0), (0, True))
+        # yexpr = sp.Piecewise((1, xexpr >= 0), (0, True))
+        yexpr = UnitStep(xexpr)
         DiscreteFunctionSignal.__init__(self, xexpr, yexpr, **kwargs)
         self._period = sp.oo
         # TODO transformadas
@@ -651,7 +760,8 @@ class Ramp(DiscreteFunctionSignal):
 
     def __init__(self, xexpr=_DiscreteMixin._default_xvar, **kwargs):
         xexpr = _DiscreteMixin._sympify_xexpr(xexpr)
-        yexpr = sp.Piecewise((xexpr, xexpr >= 0), (0, True))
+        # yexpr = sp.Piecewise((xexpr, xexpr >= 0), (0, True))
+        yexpr = UnitRamp(xexpr)
         DiscreteFunctionSignal.__init__(self, xexpr, yexpr, **kwargs)
         self._period = sp.oo
 
