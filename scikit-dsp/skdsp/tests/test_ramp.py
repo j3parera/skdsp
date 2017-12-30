@@ -98,10 +98,12 @@ class RampTest(unittest.TestCase):
         ''' Ramp: function expression.
         '''
         # rampa discreta
-        d = ds.Ramp(sp.Symbol('k', integer=True))
+        d = ds.Ramp(sp.Symbol('k', integer=True)-3)
         # expresión
-        self.assertEqual(d.yexpr, sp.Piecewise((d._xvar, d._xvar >= 0),
-                                               (0, True)))
+        self.assertEqual(d.yexpr, ds.UnitRamp(d.xexpr))
+        print(d.yexpr.rewrite(ds.UnitStep))
+        print(d.yexpr.rewrite(sp.Max))
+        print(d.yexpr.rewrite(sp.Abs))
         self.assertTrue(np.issubdtype(d.dtype, np.float))
         self.assertTrue(d.is_integer)
         self.assertTrue(d.is_real)

@@ -101,9 +101,12 @@ class StepTest(unittest.TestCase):
         ''' Step: function expression.
         '''
         # escalón discreto
-        d = ds.Step(sp.Symbol('k', integer=True))
+        d = ds.Step(sp.Symbol('k', integer=True)-3)
         # expresión
-        self.assertEqual(d.yexpr, sp.Piecewise((1, d._xvar >= 0), (0, True)))
+        self.assertEqual(d.yexpr, ds.UnitStep(d.xexpr))
+        self.assertEqual(d.yexpr.rewrite(sp.Piecewise),
+                         sp.Piecewise((1, d.xexpr >= 0),
+                                      (0, True)))
         self.assertTrue(np.issubdtype(d.dtype, np.float))
         self.assertTrue(d.is_integer)
         self.assertTrue(d.is_real)
