@@ -6,7 +6,6 @@ from sympy.core.compatibility import iterable
 from sympy.core.evaluate import evaluate, global_evaluate
 import numpy as np
 import sympy as sp
-from sympy.core.sympify import sympify
 
 # frequently used symbols
 n, m, k = sp.symbols('n, m, k', integer=True)
@@ -1059,7 +1058,7 @@ class Square(DiscreteFunctionSignal):
     def __init__(self, xexpr=_DiscreteMixin._default_xvar, N=16,
                  width=8, **kwargs):
         N = sp.sympify(N)
-        width = sympify(width)
+        width = sp.sympify(width)
         if isinstance(N, sp.Symbol):
             if not N.is_integer or not N.is_positive:
                 raise ValueError('period must a positive integer')
@@ -1104,7 +1103,7 @@ class Sawtooth(DiscreteFunctionSignal):
     def __init__(self, xexpr=_DiscreteMixin._default_xvar, N=16,
                  width=8, **kwargs):
         N = sp.sympify(N)
-        width = sympify(width)
+        width = sp.sympify(width)
         if isinstance(N, sp.Symbol):
             if not N.is_integer or not N.is_positive:
                 raise ValueError('period must a positive integer')
