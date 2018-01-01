@@ -8,7 +8,7 @@ class CustomStrPrinter(StrPrinter):
 
     printmethod = '_sigstr'
 
-    def _print_ImaginaryUnit(self, expr):
+    def _print_ImaginaryUnit(self, _expr):
         return 'j'
 
     def _print_Abs(self, e):
@@ -19,10 +19,10 @@ class CustomLatexPrinter(LatexPrinter):
 
     printmethod = '_siglatex'
 
-    def _print_ImaginaryUnit(self, expr):
+    def _print_ImaginaryUnit(self, _expr):
         return 'j'
 
-    def _print_Pi(self, expr):
+    def _print_Pi(self, _expr):
         return r'\pi'
 
 #    def _print__DiscreteDelta(self, e):
@@ -192,6 +192,11 @@ class CustomLatexPrinter(LatexPrinter):
 
     def _print_Square(self, e):
         return r'\mathrm{{Square}}_{{{0}}}\left[(('.format(e.width) + \
+            self._make_var(e.xexpr, simple=True) + \
+            r'))_{{{0}}}\right]'.format(e.period)
+
+    def _print_Sawtooth(self, e):
+        return r'\mathrm{{Sawtooth}}_{{{0}}}\left[(('.format(e.width) + \
             self._make_var(e.xexpr, simple=True) + \
             r'))_{{{0}}}\right]'.format(e.period)
 

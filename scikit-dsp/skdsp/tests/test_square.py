@@ -144,7 +144,7 @@ class SquareTest(unittest.TestCase):
         # square discreta
         d = ds.Square(ds.n)
         # repr
-        self.assertEqual(repr(d), 'Square(n, 16)')
+        self.assertEqual(repr(d), 'Square(n, 16, 8)')
         # str
         self.assertEqual(str(d), 'square[((n))16/8]')
         # latex
@@ -153,31 +153,31 @@ class SquareTest(unittest.TestCase):
         # square discreta
         d = ds.Square(ds.n, sp.Symbol('L', integer=True, positive=True))
         # repr
-        self.assertEqual(repr(d), 'Square(n, L)')
+        self.assertEqual(repr(d), 'Square(n, L, 8)')
         # str
         self.assertEqual(str(d), 'square[((n))L/8]')
         # latex
         self.assertEqual(latex(d, mode='inline'),
                          r'$\mathrm{Square}_{8}\left[((n))_{L}\right]$')
         # square discreta
-        d = ds.Square(ds.n+5, 25)
+        d = ds.Square(ds.n+5, 25, sp.Symbol('W', integer=True, positive=True))
         # repr
-        self.assertEqual(repr(d), 'Square(n + 5, 25)')
+        self.assertEqual(repr(d), 'Square(n + 5, 25, W)')
         # str
-        self.assertEqual(str(d), 'square[((n + 5))25/8]')
+        self.assertEqual(str(d), 'square[((n + 5))25/W]')
         # latex
         self.assertEqual(latex(d, mode='inline'),
-                         r'$\mathrm{Square}_{8}\left[((n + 5))_{25}\right]$')
+                         r'$\mathrm{Square}_{W}\left[((n + 5))_{25}\right]$')
 
         # square discreta
-        d = ds.Square(ds.n-5, 25)
+        d = ds.Square(ds.n-5, 25, 10)
         # repr
-        self.assertEqual(repr(d), 'Square(n - 5, 25)')
+        self.assertEqual(repr(d), 'Square(n - 5, 25, 10)')
         # str
-        self.assertEqual(str(d), 'square[((n - 5))25/8]')
+        self.assertEqual(str(d), 'square[((n - 5))25/10]')
         # latex
         self.assertEqual(latex(d, mode='inline'),
-                         r'$\mathrm{Square}_{8}\left[((n - 5))_{25}\right]$')
+                         r'$\mathrm{Square}_{10}\left[((n - 5))_{25}\right]$')
 
     def test_eval_sample(self):
         ''' Square: eval(scalar), eval(range)

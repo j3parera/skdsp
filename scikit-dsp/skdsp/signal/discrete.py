@@ -1087,25 +1087,51 @@ class Square(DiscreteFunctionSignal):
                                                self.width)
 
     def __repr__(self):
-        return 'Square({0}, {1})'.format(self.xexpr, self.period)
+        return 'Square({0}, {1}, {2})'.format(self.xexpr, self.period,
+                                              self.width)
 
 
 class Sawtooth(DiscreteFunctionSignal):
 
-    def __init__(self, N=16, width=None):
-        if width is None:
-            width = N
-        if N <= 0:
-            raise ValueError('N must be greater than 0')
-        if width > N:
-            raise ValueError('width must be less than N')
-        nm = sp.Mod(self.default_xvar(), N)
-        expr = sp.Piecewise((-1+(2*nm)/width, nm < width),
-                            (1-2*(nm-width)/(N-width), nm < N))
-        DiscreteFunctionSignal.__init__(self, expr)
-        self.period = N
-        self.width = width
+    is_finite = True
+    is_integer = False
+    is_real = True
 
-    def _print(self):
-        return 'saw[{0}, {1}, {2}]'.format(str(self._xexpr), self._period,
-                                           self._width)
+    def __new__(cls, xexpr=_DiscreteMixin._default_xvar, N=16,
+                width=8, **_kwargs):
+        return _Signal.__new__(cls, xexpr, N, width)
+
+    def __init__(self, xexpr=_DiscreteMixin._default_xvar, N=16,
+                 width=8, **kwargs):
+        N = sp.sympify(N)
+        width = sympify(width)
+        if isinstance(N, sp.Symbol):
+            if not N.is_integer or not N.is_positive:
+                raise ValueError('period must a positive integer')
+        if isinstance(width, sp.Symbol):
+            if not width.is_integer or not width.is_positive:
+                raise ValueError('width must a positive integer')
+        if N.is_number:
+            if N <= 0:
+                raise ValueError('N must be greater than 0')
+            if width.is_number:
+                if width >= N:
+                    raise ValueError('width must be less than N')
+        xexpr = _DiscreteMixin._sympify_xexpr(xexpr)
+        nm = sp.Mod(xexpr, N)
+        yexpr = sp.Piecewise((-1+(2*nm)/width, nm < width),
+                             (1-2*(nm-width)/(N-width), nm < N))
+        DiscreteFunctionSignal.__init__(self, xexpr, yexpr, **kwargs)
+        self.period = N
+
+    @property
+    def width(self):
+        return self.args[2]
+
+    def __str__(self, *_args, **_kwargs):
+        return 'saw[(({0})){1}/{2}]'.format(self.xexpr, self.period,
+                                            self.width)
+
+    def __repr__(self):
+        return 'Sawtooth({0}, {1}, {2})'.format(self.xexpr, self.period,
+                                                self.width)
