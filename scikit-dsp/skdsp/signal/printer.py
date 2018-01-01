@@ -190,6 +190,11 @@ class CustomLatexPrinter(LatexPrinter):
         return r'\delta \left[ ((' + self._make_var(e.xexpr, simple=True) + \
             '))_{{{0}}} \\right]'.format(e.period)
 
+    def _print_Square(self, e):
+        return r'\mathrm{{Square}}_{{{0}}}\left[(('.format(e.width) + \
+            self._make_var(e.xexpr, simple=True) + \
+            r'))_{{{0}}}\right]'.format(e.period)
+
 #     def _print_Pow(self, e):
 #         exp = ds.Exponential(e.args[0])
 #         exp._xexpr = e.args[1]
