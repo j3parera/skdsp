@@ -1123,6 +1123,9 @@ periódica,
 \begin_inset Text
 
 \begin_layout Plain Layout
+\begin_inset Formula $\text{Ш}_{N}[n]$
+\end_inset
+
 
 \end_layout
 
@@ -1180,6 +1183,9 @@ periódica,
 \begin_inset Text
 
 \begin_layout Plain Layout
+\begin_inset Formula $\mathrm{Sawtooth}_{w}\left[((n))_{N}\right]$
+\end_inset
+
 
 \end_layout
 
@@ -1189,7 +1195,7 @@ periódica,
 \begin_inset Text
 
 \begin_layout Plain Layout
-
+ok
 \end_layout
 
 \end_inset
@@ -1237,6 +1243,9 @@ periódica,
 \begin_inset Text
 
 \begin_layout Plain Layout
+\begin_inset Formula $\mathrm{Square}_{w}\left[((n))_{N}\right]$
+\end_inset
+
 
 \end_layout
 
@@ -1246,7 +1255,7 @@ periódica,
 \begin_inset Text
 
 \begin_layout Plain Layout
-
+ok
 \end_layout
 
 \end_inset
