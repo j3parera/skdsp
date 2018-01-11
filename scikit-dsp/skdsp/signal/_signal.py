@@ -409,6 +409,8 @@ class _Signal(sp.Basic):
         s._xexpr = FlipOperator.apply(s._xvar, s._xexpr)
         return s
 
+    __reversed__ = flip
+
     def shift(self, k):
         """
         Shifts the independent variable; i.e.
@@ -516,9 +518,11 @@ class _Signal(sp.Basic):
 
 class _SignalOp(_Signal):
     """
-    Tag for a class holding an operation (add, mul or pow) on signals.
+    Tag for a class holding an operation (add or mul) on signals.
     """
-    pass
+    class OperationNotDefined(Exception):
+        def __init__(self):
+            Exception.__init__('Operation not defined for signals')
 
 
 class _FunctionSignal(_Signal):

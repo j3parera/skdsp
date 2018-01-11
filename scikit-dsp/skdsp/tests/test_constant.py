@@ -1,8 +1,10 @@
 from skdsp.signal._signal import _Signal, _FunctionSignal
 import numpy as np
+import skdsp.signal.continuous as cs
 import skdsp.signal.discrete as ds
 import sympy as sp
 import unittest
+from skdsp.signal.printer import latex
 
 
 class ConstantTest(unittest.TestCase):
@@ -23,6 +25,19 @@ class ConstantTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             ds.Constant(ds.n)
 
+        # constante continua
+        d = cs.Constant()
+        self.assertIsNotNone(d)
+        # constante continua
+        d = cs.Constant(3)
+        # jerarquía
+        self.assertIsInstance(d, _Signal)
+        self.assertIsInstance(d, _FunctionSignal)
+        self.assertIsInstance(d, cs.ContinuousFunctionSignal)
+        # no constante
+        with self.assertRaises(ValueError):
+            cs.Constant(cs.t)
+
     def test_name(self):
         ''' Constant: name.
         '''
@@ -42,6 +57,25 @@ class ConstantTest(unittest.TestCase):
         self.assertEqual(d.latex_name, 'y_{0}')
         del d
         d = ds.Constant(3, name='yupi')
+        self.assertEqual(d.name, 'yupi')
+        self.assertEqual(d.latex_name, 'yupi')
+
+        # constante continua
+        d = cs.Constant(3, name='y0')
+        self.assertEqual(d.name, 'y0')
+        self.assertEqual(d.latex_name, 'y_{0}')
+        d.name = 'z'
+        self.assertEqual(d.name, 'z')
+        self.assertEqual(d.latex_name, 'z')
+        with self.assertRaises(ValueError):
+            d.name = 'x0'
+        with self.assertRaises(ValueError):
+            d.name = 'y0'
+        d = cs.Constant(3, name='y0')
+        self.assertEqual(d.name, 'y0')
+        self.assertEqual(d.latex_name, 'y_{0}')
+        del d
+        d = cs.Constant(3, name='yupi')
         self.assertEqual(d.name, 'yupi')
         self.assertEqual(d.latex_name, 'yupi')
 
@@ -83,6 +117,41 @@ class ConstantTest(unittest.TestCase):
         self.assertEqual(d.xvar, d.default_xvar())
         self.assertEqual(d.xexpr, -d.xvar + shift)
 
+        # constante continua
+        d = cs.Constant(3)
+        # variable independiente
+        self.assertTrue(d.is_continuous)
+        self.assertFalse(d.is_discrete)
+        self.assertEqual(d.xvar, d.default_xvar())
+        self.assertEqual(d.xexpr, d.xvar)
+        # shift
+        shift = 5.5
+        d = cs.Constant(3).shift(shift)
+        self.assertTrue(d.is_continuous)
+        self.assertFalse(d.is_discrete)
+        self.assertEqual(d.xvar, d.default_xvar())
+        self.assertEqual(d.xexpr, d.xvar - shift)
+        # flip
+        d = cs.Constant(3).flip()
+        self.assertTrue(d.is_continuous)
+        self.assertFalse(d.is_discrete)
+        self.assertEqual(d.xvar, d.default_xvar())
+        self.assertEqual(d.xexpr, -d.xvar)
+        # shift and flip
+        shift = 5.5
+        d = cs.Constant(3).shift(shift).flip()
+        self.assertTrue(d.is_continuous)
+        self.assertFalse(d.is_discrete)
+        self.assertEqual(d.xvar, d.default_xvar())
+        self.assertEqual(d.xexpr, -d.xvar - shift)
+        # flip and shift
+        shift = 5.5
+        d = cs.Constant(3).flip().shift(shift)
+        self.assertTrue(d.is_continuous)
+        self.assertFalse(d.is_discrete)
+        self.assertEqual(d.xvar, d.default_xvar())
+        self.assertEqual(d.xexpr, -d.xvar + shift)
+
     def test_yexpr_real_imag(self):
         ''' Constant: function expression.
         '''
@@ -107,11 +176,38 @@ class ConstantTest(unittest.TestCase):
         self.assertEqual(ds.Constant(-5.0), d.real)
         self.assertEqual(ds.Constant(-3.0), d.imag)
 
+        # constante continua
+        cte = 3.5
+        d = cs.Constant(cte)
+        # expresión
+        self.assertEqual(d.yexpr, cte)
+        self.assertTrue(np.issubdtype(d.dtype, np.float))
+        self.assertTrue(d.dtype_is_real)
+        self.assertFalse(d.dtype_is_complex)
+        self.assertEqual(d, d.real)
+        self.assertEqual(cs.Constant(0), d.imag)
+        # constante discreta
+        cte = -5.5-3.5j
+        d = cs.Constant(cte)
+        # expresión
+        self.assertEqual(d.yexpr, cte)
+        self.assertTrue(np.issubdtype(d.dtype, np.complex))
+        self.assertFalse(d.dtype_is_real)
+        self.assertTrue(d.dtype_is_complex)
+        self.assertEqual(cs.Constant(-5.5), d.real)
+        self.assertEqual(cs.Constant(-3.5), d.imag)
+
     def test_period(self):
         ''' Constant: period.
         '''
         # constante discreta
         d = ds.Constant(3)
+        # periodicidad
+        self.assertFalse(d.is_periodic)
+        self.assertEqual(d.period, sp.oo)
+
+        # constante continua
+        d = cs.Constant(3)
         # periodicidad
         self.assertFalse(d.is_periodic)
         self.assertEqual(d.period, sp.oo)
@@ -131,12 +227,44 @@ class ConstantTest(unittest.TestCase):
         self.assertEqual(repr(d), 'Constant(-5.1 - 3.03*j)')
         # str
         self.assertEqual(str(d), '-5.1 - 3.03*j')
+        # latex
+        self.assertEqual(latex(d, mode='inline'), r'$-5.1 - 3.03*j$')
+
         # constante discreta
         d = ds.Constant(-3j)
         # repr
         self.assertEqual(repr(d), 'Constant(-3.0*j)')
         # str
         self.assertEqual(str(d), '-3.0*j')
+        # latex
+        self.assertEqual(latex(d, mode='inline'), r'$-3.0*j$')
+
+        # constante continua
+        d = cs.Constant(3)
+        # repr
+        self.assertEqual(repr(d), 'Constant(3)')
+        # str
+        self.assertEqual(str(d), '3')
+        # latex
+        self.assertEqual(latex(d, mode='inline'), r'$3$')
+
+        # constante continua
+        d = cs.Constant(-5.10-3.03j)
+        # repr
+        self.assertEqual(repr(d), 'Constant(-5.1 - 3.03*j)')
+        # str
+        self.assertEqual(str(d), '-5.1 - 3.03*j')
+        # latex
+        self.assertEqual(latex(d, mode='inline'), r'$-5.1 - 3.03*j$')
+
+        # constante continua
+        d = cs.Constant(-3j)
+        # repr
+        self.assertEqual(repr(d), 'Constant(-3.0*j)')
+        # str
+        self.assertEqual(str(d), '-3.0*j')
+        # latex
+        self.assertEqual(latex(d, mode='inline'), r'$-3.0*j$')
 
     def test_eval_sample(self):
         ''' Constant: eval(scalar), eval(range)
@@ -161,6 +289,23 @@ class ConstantTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             d.eval(np.arange(0, 2, 0.5))
 
+        # scalar
+        cte = complex(np.random.random(), np.random.random())
+        d = cs.Constant(cte)
+        self.assertAlmostEqual(d.eval(0), cte)
+        self.assertAlmostEqual(d.eval(1), cte)
+        self.assertAlmostEqual(d.eval(-1), cte)
+
+        # range
+        np.testing.assert_array_almost_equal(d.eval(np.arange(0, 1, 0.5)),
+                                             np.array([cte, cte]))
+        np.testing.assert_array_almost_equal(d.eval(np.arange(-1, 1, 0.5)),
+                                             np.array([cte, cte, cte, cte]))
+        np.testing.assert_array_almost_equal(d.eval(np.arange(-2, 0, 0.5)),
+                                             np.array([cte, cte, cte, cte]))
+        np.testing.assert_array_almost_equal(d.eval(np.arange(1, -1, -0.5)),
+                                             np.array([cte, cte, cte, cte]))
+
     def test_getitem_scalar(self):
         ''' Constant (discrete): eval[scalar], eval[slice] '''
         # scalar
@@ -172,7 +317,7 @@ class ConstantTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             d[0.5]
         # slice
-        np.testing.assert_array_almost_equal(d[0:2],
+        np.testing.assert_array_almost_equal(d[0:1],
                                              np.array([cte, cte]))
         np.testing.assert_array_almost_equal(d[-1:2],
                                              np.array([cte, cte, cte]))
@@ -182,6 +327,22 @@ class ConstantTest(unittest.TestCase):
                                              np.array([cte, cte, cte]))
         with self.assertRaises(ValueError):
             d[0:2:0.5]
+
+        # scalar
+        cte = complex(np.random.random(), np.random.random())
+        d = cs.Constant(cte)
+        self.assertAlmostEqual(d[0], cte)
+        self.assertAlmostEqual(d[1], cte)
+        self.assertAlmostEqual(d[-1], cte)
+        # slice
+        np.testing.assert_array_almost_equal(d[0:1],
+                                             np.array([cte, cte]))
+        np.testing.assert_array_almost_equal(d[-1:1:0.5],
+                                             np.array([cte, cte, cte, cte]))
+        np.testing.assert_array_almost_equal(d[-2:0:0.5],
+                                             np.array([cte, cte, cte, cte]))
+        np.testing.assert_array_almost_equal(d[1:-1:-0.5],
+                                             np.array([cte, cte, cte, cte]))
 
     def test_generator(self):
         ''' Constant (discrete): generate '''
@@ -193,9 +354,18 @@ class ConstantTest(unittest.TestCase):
         np.testing.assert_array_equal(next(dg), np.full(5, 123.456))
         np.testing.assert_array_equal(next(dg), np.full(5, 123.456))
 
+        d = cs.Constant(123.456)
+        dg = d.generate(s0=-3, size=5, overlap=3, step=0.1)
+        np.testing.assert_array_equal(next(dg), np.full(5, 123.456))
+        np.testing.assert_array_equal(next(dg), np.full(5, 123.456))
+        np.testing.assert_array_equal(next(dg), np.full(5, 123.456))
+
     def test_flip(self):
         ''' Constant (discrete): flip '''
         d = ds.Constant(123.456)
+        np.testing.assert_array_equal(d[-10:10], d.flip()[-10:10])
+
+        d = cs.Constant(123.456)
         np.testing.assert_array_equal(d[-10:10], d.flip()[-10:10])
 
     def test_shift_delay(self):
@@ -208,11 +378,19 @@ class ConstantTest(unittest.TestCase):
             d.delay(0.5)
         np.testing.assert_array_equal(d[-10:10], d.delay(3)[-10:10])
 
+        d = cs.Constant(123.456)
+        np.testing.assert_array_equal(d[-10:10], d.shift(3)[-10:10])
+        np.testing.assert_array_equal(d[-10:10], d.delay(3)[-10:10])
+
     def test_scale(self):
         ''' Constant (discrete): shift, delay '''
         d = ds.Constant(123.456)
         with self.assertRaises(ValueError):
             d.scale(sp.pi)
+        np.testing.assert_array_equal(d[-3:3], d.scale(3)[-3:3])
+        np.testing.assert_array_equal(d[-3:3], d.scale(0.25)[-12:12:4])
+
+        d = cs.Constant(123.456)
         np.testing.assert_array_equal(d[-3:3], d.scale(3)[-3:3])
         np.testing.assert_array_equal(d[-3:3], d.scale(0.25)[-12:12:4])
 

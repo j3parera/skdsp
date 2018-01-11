@@ -1,49 +1,133 @@
-from ..operator.operator import ShiftOperator, ScaleOperator
-from skdsp.signal._signal import _FunctionSignal, _Signal
-from ._util import _is_real_scalar
+from ._signal import _Signal, _FunctionSignal, _SignalOp
+from ._util import _extract_omega, _extract_phase
+from ._util import _is_real_scalar, _is_complex_scalar
 from numbers import Number
-from sympy.core.evaluate import evaluate
+from sympy.core.compatibility import iterable
+from sympy.core.evaluate import evaluate, global_evaluate
 import numpy as np
 import sympy as sp
 
 
 __all__ = [s for s in dir() if not s.startswith('_')]
 
+# frequently used symbols
+t, tau = sp.symbols('t, tau', real=True)
+
 
 class _ContinuousMixin(object):
 
-    @staticmethod
-    def _default_xvar():
-        return sp.symbols('t', real=True)
+    is_Continuous = True
+    _default_xvar = sp.Symbol('t', real=True)
 
     def __init__(self):
+        """
+        Mixin class initialization.
+        """
         pass
 
-#     def _has_ramp(self):
-#         # CUIDADITO, si esto da más problemas quizás sea mejor quitarlo
-#         # aunque las rampas no se usan mucho que digamos
-#         dohas = False
-#         if isinstance(self, (Ramp, Ramp._ContinuousRamp)):
-#             dohas = True
-#         else:
-#             for arg in sp.preorder_traversal(self._yexpr):
-#                 if isinstance(arg, Ramp._ContinuousRamp):
-#                     dohas = True
-#                     break
-#         return dohas
+    @classmethod
+    def default_xvar(cls):
+        """
+        Default discrete time variable: n
+        """
+        return cls._default_xvar
 
-    def flip(self):
-        s = _FunctionSignal.flip(self)
+    @property
+    def period(self):
+        """
+        ¿Se puede hacer algo?
+        """
+        return super().period
+
+    @period.setter
+    def period(self, value):
+        v = sp.sympify(value)
+        if _is_real_scalar(v) or v.equals(sp.oo) \
+                or isinstance(v, sp.Symbol):
+            self._period = v
+        else:
+            raise ValueError("'period' must be a real scalar")
+
+    @property
+    def imag(self):
+        s = super().imag
+        if s is None:
+            return Constant(0)
         return s
 
-    __reversed__ = flip
+    @classmethod
+    def _sympify_xexpr(cls, expr):
+        expr = sp.sympify(expr)
+        if len(expr.free_symbols) == 0:
+            raise ValueError('xexpr must be have at least a variable')
+        return expr
 
+    def _check_indexes(self, x):
+        """
+        Checks if all values in x are reals.
+        """
+        try:
+            xlambda = sp.lambdify(self._xvar, self.xexpr, 'numpy')
+            x = xlambda(x)
+            if not hasattr(x, "__len__"):
+                # workaround para issue #5642 de sympy. Cuando yexpr es una
+                # constante, se devuelve un escalar aunque la entrada sea un
+                # array
+                x = np.full(x.shape, x, self.dtype)
+        except (NameError, ValueError):
+            # sympy no ha podido hacer una función lambda
+            # (o hay algún problema de cálculo, p.e 2^(-1) enteros)
+            # así que se procesan los valores uno a uno
+            x = np.zeros_like(x, self.dtype)
+            for k, x0 in enumerate(x):
+                try:
+                    x[k] = self.xexpr.xreplace({self._xvar: x0})
+                except TypeError:
+                    x[k] = np.nan
+
+        if not np.all(np.isreal(x)):
+            raise ValueError('continuous signals are only defined' +
+                             'for real indexes')
+
+    def _post_op(self, other, xexpr, yexpr):
+        if yexpr.is_constant():
+            return Constant(yexpr)
+        cmplx = self.dtype == np.complex_ or other.dtype == np.complex_
+        return ContinuousFunctionSignal(xexpr, yexpr, cmplx=cmplx)
+
+    def _add(self, other):
+        if other.yexpr == sp.S.Zero:
+            return self
+        if self.yexpr == sp.S.Zero:
+            return other
+        if isinstance(self, _FunctionSignal):
+            if isinstance(other, _FunctionSignal):
+                yexpr1, xvar1 = self.yexpr, self.xvar
+                yexpr2, xvar2 = other.yexpr, other.xvar
+                yexpr = yexpr1 + yexpr2.subs(xvar2, xvar1)
+                return self._post_op(other, xvar1, yexpr)
+
+    def _mul(self, other):
+        if other.yexpr == sp.S.One:
+            return self
+        if self.yexpr == sp.S.One:
+            return other
+        if self.yexpr == sp.S.Zero or other.yexpr == sp.S.Zero:
+            return Constant(0)
+        if isinstance(self, _FunctionSignal):
+            if isinstance(other, _FunctionSignal):
+                yexpr1, xvar1 = self.yexpr, self.xvar
+                yexpr2, xvar2 = other.yexpr, other.xvar
+                yexpr = yexpr1 * yexpr2.subs(xvar2, xvar1)
+                return self._post_op(other, xvar1, yexpr)
+
+    # --- independent variable operations -------------------------------------
     def shift(self, tau):
+        """
+        Delays (or advances) the signal k (integer) units.
+        """
         if not _is_real_scalar(tau):
             raise TypeError('delay/advance must be real')
-        # esto evita que r(t-k) se convierta en t-k (sin la r)
-        # doeval = not self._has_ramp()
-        # with evaluate(doeval):
         with evaluate(True):
             s = _FunctionSignal.shift(self, tau)
         return s
@@ -51,143 +135,248 @@ class _ContinuousMixin(object):
     def delay(self, tau):
         return self.shift(tau)
 
-    def __rshift__(self, tau):
-        return _ContinuousMixin.shift(self, tau)
+    def scale(self, alpha):
+        """ Scales the independent variable by `s`."""
+        if not _is_real_scalar(alpha):
+            raise TypeError('scale factor must be real')
+        r = sp.sympify(alpha)
+        if r == sp.S.One:
+            return self
+        elif r < sp.S.One:
+            return self.compress(r)
+        else:
+            return self.expand(r)
+
+    def compress(self, alpha):
+        if alpha == sp.S.One:
+            return self
+        return _Signal.scale(self, alpha, mul=False)
+
+    def expand(self, alpha):
+        if alpha == sp.S.One:
+            return self
+        return _Signal.scale(self, alpha, mul=True)
+
+    def __rshift__(self, k):
+        return _ContinuousMixin.shift(self, k)
 
     __irshift__ = __rshift__
 
-    def __lshift__(self, tau):
-        return _ContinuousMixin.shift(self, -tau)
+    def __lshift__(self, k):
+        return _ContinuousMixin.shift(self, -k)
 
     __ilshift__ = __lshift__
 
-    def scale(self, alpha):
-        # Scale permite cualquier valor de alpha, no necesariamente entero
-        if not _is_real_scalar(alpha):
-            raise TypeError('scale must be real')
-        return _FunctionSignal.scale(self, alpha)
-
+    # --- math wrappers -------------------------------------------------------
     def __add__(self, other):
-        if not isinstance(other, (_ContinuousMixin, Number)):
-            raise TypeError("can't add {0}".format(str(other)))
-        if other == 0 or other == Constant(0):
-            return self
-        if self == 0 or self == Constant(0):
-            if isinstance(other, Number):
-                return Constant(other)
-            else:
-                return other
-        s = ContinuousFunctionSignal._factory(self)
         if isinstance(other, Number):
-            o = Constant(other)
-        else:
-            o = other
-        return _FunctionSignal.__add__(s, o)
+            other = Constant(other)
+        if not isinstance(other, _ContinuousMixin):
+            raise TypeError("can't add continuous signal and {0}"
+                            .format(type(other)))
+        return ContinuousSignalAdd(self, other)
 
-    __radd__ = __add__
+    def __radd__(self, other):
+        return self + other
+
     __iadd__ = __add__
 
     def __sub__(self, other):
-        if not isinstance(other, (_ContinuousMixin, Number)):
-            raise TypeError("can't sub {0}".format(str(other)))
-        if other == 0 or other == Constant(0):
-            return self
-        if self == 0 or self == Constant(0):
-            if isinstance(other, Number):
-                return Constant(-other)
-            else:
-                return -other
-        s = ContinuousFunctionSignal._factory(self)
         if isinstance(other, Number):
-            o = Constant(other)
-        else:
-            o = other
-        return _FunctionSignal.__sub__(s, o)
+            other = Constant(other)
+        if not isinstance(other, _ContinuousMixin):
+            raise TypeError("can't add continuous signal and {0}"
+                            .format(type(other)))
+        return ContinuousSignalAdd(self, -other)
 
     def __rsub__(self, other):
-        if not isinstance(other, (_ContinuousMixin, Number)):
-            raise TypeError("can't sub {0}".format(str(other)))
-        if other == 0 or other == Constant(0):
-            return -self
-        if self == 0 or self == Constant(0):
-            if isinstance(other, Number):
-                return Constant(other)
-            else:
-                return other
-        s = ContinuousFunctionSignal._factory(self)
-        if isinstance(other, Number):
-            o = Constant(other)
-        else:
-            o = other
-        return _FunctionSignal.__rsub__(o, s)
+        return (-self) + other
 
     __isub__ = __sub__
 
-    def __mul__(self, other):
-        if isinstance(other, sp.Expr):
-            if other.is_number:
-                other = Constant(other)
-        if not isinstance(other, (_ContinuousMixin, Number)):
-            raise TypeError("can't multiply {0}".format(str(other)))
-        if other == 0 or other == Constant(0):
-            return Constant(0)
-        if self == 0 or self == Constant(0):
-            return Constant(0)
-        if other == 1 or other == Constant(1):
-            return self
-        if self == 1 or self == Constant(1):
-            if isinstance(other, Number):
-                return Constant(other)
-            else:
-                return other
-        if isinstance(other, (Constant, Number)):
-            s = self.__class__._factory(self)
-        else:
-            s = ContinuousFunctionSignal._factory(self)
-        if isinstance(other, Number):
-            o = Constant(other)
-        else:
-            o = other
-        return _FunctionSignal.__mul__(s, o)
+    def __neg__(self):
+        with evaluate(True):
+            return Constant(-1) * self
 
-    __rmul__ = __mul__
+    def __mul__(self, other):
+        if isinstance(other, Number):
+            other = Constant(other)
+        if not isinstance(other, _ContinuousMixin):
+            raise TypeError("can't mul continuous signal and {0}"
+                            .format(type(other)))
+        return ContinuousSignalMul(self, other)
+
+    def __rmul__(self, other):
+        return self * other
+
     __imul__ = __mul__
 
+    def __pow__(self, other):
+        raise _SignalOp.OperationNotDefined
+
+    __ipow__ = __pow__
+
     def __truediv__(self, other):
-        if not isinstance(other, (_ContinuousMixin, Number)):
-            raise TypeError("can't divide {0}".format(str(other)))
-        if other == 1 or other == Constant(1):
-            return self
-        if isinstance(other, (Constant, Number)):
-            s = self.__class__._factory(self)
-        else:
-            s = ContinuousFunctionSignal._factory(self)
         if isinstance(other, Number):
-            o = Constant(other)
-        else:
-            o = other
-        return _FunctionSignal.__truediv__(s, o)
+            other = Constant(other)
+        if not isinstance(other, _ContinuousMixin):
+            raise TypeError("can't div continuous signal and {0}"
+                            .format(type(other)))
+        return ContinuousSignalMul(self, pow(other, -1))
+
+    def __rtruediv__(self, other):
+        return other * pow(self, -1)
 
     __itruediv__ = __truediv__
 
-    def __rtruediv__(self, other):
-        if not isinstance(other, (_ContinuousMixin, Number)):
-            raise TypeError("can't divide {0}".format(str(other)))
-        if other == 1 or other == Constant(1):
-            return Constant(1)/self
-        s = ContinuousFunctionSignal._factory(self)
-        if isinstance(other, Number):
-            o = Constant(other)
+
+class _ContinuousSignalOp(_ContinuousMixin, _SignalOp):
+    is_Continuous = True
+
+
+class ContinuousSignalAdd(_ContinuousSignalOp):
+
+    def __init__(self, *_args):
+        _Signal.__init__(self)
+        s0 = self.args[0]
+        s1 = self.args[1]
+        s1.xvar = s0.xvar
+        self.period = sp.lcm(s0.period, s1.period)
+
+    def __new__(cls, *args):
+        evaluate = global_evaluate[0]
+
+        # flatten inputs
+        args = list(args)
+
+        # adapted from sequences.SeqAdd
+        def _flatten(arg):
+            if isinstance(arg, _Signal):
+                if isinstance(arg, ContinuousSignalAdd):
+                    return sum(map(_flatten, arg.args), [])
+                else:
+                    return [arg]
+            if iterable(arg):
+                return sum(map(_flatten, arg), [])
+            raise TypeError("Input must be signals or "
+                            " iterables of signals")
+
+        args = _flatten(args)
+
+        # reduce using known rules
+        if evaluate:
+            return ContinuousSignalAdd.reduce(args)
+
+        return _Signal.__new__(cls, *args)
+
+    @staticmethod
+    def reduce(args):
+        """
+        Simplify :class:`SignalAdd` using known rules.
+        """
+        new_args = True
+        while(new_args):
+            for id1, s in enumerate(args):
+                new_args = False
+                for id2, t in enumerate(args):
+                    if id1 == id2:
+                        continue
+                    new_sgn = s._add(t)
+                    # This returns None if s does not know how to add
+                    # with t. Returns the newly added signal otherwise
+                    if new_sgn is not None:
+                        new_args = [a for a in args if a not in (s, t)]
+                        new_args.append(new_sgn)
+                        break
+                if new_args:
+                    args = new_args
+                    break
+
+        if len(args) == 1:
+            return args.pop()
         else:
-            o = other
-        return _FunctionSignal.__rtruediv__(o, s)
+            return ContinuousSignalAdd(args)
+
+    def eval(self, r):
+        return sum(a.eval(r) for a in self.args)
+
+
+class ContinuousSignalMul(_ContinuousSignalOp):
+
+    def __init__(self, *_args):
+        _Signal.__init__(self)
+        s0 = self.args[0]
+        s1 = self.args[1]
+        s1.xvar = s0.xvar
+        self.period = sp.lcm(s0.period, s1.period)
+
+    def __new__(cls, *args):
+        evaluate = global_evaluate[0]
+
+        # flatten inputs
+        args = list(args)
+
+        # adapted from sequences.SeqMul
+        def _flatten(arg):
+            if isinstance(arg, _Signal):
+                if isinstance(arg, ContinuousSignalMul):
+                    return sum(map(_flatten, arg.args), [])
+                else:
+                    return [arg]
+            if iterable(arg):
+                return sum(map(_flatten, arg), [])
+            raise TypeError("Input must be signals or "
+                            " iterables of signals")
+
+        args = _flatten(args)
+
+        # reduce using known rules
+        if evaluate:
+            return ContinuousSignalMul.reduce(args)
+
+        return _Signal.__new__(cls, *args)
+
+    @staticmethod
+    def reduce(args):
+        """
+        Simplify :class:`SignalMul` using known rules.
+        """
+        new_args = True
+        while(new_args):
+            for id1, s in enumerate(args):
+                new_args = False
+                for id2, t in enumerate(args):
+                    if id1 == id2:
+                        continue
+                    new_sgn = s._mul(t)
+                    # This returns None if s does not know how to add
+                    # with t. Returns the newly added signal otherwise
+                    if new_sgn is not None:
+                        new_args = [a for a in args if a not in (s, t)]
+                        new_args.append(new_sgn)
+                        break
+                if new_args:
+                    args = new_args
+                    break
+
+        if len(args) == 1:
+            return args.pop()
+        else:
+            return ContinuousSignalMul(args)
+
+    def eval(self, r):
+        val = 1
+        for a in self.args:
+            val *= a.eval(r)
+        return val
 
 
 class ContinuousFunctionSignal(_ContinuousMixin, _FunctionSignal):
-    # Las especializaciones discretas deben ir antes que las funcionales
+    def __new__(cls, _xexpr, _yexpr, **_kwargs):
+        return object.__new__(cls)
 
-    def __init__(self, expr):
-        _FunctionSignal.__init__(self, expr)
+    def __init__(self, xexpr, yexpr, **kwargs):
+        _FunctionSignal.__init__(self, xexpr, yexpr, **kwargs)
         _ContinuousMixin.__init__(self)
         self._laplace_transform = None
         self._fourier_transform = None
@@ -208,277 +397,92 @@ class ContinuousFunctionSignal(_ContinuousMixin, _FunctionSignal):
         else:
             is_scalar = True
             x = np.array([x])
+        self._check_indexes(x)
         y = _FunctionSignal.eval(self, x)
         if is_scalar:
             y = np.asscalar(y)
         return y
 
-    def __abs__(self):
-        s = ContinuousFunctionSignal._factory(self)
-        return _FunctionSignal.__abs__(s)
-
-    def magnitude(self, dB=False):
-        m = abs(self)
-        if dB:
-            mdb = ContinuousFunctionSignal._factory(self)
-            mdb._yexpr = 20*sp.log(m._yexpr, 10)
-            return mdb
-        return m
-
 
 class Constant(ContinuousFunctionSignal):
 
-    def __init__(self, const=0):
-        sc = sp.sympify(const)
-        ContinuousFunctionSignal.__init__(self, sc)
-        if sc.is_complex:
+    """
+    Continuous constant signal. Not a degenerate case for constant functions
+    such as `A*cos(0)`, `A*sin(pi/2)`, `A*exp(0*n)`, althought it could be.
+    """
+    is_finite = True
+
+    def __new__(cls, const=0, **_kwargs):
+        return _Signal.__new__(cls, const)
+
+    def __init__(self, const=0, **kwargs):
+        const = sp.sympify(const)
+        if not const.is_constant():
+            raise ValueError('const value is not constant')
+        ContinuousFunctionSignal.__init__(self,
+                                          _ContinuousMixin.default_xvar(),
+                                          const, **kwargs)
+        if _is_complex_scalar(const):
             self.dtype = np.complex_
-        self._const = const
+        # period
+        self._period = sp.oo
+        # TODO transformadas
+
+    def __str__(self, *_args, **_kwargs):
+        return str(self._yexpr)
+
+    def __repr__(self):
+        return 'Constant({0})'.format(self._yexpr)
 
 
 class Delta(ContinuousFunctionSignal):
+    """
+    Continuous unit impulse signal.
+    """
 
-    def __init__(self, delay=0):
-        expr = sp.DiracDelta(self._default_xvar())
-        ContinuousFunctionSignal.__init__(self, expr)
-        # delay
-        if delay != 0:
-            self._xexpr = ShiftOperator.apply(self._xvar, self._xexpr, delay)
-            self._yexpr = ShiftOperator.apply(self._xvar, self._yexpr, delay)
+    is_finite = True
+    is_integer = True
+    is_nonnegative = True
 
-    def _print(self):
-        return 'd({0})'.format(str(self._xexpr))
+    def __new__(cls, xexpr=_ContinuousMixin._default_xvar, **_kwargs):
+        return _Signal.__new__(cls, xexpr)
+
+    def __init__(self, xexpr=_ContinuousMixin._default_xvar, **kwargs):
+        xexpr = _ContinuousMixin._sympify_xexpr(xexpr)
+        yexpr = sp.DiracDelta(xexpr)
+        ContinuousFunctionSignal.__init__(self, xexpr, yexpr, **kwargs)
+        self._period = sp.oo
+        # TODO transformadas
+
+    def __str__(self, *_args, **_kwargs):
+        return 'delta({0})'.format(str(self.xexpr))
+
+    def __repr__(self, *_args, **_kwargs):
+        return 'Delta({0})'.format(str(self.xexpr))
 
 
 class Step(ContinuousFunctionSignal):
+    """
+    Unit step signal.
+    """
 
-    def __init__(self, delay=0):
-        expr = sp.Heaviside(self._default_xvar())
-        ContinuousFunctionSignal.__init__(self, expr)
-        if delay != 0:
-            self._xexpr = ShiftOperator.apply(self._xvar, self._xexpr, delay)
-            self._yexpr = ShiftOperator.apply(self._xvar, self._yexpr, delay)
+    is_finite = True
+    is_integer = True
+    is_nonnegative = True
 
-    def _print(self):
-        return 'u({0})'.format(str(self._xexpr))
+    def __new__(cls, xexpr=_ContinuousMixin._default_xvar, **_kwargs):
+        return _Signal.__new__(cls, xexpr)
 
+    def __init__(self, xexpr=_ContinuousMixin._default_xvar, **kwargs):
+        xexpr = _ContinuousMixin._sympify_xexpr(xexpr)
+        yexpr = sp.Heaviside(xexpr)
+        ContinuousFunctionSignal.__init__(self, xexpr, yexpr, **kwargs)
+        self._period = sp.oo
+        # TODO transformadas
 
-class Ramp(ContinuousFunctionSignal):
+    def __str__(self):
+        return 'u({0})'.format(str(self.xexpr))
 
-    def __init__(self, delay=0):
-        n = self._default_xvar()
-        expr = n*sp.Heaviside(n)
-        ContinuousFunctionSignal.__init__(self, expr)
-        # delay
-        self._xexpr = ShiftOperator.apply(self._xvar, self._xexpr, delay)
-        self._yexpr = ShiftOperator.apply(self._xvar, self._yexpr, delay)
+    def __repr__(self):
+        return 'Step({0})'.format(str(self.xexpr))
 
-    def _print(self):
-        return 'r({0})'.format(str(self._xexpr))
-
-
-class RectPulse(ContinuousFunctionSignal):
-
-    def __init__(self, width=16, delay=0):
-        n = self._default_xvar()
-        expr = sp.Piecewise((1, sp.Abs(n) < width/2), (0, True))
-        ContinuousFunctionSignal.__init__(self, expr)
-        self._width = width
-        # delay
-        self._xexpr = ShiftOperator.apply(self._xvar, self._xexpr, delay)
-        self._yexpr = ShiftOperator.apply(self._xvar, self._yexpr, delay)
-
-    @property
-    def width(self):
-        return self._width
-
-    def _print(self):
-        return 'Pi({0}, {1})'.format(str(self._xexpr), self._width)
-
-
-class TriangPulse(ContinuousFunctionSignal):
-
-    def __init__(self, width=16, delay=0):
-        n = self._default_xvar()
-        expr = sp.Piecewise((1.0 - 2.0*sp.Abs(n)/width, sp.Abs(n) < width/2),
-                            (0, True))
-        ContinuousFunctionSignal.__init__(self, expr)
-        self._width = width
-        # delay
-        self._xexpr = ShiftOperator.apply(self._xvar, self._xexpr, delay)
-        self._yexpr = ShiftOperator.apply(self._xvar, self._yexpr, delay)
-
-    @property
-    def width(self):
-        return self._width
-
-    def _print(self):
-        return 'Delta({0}, {1})'.format(str(self._xexpr), self._width)
-
-
-class _TrigMixin(object):
-
-    def __init__(self, omega0, phi0):
-        self._omega0 = sp.simplify(omega0)
-        self._phi0 = self._reduce_phase(phi0)
-
-    def _compute_period(self):
-        # si omega0 es cero, se puede considerar periodo N = 1
-        if self._omega0 == 0:
-            return sp.S.One
-        return 2*sp.S.Pi/self._omega0
-
-    def _reduce_phase(self, phi):
-        ''' Reduce la fase, módulo 2*pi en el intervalo [-pi, pi)
-        '''
-        phi0 = sp.Mod(phi, 2*sp.S.Pi)
-        if phi0 >= sp.S.Pi:
-            phi0 -= 2*sp.S.Pi
-        return phi0
-
-    @property
-    def angular_frequency(self):
-        return self._omega0
-
-    @property
-    def frequency(self):
-        return self._omega0/(2*sp.S.Pi)
-
-    @property
-    def phase(self):
-        return self._phi0
-
-    @property
-    def period(self):
-        if self._period is not None:
-            return self._period
-        self._period = self._compute_period()
-        return self._period
-
-    def as_euler(self):
-        eu = ContinuousFunctionSignal(self._yexpr.rewrite(sp.exp))
-        eu.dtype = np.complex_
-        return eu
-
-
-class Cosine(_TrigMixin, ContinuousFunctionSignal):
-
-    def __init__(self, omega0=1, phi0=0):
-        expr = sp.cos(self._default_xvar())
-        ContinuousFunctionSignal.__init__(self, expr)
-        _TrigMixin.__init__(self, omega0, phi0)
-        # delay (negativo, OJO)
-        delay = -self._phi0
-        self._xexpr = ShiftOperator.apply(self._xvar, self._xexpr, delay)
-        self._yexpr = ShiftOperator.apply(self._xvar, self._yexpr, delay)
-        # escalado
-        self._xexpr = ScaleOperator.apply(self._xvar, self._xexpr,
-                                          self._omega0)
-        self._yexpr = ScaleOperator.apply(self._xvar, self._yexpr,
-                                          self._omega0)
-
-
-class Sine(_TrigMixin, ContinuousFunctionSignal):
-
-    def __init__(self, omega0=1, phi0=0):
-        expr = sp.sin(self._default_xvar())
-        ContinuousFunctionSignal.__init__(self, expr)
-        _TrigMixin.__init__(self, omega0, phi0)
-        # delay (negativo, OJO)
-        delay = -self._phi0
-        self._xexpr = ShiftOperator.apply(self._xvar, self._xexpr, delay)
-        self._yexpr = ShiftOperator.apply(self._xvar, self._yexpr, delay)
-        # escalado
-        self._xexpr = ScaleOperator.apply(self._xvar, self._xexpr,
-                                          self._omega0)
-        self._yexpr = ScaleOperator.apply(self._xvar, self._yexpr,
-                                          self._omega0)
-
-
-class Sinusoid(Cosine):
-
-    def __init__(self, A=1, omega0=1, phi=0):
-        Cosine.__init__(self, omega0, phi)
-        self._peak_amplitude = A
-        self._yexpr *= A
-
-    @property
-    def peak_amplitude(self):
-        return self._peak_amplitude
-
-    @peak_amplitude.setter
-    def peak_amplitude(self, value):
-        self._yexpr /= self._peak_amplitude
-        self._peak_amplitude = value
-        self._yexpr *= value
-
-    @property
-    def in_phase(self):
-        A1 = Constant(self._peak_amplitude * sp.cos(self._phi0))
-        return A1*Cosine(self._omega0)
-
-    @property
-    def i(self):
-        return self.in_phase
-
-    @property
-    def in_quadrature(self):
-        A2 = Constant(-self._peak_amplitude * sp.sin(self._phi0))
-        return A2*Sine(self._omega0)
-
-    @property
-    def q(self):
-        return self.in_quadrature
-
-
-class Exponential(_TrigMixin, ContinuousFunctionSignal):
-
-    def __init__(self, base=1):
-        expr = sp.Pow(base, self._default_xvar())
-        ContinuousFunctionSignal.__init__(self, expr)
-        _TrigMixin.__init__(self, self._extract_omega(base), 0)
-        self._base = sp.sympify(base)
-        pb = sp.arg(self._base)
-        if pb != sp.nan:
-            if pb != 0:
-                self.dtype = np.complex_
-
-    @property
-    def base(self):
-        return self._base
-
-    def is_periodic(self):
-        mod1 = sp.Abs(self._base) == 1
-        return mod1 and _Signal.is_periodic(self)
-
-
-class ComplexSinusoid(_TrigMixin, ContinuousFunctionSignal):
-
-    def __init__(self, A=1, omega0=1, phi0=0):
-        self._A = sp.Abs(A)
-        phi = phi0 + self._extract_omega(A)
-        expr = self._A*sp.exp(sp.I*self._default_xvar())
-        ContinuousFunctionSignal.__init__(self, expr)
-        _TrigMixin.__init__(self, omega0, phi)
-        self.dtype = np.complex_
-        # delay (negativo, OJO)
-        delay = -self._phi0
-        self._xexpr = ShiftOperator.apply(self._xvar, self._xexpr, delay)
-        self._yexpr = ShiftOperator.apply(self._xvar, self._yexpr, delay)
-        # escalado
-        self._xexpr = ScaleOperator.apply(self._xvar, self._xexpr,
-                                          self._omega0)
-        self._yexpr = ScaleOperator.apply(self._xvar, self._yexpr,
-                                          self._omega0)
-
-    @property
-    def phasor(self):
-        return self._A*sp.exp(sp.I*self._phi0)
-
-    @property
-    def carrier(self):
-        o = self._omega0
-        if isinstance(self._xexpr, sp.Mul) and (self._xexpr.args[0] == -1):
-            o = -o
-        s = Exponential(sp.exp(sp.I*o))
-        return s

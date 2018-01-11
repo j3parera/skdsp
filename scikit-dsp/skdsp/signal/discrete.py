@@ -7,6 +7,9 @@ from sympy.core.evaluate import evaluate, global_evaluate
 import numpy as np
 import sympy as sp
 
+
+__all__ = [s for s in dir() if not s.startswith('_')]
+
 # frequently used symbols
 n, m, k = sp.symbols('n, m, k', integer=True)
 
@@ -127,6 +130,19 @@ class _DiscreteMixin(object):
     is_Discrete = True
     _default_xvar = sp.Symbol('n', integer=True)
 
+    def __init__(self):
+        """
+        Mixin class initialization.
+        """
+        pass
+
+    @classmethod
+    def default_xvar(cls):
+        """
+        Default discrete time variable: n
+        """
+        return cls._default_xvar
+
     @property
     def period(self):
         """
@@ -186,19 +202,6 @@ class _DiscreteMixin(object):
             raise ValueError('discrete signals are only defined' +
                              'for integer indexes')
 
-    @classmethod
-    def default_xvar(cls):
-        """
-        Default discrete time variable: n
-        """
-        return cls._default_xvar
-
-    def __init__(self):
-        """
-        Mixin class initialization.
-        """
-        pass
-
     def _post_op(self, other, xexpr, yexpr):
         if yexpr.is_constant():
             return Constant(yexpr)
@@ -229,18 +232,6 @@ class _DiscreteMixin(object):
                 yexpr1, xvar1 = self.yexpr, self.xvar
                 yexpr2, xvar2 = other.yexpr, other.xvar
                 yexpr = yexpr1 * yexpr2.subs(xvar2, xvar1)
-                return self._post_op(other, xvar1, yexpr)
-
-    def _pow(self, other):
-        if other.yexpr == sp.S.One:
-            return self
-        if other.yexpr == sp.S.Zero:
-            return Constant(0)
-        if isinstance(self, _FunctionSignal):
-            if isinstance(other, _FunctionSignal):
-                yexpr1, xvar1 = self.yexpr, self.xvar
-                yexpr2, xvar2 = other.yexpr, other.xvar
-                yexpr = yexpr1 ** yexpr2.subs(xvar2, xvar1)
                 return self._post_op(other, xvar1, yexpr)
 
     # --- independent variable operations -------------------------------------
@@ -338,12 +329,7 @@ class _DiscreteMixin(object):
     __imul__ = __mul__
 
     def __pow__(self, other):
-        if isinstance(other, Number):
-            other = Constant(other)
-        if not isinstance(other, _DiscreteMixin):
-            raise TypeError("can't pow discrete signal and {0}"
-                            .format(type(other)))
-        return DiscreteSignalPow(self, other)
+        raise _SignalOp.OperationNotDefined
 
     __ipow__ = __pow__
 
@@ -405,7 +391,7 @@ class _DiscreteSignalOp(_DiscreteMixin, _SignalOp):
 
 class DiscreteSignalAdd(_DiscreteSignalOp):
 
-    def __init__(self, *args):
+    def __init__(self, *_args):
         _Signal.__init__(self)
         s0 = self.args[0]
         s1 = self.args[1]
@@ -472,7 +458,7 @@ class DiscreteSignalAdd(_DiscreteSignalOp):
 
 class DiscreteSignalMul(_DiscreteSignalOp):
 
-    def __init__(self, *args):
+    def __init__(self, *_args):
         _Signal.__init__(self)
         s0 = self.args[0]
         s1 = self.args[1]
@@ -538,78 +524,6 @@ class DiscreteSignalMul(_DiscreteSignalOp):
         for a in self.args:
             val *= a.eval(r)
         return val
-
-
-class DiscreteSignalPow(_DiscreteSignalOp):
-
-    def __init__(self, *args):
-        _Signal.__init__(self)
-        s0 = self.args[0]
-        s1 = self.args[1]
-        s1.xvar = s0.xvar
-        self.period = sp.lcm(s0.period, s1.period)
-
-    def __new__(cls, *args):
-        evaluate = global_evaluate[0]
-
-        # flatten inputs
-        args = list(args)
-
-        # adapted from sequences.SeqAdd
-        def _flatten(arg):
-            if isinstance(arg, _Signal):
-                if isinstance(arg, DiscreteSignalAdd):
-                    return sum(map(_flatten, arg.args), [])
-                else:
-                    return [arg]
-            if iterable(arg):
-                return sum(map(_flatten, arg), [])
-            raise TypeError("Input must be signals or "
-                            " iterables of signals")
-
-        args = _flatten(args)
-
-        # reduce using known rules
-        if evaluate:
-            return DiscreteSignalPow.reduce(args)
-
-        return _Signal.__new__(cls, *args)
-
-    @staticmethod
-    def reduce(args):
-        """
-        Simplify :class:`SignalAdd` using known rules.
-        """
-        new_args = True
-        while(new_args):
-            for id1, s in enumerate(args):
-                new_args = False
-                for id2, t in enumerate(args):
-                    if id1 == id2:
-                        continue
-                    new_sgn = s._pow(t)
-                    # This returns None if s does not know how to add
-                    # with t. Returns the newly added signal otherwise
-                    if new_sgn is not None:
-                        new_args = [a for a in args if a not in (s, t)]
-                        new_args.append(new_sgn)
-                        break
-                if new_args:
-                    args = new_args
-                    break
-
-        if len(args) == 1:
-            return args.pop()
-        else:
-            return DiscreteSignalAdd(args)
-
-    def eval(self, r):
-        # two posible cases
-        y = self.args[0].eval(r)
-        if len(self.args) == 1:
-            return y
-        e = self.args[1].eval(r)
-        return y ** e
 
 
 class DataSignal(_Signal, _DiscreteMixin):
@@ -706,7 +620,6 @@ class Delta(DiscreteFunctionSignal):
 
     def __init__(self, xexpr=_DiscreteMixin._default_xvar, **kwargs):
         xexpr = _DiscreteMixin._sympify_xexpr(xexpr)
-        # yexpr = sp.Piecewise((1, sp.Eq(xexpr, 0)), (0, True))
         yexpr = UnitDelta(xexpr)
         DiscreteFunctionSignal.__init__(self, xexpr, yexpr, **kwargs)
         self._period = sp.oo
