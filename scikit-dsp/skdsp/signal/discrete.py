@@ -168,10 +168,9 @@ class _DiscreteMixin(object):
 
     @classmethod
     def _sympify_xexpr(cls, expr):
-        expr = sp.sympify(expr)
-        if len(expr.free_symbols) == 0 or not expr.is_integer:
-            raise ValueError('xexpr must be an integer expression ' +
-                             'with at least a variable')
+        expr = super()._sympify_xexpr(expr)
+        if not expr.is_integer:
+            raise ValueError('xexpr must be an integer expression')
         return expr
 
     def _check_indexes(self, x):
@@ -619,7 +618,7 @@ class Delta(DiscreteFunctionSignal):
         return _Signal.__new__(cls, xexpr)
 
     def __init__(self, xexpr=_DiscreteMixin._default_xvar, **kwargs):
-        xexpr = _DiscreteMixin._sympify_xexpr(xexpr)
+        xexpr = self._sympify_xexpr(xexpr)
         yexpr = UnitDelta(xexpr)
         DiscreteFunctionSignal.__init__(self, xexpr, yexpr, **kwargs)
         self._period = sp.oo
@@ -645,7 +644,7 @@ class Step(DiscreteFunctionSignal):
         return _Signal.__new__(cls, xexpr)
 
     def __init__(self, xexpr=_DiscreteMixin._default_xvar, **kwargs):
-        xexpr = _DiscreteMixin._sympify_xexpr(xexpr)
+        xexpr = self._sympify_xexpr(xexpr)
         # yexpr = sp.Piecewise((1, xexpr >= 0), (0, True))
         yexpr = UnitStep(xexpr)
         DiscreteFunctionSignal.__init__(self, xexpr, yexpr, **kwargs)
@@ -672,7 +671,7 @@ class Ramp(DiscreteFunctionSignal):
         return _Signal.__new__(cls, xexpr)
 
     def __init__(self, xexpr=_DiscreteMixin._default_xvar, **kwargs):
-        xexpr = _DiscreteMixin._sympify_xexpr(xexpr)
+        xexpr = self._sympify_xexpr(xexpr)
         # yexpr = sp.Piecewise((xexpr, xexpr >= 0), (0, True))
         yexpr = UnitRamp(xexpr)
         DiscreteFunctionSignal.__init__(self, xexpr, yexpr, **kwargs)
@@ -698,7 +697,7 @@ class RectPulse(DiscreteFunctionSignal):
         width = sp.sympify(width)
         if not width.is_integer or not width.is_nonnegative:
             raise ValueError('width must be a non-negative integer')
-        xexpr = _DiscreteMixin._sympify_xexpr(xexpr)
+        xexpr = self._sympify_xexpr(xexpr)
         yexpr = sp.Piecewise((1, sp.Abs(xexpr) <= width), (0, True))
         DiscreteFunctionSignal.__init__(self, xexpr, yexpr, **kwargs)
         self._period = sp.oo
@@ -727,7 +726,7 @@ class TriangPulse(DiscreteFunctionSignal):
         width = sp.sympify(width)
         if not width.is_integer or not width.is_nonnegative:
             raise ValueError('width must be a non-negative integer')
-        xexpr = _DiscreteMixin._sympify_xexpr(xexpr)
+        xexpr = self._sympify_xexpr(xexpr)
         yexpr = sp.Max(0, 1 - sp.Abs(xexpr/width))
         DiscreteFunctionSignal.__init__(self, xexpr, yexpr, **kwargs)
         self._period = sp.oo
@@ -806,7 +805,7 @@ class Sinusoid(_TrigMixin, DiscreteFunctionSignal):
         omega0 = sp.sympify(omega0)
         phi0 = sp.sympify(phi0)
         _TrigMixin.__init__(self, omega0, phi0)
-        xexpr = _DiscreteMixin._sympify_xexpr(xexpr)
+        xexpr = self._sympify_xexpr(xexpr)
         yexpr = A*sp.cos(omega0*xexpr + phi0)
         DiscreteFunctionSignal.__init__(self, xexpr, yexpr, **kwargs)
 
@@ -866,7 +865,7 @@ class Exponential(_TrigMixin, DiscreteFunctionSignal):
         A = sp.sympify(A)
         alpha = sp.sympify(alpha)
         _TrigMixin.__init__(self, _extract_omega(alpha), _extract_phase(A))
-        xexpr = _DiscreteMixin._sympify_xexpr(xexpr)
+        xexpr = self._sympify_xexpr(xexpr)
         yexpr = A*sp.Pow(alpha, xexpr)
         DiscreteFunctionSignal.__init__(self, xexpr, yexpr, **kwargs)
         _, Ai = A.as_real_imag()
@@ -946,7 +945,7 @@ class DeltaTrain(DiscreteFunctionSignal):
         N = sp.sympify(N)
         if N <= 0:
             raise ValueError('N must be greater than 0')
-        xexpr = _DiscreteMixin._sympify_xexpr(xexpr)
+        xexpr = self._sympify_xexpr(xexpr)
         nm = sp.Eq(sp.Mod(xexpr, N), 0)
         yexpr = sp.Piecewise((1, nm), (0, True))
         DiscreteFunctionSignal.__init__(self, xexpr, yexpr, **kwargs)
@@ -984,7 +983,7 @@ class Square(DiscreteFunctionSignal):
             if width.is_number:
                 if width >= N:
                     raise ValueError('width must be less than N')
-        xexpr = _DiscreteMixin._sympify_xexpr(xexpr)
+        xexpr = self._sympify_xexpr(xexpr)
         nm = sp.Mod(xexpr, N)
         yexpr = sp.Piecewise((1, nm < width), (-1, nm < N))
         DiscreteFunctionSignal.__init__(self, xexpr, yexpr, **kwargs)
@@ -1029,7 +1028,7 @@ class Sawtooth(DiscreteFunctionSignal):
             if width.is_number:
                 if width >= N:
                     raise ValueError('width must be less than N')
-        xexpr = _DiscreteMixin._sympify_xexpr(xexpr)
+        xexpr = self._sympify_xexpr(xexpr)
         nm = sp.Mod(xexpr, N)
         yexpr = sp.Piecewise((-1+(2*nm)/width, nm < width),
                              (1-2*(nm-width)/(N-width), nm < N))

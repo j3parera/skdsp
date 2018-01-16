@@ -1,5 +1,5 @@
 from ._signal import _Signal, _FunctionSignal, _SignalOp
-from ._util import _extract_omega, _extract_phase
+# from ._util import _extract_omega, _extract_phase
 from ._util import _is_real_scalar, _is_complex_scalar
 from numbers import Number
 from sympy.core.compatibility import iterable
@@ -11,7 +11,7 @@ import sympy as sp
 __all__ = [s for s in dir() if not s.startswith('_')]
 
 # frequently used symbols
-t, tau = sp.symbols('t, tau', real=True)
+t, tau, omega, Omega = sp.symbols('t, tau, omega, Omega', real=True)
 
 
 class _ContinuousMixin(object):
@@ -57,9 +57,11 @@ class _ContinuousMixin(object):
 
     @classmethod
     def _sympify_xexpr(cls, expr):
-        expr = sp.sympify(expr)
-        if len(expr.free_symbols) == 0:
-            raise ValueError('xexpr must be have at least a variable')
+        expr = super()._sympify_xexpr(expr)
+        var = next(iter(expr.free_symbols))
+        if not var.is_real or var.is_integer or not expr.is_real \
+                or expr.is_integer:
+            raise ValueError('xexpr must be a real expression')
         return expr
 
     def _check_indexes(self, x):
@@ -440,6 +442,9 @@ class Delta(ContinuousFunctionSignal):
     Continuous unit impulse signal.
     """
 
+    # TODO
+    # quizás Delta(0) debería devolver DiracDelta(0)
+
     is_finite = True
     is_integer = True
     is_nonnegative = True
@@ -448,7 +453,7 @@ class Delta(ContinuousFunctionSignal):
         return _Signal.__new__(cls, xexpr)
 
     def __init__(self, xexpr=_ContinuousMixin._default_xvar, **kwargs):
-        xexpr = _ContinuousMixin._sympify_xexpr(xexpr)
+        xexpr = self._sympify_xexpr(xexpr)
         yexpr = sp.DiracDelta(xexpr)
         ContinuousFunctionSignal.__init__(self, xexpr, yexpr, **kwargs)
         self._period = sp.oo
@@ -474,7 +479,7 @@ class Step(ContinuousFunctionSignal):
         return _Signal.__new__(cls, xexpr)
 
     def __init__(self, xexpr=_ContinuousMixin._default_xvar, **kwargs):
-        xexpr = _ContinuousMixin._sympify_xexpr(xexpr)
+        xexpr = self._sympify_xexpr(xexpr)
         yexpr = sp.Heaviside(xexpr)
         ContinuousFunctionSignal.__init__(self, xexpr, yexpr, **kwargs)
         self._period = sp.oo
@@ -485,4 +490,3 @@ class Step(ContinuousFunctionSignal):
 
     def __repr__(self):
         return 'Step({0})'.format(str(self.xexpr))
-

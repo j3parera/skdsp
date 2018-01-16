@@ -181,6 +181,13 @@ class _Signal(sp.Basic):
             self._yexpr = sp.re(self._yexpr)
         self._dtype = value
 
+    @classmethod
+    def _sympify_xexpr(cls, expr):
+        expr = sp.sympify(expr)
+        if len(expr.free_symbols) == 0:
+            raise ValueError('xexpr must be have at least a variable')
+        return expr
+
     @property
     def xexpr(self):
         """
