@@ -1277,22 +1277,10 @@ class Test_Sinusoid(object):
 
 class Test_Arithmetic(object):
 
-    # TODO añadir tests para recuperación de esencia (nature)
-    # x1 = ds.Delta() + ds.Delta().shift(1)
-    # x2 = ds.Delta().shift(1)
-    # x3 = x1 - x2
-    # A = sp.Wild('A')
-    # B = sp.Wild('B')
-    # s = x3.amplitude.match(A * UnitDelta(ds.n - B))
-    # x33 = s[A] * ds.Delta(ds.n).shift(s[B])
-    # x3 'es' una delta como x33
-    # assert (x33 - x3).amplitude == sp.S.Zero
-    # assert (x33 - x3) == ds.Constant(0)
-
     def test_Arithmetic_neg(self):
         s = -ds.Delta()
         assert s[-1:3] == [0, -1, 0, 0]
-        assert isinstance(s, ds.DiscreteSignal)
+        assert isinstance(s, ds.Delta)
         assert s.is_discrete == True
 
         s = ds.Constant(0)
@@ -1327,12 +1315,12 @@ class Test_Arithmetic(object):
 
         s = ds.Delta() + 0
         assert s == ds.Delta()
-        assert isinstance(s, ds.DiscreteSignal)
+        assert isinstance(s, ds.Delta)
         assert s.is_discrete == True
 
         s = 0 + ds.Delta()
         assert s == ds.Delta()
-        assert isinstance(s, ds.DiscreteSignal)
+        assert isinstance(s, ds.Delta)
         assert s.is_discrete == True
 
         s = ds.Delta() + ds.Constant(0)
@@ -1347,10 +1335,10 @@ class Test_Arithmetic(object):
 
         s = ds.Delta()
         assert s == s + 0
-        assert isinstance(s, ds.DiscreteSignal)
+        assert isinstance(s, ds.Delta)
         assert s.is_discrete == True
         assert s == 0 + s
-        assert isinstance(s, ds.DiscreteSignal)
+        assert isinstance(s, ds.Delta)
         assert s.is_discrete == True
         assert s == s + ds.Constant(0)
         assert isinstance(s, ds.DiscreteSignal)
@@ -1379,37 +1367,42 @@ class Test_Arithmetic(object):
 
         s = ds.Delta() - 0
         assert s == ds.Delta()
-        assert isinstance(s, ds.DiscreteSignal)
+        assert isinstance(s, ds.Delta)
         assert s.is_discrete == True
 
         s = 0 - ds.Delta()
         assert s == -ds.Delta()
-        assert isinstance(s, ds.DiscreteSignal)
+        assert isinstance(s, ds.Delta)
         assert s.is_discrete == True
 
         s = ds.Delta() - ds.Constant(0)
         assert s == ds.Delta()
-        assert isinstance(s, ds.DiscreteSignal)
+        assert isinstance(s, ds.Delta)
         assert s.is_discrete == True
 
         s = ds.Constant(0) - ds.Delta()
         assert s == -ds.Delta()
-        assert isinstance(s, ds.DiscreteSignal)
+        assert isinstance(s, ds.Delta)
         assert s.is_discrete == True
 
         s = ds.Delta()
         assert s == s - 0
-        assert isinstance(s, ds.DiscreteSignal)
+        assert isinstance(s, ds.Delta)
         assert s.is_discrete == True
         assert -s == 0 - s
-        assert isinstance(s, ds.DiscreteSignal)
+        assert isinstance(s, ds.Delta)
         assert s.is_discrete == True
         assert s == s - ds.Constant(0)
-        assert isinstance(s, ds.DiscreteSignal)
+        assert isinstance(s, ds.Delta)
         assert s.is_discrete == True
         assert -s == ds.Constant(0) - s
-        assert isinstance(s, ds.DiscreteSignal)
+        assert isinstance(s, ds.Delta)
         assert s.is_discrete == True
+
+        x1 = ds.Delta() + ds.Delta().shift(1)
+        x2 = ds.Delta().shift(1)
+        x3 = x1 - x2
+        assert isinstance(x3, ds.Delta)
 
     def test_Arithmetic_mul(self):
         s = ds.Delta() * ds.Step()
@@ -1419,28 +1412,28 @@ class Test_Arithmetic(object):
 
         s = ds.Delta()
         assert s * 0 == ds.Constant(0)
-        assert isinstance(s, ds.DiscreteSignal)
+        assert isinstance(s * 0, ds.Constant)
         assert s.is_discrete == True
         assert 0 * s == ds.Constant(0)
-        assert isinstance(s, ds.DiscreteSignal)
+        assert isinstance(0 * s, ds.Constant)
         assert s.is_discrete == True
         assert ds.Constant(0) == s * ds.Constant(0)
-        assert isinstance(s, ds.DiscreteSignal)
+        assert isinstance(s * ds.Constant(0), ds.Constant)
         assert s.is_discrete == True
         assert ds.Constant(0) == ds.Constant(0) * s
-        assert isinstance(s, ds.DiscreteSignal)
+        assert isinstance(ds.Constant(0) * s, ds.Constant)
         assert s.is_discrete == True
         assert s == s * 1
-        assert isinstance(s, ds.DiscreteSignal)
+        assert isinstance(s, ds.Delta)
         assert s.is_discrete == True
         assert s == 1 * s
-        assert isinstance(s, ds.DiscreteSignal)
+        assert isinstance(s, ds.Delta)
         assert s.is_discrete == True
         assert s == s * ds.Constant(1)
-        assert isinstance(s, ds.DiscreteSignal)
+        assert isinstance(s, ds.Delta)
         assert s.is_discrete == True
         assert s == ds.Constant(1) * s
-        assert isinstance(s, ds.DiscreteSignal)
+        assert isinstance(s, ds.Delta)
         assert s.is_discrete == True
 
         s = ds.Constant(1)
@@ -1452,22 +1445,22 @@ class Test_Arithmetic(object):
 
         s = ds.Ramp() * 3
         assert s[-1:4] == [0, 0, 3, 6, 9]
-        assert isinstance(s, ds.DiscreteSignal)
+        assert isinstance(s, ds.Ramp)
         assert s.is_discrete == True
 
         s = 3 * ds.Ramp()
         assert s[-1:4] == [0, 0, 3, 6, 9]
-        assert isinstance(s, ds.DiscreteSignal)
+        assert isinstance(s, ds.Ramp)
         assert s.is_discrete == True
 
         s = ds.Delta() * complex(2, 2)
         assert s[-1:2] == [0, 2.0 + 2.0 * sp.I, 0]
-        assert isinstance(s, ds.DiscreteSignal)
+        assert isinstance(s, ds.Delta)
         assert s.is_discrete == True
 
         s = complex(2, 2) * ds.Delta()
         assert s[-1:2] == [0, 2.0 + 2.0 * sp.I, 0]
-        assert isinstance(s, ds.DiscreteSignal)
+        assert isinstance(s, ds.Delta)
         assert s.is_discrete == True
 
         # problemas con s = sp.I * ds.Delta() porque sympy lo intenta interpretar como Expr * Expr
@@ -1490,12 +1483,12 @@ class Test_Arithmetic(object):
             ds.Constant(0) / s
 
         assert s == s / 1
-        assert isinstance(s, ds.DiscreteSignal)
+        assert isinstance(s, ds.Delta)
         assert s.is_discrete == True
         with pytest.raises(TypeError):
             1 / s
         assert s == s / ds.Constant(1)
-        assert isinstance(s, ds.DiscreteSignal)
+        assert isinstance(s, ds.Delta)
         assert s.is_discrete == True
         with pytest.raises(TypeError):
             ds.Constant(1) / s
@@ -1506,11 +1499,11 @@ class Test_Arithmetic(object):
 
         s = ds.Ramp() / 3
         assert s[-1:4] == [0, 0, sp.Rational(1, 3), sp.Rational(2, 3), 1]
-        assert isinstance(s, ds.DiscreteSignal)
+        assert isinstance(s, ds.Ramp)
         assert s.is_discrete == True
         s /= 2
         assert s[-1:4] == [0, 0, sp.Rational(1, 6), sp.Rational(2, 6), sp.S.Half]
-        assert isinstance(s, ds.DiscreteSignal)
+        assert isinstance(s, ds.Ramp)
         assert s.is_discrete == True
 
         with pytest.raises(TypeError):
@@ -1518,7 +1511,7 @@ class Test_Arithmetic(object):
 
         s = ds.Delta() / complex(2, 2)
         assert s[-1:2] == [0, 0.25 - 0.25 * sp.I, 0]
-        assert isinstance(s, ds.DiscreteSignal)
+        assert isinstance(s, ds.Delta)
         assert s.is_discrete == True
 
         with pytest.raises(TypeError):

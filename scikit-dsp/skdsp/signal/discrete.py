@@ -11,7 +11,6 @@ n, m, k = sp.symbols("n, m, k", integer=True)
 
 
 class DiscreteSignal(Signal):
-
     @classmethod
     def from_period(cls, amp, iv, period, codomain=sp.S.Reals):
         amp = sp.S(amp)
@@ -21,11 +20,41 @@ class DiscreteSignal(Signal):
     @classmethod
     def from_sampling(cls, camp, civ, div, fs, codomain=sp.S.Reals):
         camp = sp.S(camp)
-        amp = camp.subs({civ: div/fs})
+        amp = camp.subs({civ: div / fs})
         return cls(amp, div, None, sp.S.Integers, codomain)
 
     @staticmethod
-    def deltify(data, start, iv, periodic):
+    def _transmute(obj):
+        try:
+            if obj.amplitude.is_constant():
+                obj.__class__ = Constant.__mro__[0]
+                return
+        except:
+            pass
+        A = sp.Wild("A")
+        k = sp.Wild("k")
+        omg = sp.Wild("omega")
+        phi = sp.Wild("phi")
+        N = sp.Wild("N")
+        patterns = [
+            (A * UnitDelta(obj.iv - k), Delta.__mro__[0]),
+            (A * UnitStep(obj.iv - k), Step.__mro__[0]),
+            (A * UnitRamp(obj.iv - k), Ramp.__mro__[0]),
+            (A * UnitDeltaTrain((obj.iv - k), N), Ramp.__mro__[0]),
+            (A * sp.cos(omg * (obj.iv - k) + phi), Sinusoid.__mro__[0]),
+        ]
+        for pattern in patterns:
+            d = obj.amplitude.match(pattern[0])
+            if d is not None:
+                try:
+                    if d[A].is_constant():
+                        obj.__class__ = pattern[1]
+                        break
+                except:
+                    pass
+
+    @staticmethod
+    def _deltify(data, start, iv, periodic):
         if periodic:
             M = len(data)
             s = start % M
@@ -293,7 +322,7 @@ class Data(DiscreteSignal):
         if len(data) == 1 and not periodic:
             obj = Delta(iv - start)
         else:
-            expr = DiscreteSignal.deltify(data, start, iv, periodic)
+            expr = DiscreteSignal._deltify(data, start, iv, periodic)
             period = len(data) if periodic else None
             # pylint: disable-msg=too-many-function-args
             obj = DiscreteSignal.__new__(cls, expr, iv, period, sp.S.Integers, codomain)

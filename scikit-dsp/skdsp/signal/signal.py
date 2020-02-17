@@ -474,11 +474,6 @@ class Signal(sp.Basic):
             # pylint: enable-msg=too-many-function-args
         return NotImplemented, None, None
 
-    # TODO Después de operar las señales pierden su esencia y debe ser así a no ser
-    # que tras la operación se conviertan recuperen otra. Me explico: x1 = Delta() + Delta().shift(1)
-    # y x2 = Delta().shift(-1) son señales genéricas, pero x3 = x1 - x2 es Delta(), así que debería
-    # transmutarse. Se puede usar amplitude.match(pattern) para saber si responden a un patrón y extraer
-    # sus parámetros.
     def __add__(self, other):
         other, period, codomain = self._convert_other(other, sp.S.Zero)
         if other is None:
@@ -494,6 +489,7 @@ class Signal(sp.Basic):
         Signal.__init__(obj)
         # obj.system_transform = self.system_transform + other.system_transform
         # obj.fourier_transform = self.fourier_transform + other.fourier_transform
+        cls._transmute(obj)
         return obj
 
     def __radd__(self, other):
@@ -516,6 +512,7 @@ class Signal(sp.Basic):
         Signal.__init__(obj)
         # obj.system_transform = self.system_transform - other.system_transform
         # obj.fourier_transform = self.fourier_transform - other.fourier_transform
+        cls._transmute(obj)
         return obj
 
     def __rsub__(self, other):
@@ -538,6 +535,7 @@ class Signal(sp.Basic):
         Signal.__init__(obj)
         # obj.system_transform = conv(self.system_transform, other.system_transform)
         # obj.fourier_transform = conv(self.fourier_transform, other.fourier_transform)
+        cls._transmute(obj)
         return obj
 
     def __rmul__(self, other):
@@ -562,8 +560,9 @@ class Signal(sp.Basic):
         # pylint: enable-msg=too-many-function-args
         # TODO
         Signal.__init__(obj)
-        # obj.system_transform = self.system_transform + other.system_transform
-        # obj.fourier_transform = self.fourier_transform + other.fourier_transform
+        # obj.system_transform = conv(self.system_transform, 1/other.system_transform)
+        # obj.fourier_transform = conv(self.fourier_transform, 1/other.fourier_transform)
+        cls._transmute(obj)
         return obj
 
     __itruediv__ = __truediv__
@@ -576,8 +575,9 @@ class Signal(sp.Basic):
         # pylint: enable-msg=too-many-function-args
         # TODO
         Signal.__init__(obj)
-        # obj.system_transform = self.system_transform + other.system_transform
-        # obj.fourier_transform = self.fourier_transform + other.fourier_transform
+        # obj.system_transform = -self.system_transform
+        # obj.fourier_transform = -self.fourier_transform
+        cls._transmute(obj)
         return obj
 
 
