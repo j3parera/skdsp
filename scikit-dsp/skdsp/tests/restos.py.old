@@ -1,0 +1,149 @@
+
+#    def test_0gen(self):
+#         f0 = 100
+#         n = ds._DiscreteMixin._default_xvar()
+#         x = ds.Sinusoid(2, 2*sp.S.Pi*f0, 10*sp.S.Pi*n)
+#         x = x.generate(0, step=0.1, size=1000)
+#         trozo = next(x)
+#         print(trozo)
+#         trozo = next(x)
+#         print(trozo)
+
+    def test_00(self):
+        sg = ds.DeltaTrain(8) * ds.Step()
+        sgv = sg[np.arange(-10, 10)]
+        print(sgv[11])
+
+    def test_zero_cross(self):
+        s = Sinusoid(3, sp.S.Pi/8, -sp.S.Pi/4)
+        se = s.yexpr
+        sv = s.xvar
+        solutions = sp.solve(se, sv)
+        if not len(solutions) == 0:
+            print(solutions)
+        print(s.is_periodic(), s.period)
+
+        # KK
+        T = sp.Symbol('T')
+        print(sp.solve(se-se.subs(sv, sv-T), T))
+
+#     def test_maxmin(self):
+#         s = Sinusoid(3, sp.S.Pi/8, -sp.S.Pi/4)
+#         self.assertEqual(s.max(), 3)
+#         self.assertEqual(s.min(), -3)
+#         self.assertEqual(s.range(), 6)
+#         self.assertAlmostEqual(s.range(True).evalf(), 20*np.log10(6))
+#         s = Delta(-1)
+#         self.assertEqual(s.max(), 1)
+#         self.assertEqual(s.min(), 0)
+#         self.assertEqual(s.range(), 1)
+#         self.assertAlmostEqual(s.range(True).evalf(), 20*np.log10(1))
+#         s = Step(1)
+#         self.assertEqual(s.max(), 1)
+#         self.assertEqual(s.min(), 0)
+#         self.assertEqual(s.range(), 1)
+#         self.assertAlmostEqual(s.range(True).evalf(), 20*np.log10(1))
+#         s = Sine(sp.S.Pi/8, -sp.S.Pi/4)
+#         self.assertEqual(s.max(), 1)
+#         self.assertEqual(s.min(), -1)
+#         self.assertEqual(s.range(), 2)
+#         self.assertAlmostEqual(s.range(True).evalf(), 20*np.log10(2))
+#         s = Cosine(sp.S.Pi/8, -sp.S.Pi/4)
+#         self.assertEqual(s.max(), 1)
+#         self.assertEqual(s.min(), -1)
+#         self.assertEqual(s.range(), 2)
+#         self.assertAlmostEqual(s.range(True).evalf(), 20*np.log10(2))
+
+    def test_minmax(self):
+        # min/max de expresiones derivables con máximos mínimos finitos
+        s = Sinusoid(3, sp.S.Pi/8, -sp.S.Pi/4)
+        se = s.yexpr
+        sv = s.xvar
+        sd = se.diff(sv)
+        solutions = sp.solve(sd)
+        solv = [se.subs(sv, sol) for sol in solutions]
+        if not len(solv) == 0:
+            print(sp.Max(*solv))
+            print(sp.Min(*solv))
+        # self.assertTrue(False)
+
+    def test_convolve(self):
+        x = Delta()
+        y = Step()
+        n, k = sp.symbols('n, k', integer=True)
+        xx = copy(x)
+        xx.xvar = n-k
+        yy = copy(y)
+        yy.xvar = k
+        z = sp.Sum(xx.yexpr * yy.yexpr, (k, -sp.oo, sp.oo))
+        print(str(x) + ' * ' + str(y) + ' =')
+        print(z.doit())
+
+    def test_scale(self):
+        ''' Constant (discrete): shift, delay '''
+        d = ds.Constant(123.456)
+        with self.assertRaises(ValueError):
+            d.scale(sp.pi)
+        np.testing.assert_array_equal(d[-3:3], d.scale(3)[-3:3])
+        np.testing.assert_array_equal(d[-3:3], d.scale(0.25)[-12:12:4])
+
+        d = cs.Constant(123.456)
+        np.testing.assert_array_equal(d[-3:3], d.scale(3)[-3:3])
+        np.testing.assert_array_equal(d[-3:3], d.scale(0.25)[-12:12:4])
+
+    def test_scale(self):
+        ''' Ramp (discrete): shift, delay '''
+        d = ds.Ramp()
+        with self.assertRaises(ValueError):
+            d.scale(sp.pi)
+        d = ds.Ramp().scale(3)
+        np.testing.assert_array_equal(d[-3:3], np.array([0, 0, 0, 0, 1, 2]))
+        d = ds.Ramp().scale(0.75)
+        np.testing.assert_array_equal(d[-12:12:4],
+                                      np.array([0, 0, 0, 0, 4, 8]))
+        d = ds.Ramp(ds.n-1).scale(1.5)
+        np.testing.assert_array_equal(d[-12:12:4],
+                                      np.array([0, 0, 0, 0, 3, 7]))
+
+    def test_scale(self):
+        ''' Step (discrete): shift, delay '''
+        d = ds.Step()
+        with self.assertRaises(ValueError):
+            d.scale(sp.pi)
+        d = ds.Step().scale(3)
+        np.testing.assert_array_equal(d[-3:3], np.array([0, 0, 0, 1, 1, 1]))
+        d = ds.Step().scale(0.75)
+        np.testing.assert_array_equal(d[-12:12:4],
+                                      np.array([0, 0, 0, 1, 1, 1]))
+        d = ds.Step(ds.n-1).scale(1.5)
+        np.testing.assert_array_equal(d[-12:12:4],
+                                      np.array([0, 0, 0, 0, 1, 1]))
+
+    def test_scale(self):
+        ''' DeltaTrain (discrete): shift, delay '''
+        d = ds.DeltaTrain()
+        with self.assertRaises(ValueError):
+            d.scale(sp.pi)
+        d = ds.DeltaTrain().scale(3)
+        np.testing.assert_array_equal(d[-3:3], np.array([0, 0, 0, 1, 0, 0]))
+        d = ds.DeltaTrain().scale(0.75)
+        np.testing.assert_array_equal(d[-12:12:4],
+                                      np.array([0, 0, 0, 1, 0, 0]))
+        d = ds.DeltaTrain(ds.n-1).scale(1.5)
+        np.testing.assert_array_equal(d[-12:12:4],
+                                      np.array([0, 0, 0, 0, 0, 0]))
+
+    # def test_scale(self):
+    #     ''' Sinusoid (discrete): shift, delay '''
+    #     d = ds.Sinusoid()
+    #     with pytest.raises(ValueError):
+    #         d.scale(sp.pi)
+    #     d = ds.Sinusoid().scale(3)
+    #     assert d[-3:3], np.cos(np.arange(-3, 3)))
+    #     d = ds.Sinusoid().scale(0.75)
+    #     assert d[-12:12:4],
+    #                                   np.cos(np.arange(-12, 12, 4)))
+    #     d = ds.Sinusoid(ds.n, 1).scale(1.5)
+    #     assert d[-12:12:4],
+    #                                   np.cos(np.arange(-12, 12, 4)))
+

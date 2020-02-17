@@ -1,0 +1,481 @@
+class _DiscreteMixin(object):
+    def _check_indexes(self, x):
+        """
+        Checks if all values in x are integers (including floats
+        without fractional part (e.g. 1.0, 2.0).
+        """
+        try:
+            xlambda = sp.lambdify(self._xvar, self.xexpr, "numpy")
+            x = xlambda(x)
+            if not hasattr(x, "__len__"):
+                # workaround para issue #5642 de sympy. Cuando yexpr es una
+                # constante, se devuelve un escalar aunque la entrada sea un
+                # array
+                x = np.full(x.shape, x, self.dtype)
+        except (NameError, ValueError):
+            # sympy no ha podido hacer una función lambda
+            # (o hay algún problema de cálculo, p.e 2^(-1) enteros)
+            # así que se procesan los valores uno a uno
+            x = np.zeros_like(x, self.dtype)
+            for k, x0 in enumerate(x):
+                try:
+                    x[k] = self.xexpr.xreplace({self._xvar: x0})
+                except TypeError:
+                    x[k] = np.nan
+
+        if not np.all(np.equal(np.mod(np.asanyarray(x), 1), 0)):
+            raise ValueError(
+                "discrete signals are only defined" + "for integer indexes"
+            )
+
+    def _post_op(self, other, xexpr, yexpr):
+        if yexpr.is_constant():
+            return Constant(yexpr)
+        cmplx = self.dtype == np.complex_ or other.dtype == np.complex_
+        return DiscreteFunctionSignal(xexpr, yexpr, cmplx=cmplx)
+
+    def _add(self, other):
+        if other.yexpr == sp.S.Zero:
+            return self
+        if self.yexpr == sp.S.Zero:
+            return other
+        if isinstance(self, _FunctionSignal):
+            if isinstance(other, _FunctionSignal):
+                yexpr1, xvar1 = self.yexpr, self.xvar
+                yexpr2, xvar2 = other.yexpr, other.xvar
+                yexpr = yexpr1 + yexpr2.subs(xvar2, xvar1)
+                return self._post_op(other, xvar1, yexpr)
+
+    def _mul(self, other):
+        if other.yexpr == sp.S.One:
+            return self
+        if self.yexpr == sp.S.One:
+            return other
+        if self.yexpr == sp.S.Zero or other.yexpr == sp.S.Zero:
+            return Constant(0)
+        if isinstance(self, _FunctionSignal):
+            if isinstance(other, _FunctionSignal):
+                yexpr1, xvar1 = self.yexpr, self.xvar
+                yexpr2, xvar2 = other.yexpr, other.xvar
+                yexpr = yexpr1 * yexpr2.subs(xvar2, xvar1)
+                return self._post_op(other, xvar1, yexpr)
+
+    def _pow(self, other):
+        if other.yexpr == sp.S.One:
+            return self
+        if other.yexpr == sp.S.Zero:
+            return Constant(0)
+        if isinstance(self, _FunctionSignal):
+            if isinstance(other, _FunctionSignal):
+                yexpr1, xvar1 = self.yexpr, self.xvar
+                yexpr2, xvar2 = other.yexpr, other.xvar
+                yexpr = yexpr1 ** yexpr2.subs(xvar2, xvar1)
+                return self._post_op(other, xvar1, yexpr)
+
+# class SignalOp(Signal):
+#     pass
+
+# class SignalAdd(SignalOp):
+    
+#     def __new__(cls, *args):
+#         evaluate = global_evaluate[0]
+#         # flatten inputs
+#         args = list(args)
+#         # adapted from sequences.SeqAdd
+#         def _flatten(arg):
+#             if isinstance(arg, Signal):
+#                 if isinstance(arg, SignalAdd):
+#                     return sum(map(_flatten, arg.args), [])
+#                 else:
+#                     return [arg]
+#             if iterable(arg):
+#                 return sum(map(_flatten, arg), [])
+#             raise TypeError("Input must be signals or " " iterables of signals")
+#         args = _flatten(args)
+#         # reduce using known rules
+#         if evaluate:
+#             return SignalAdd.reduce(args)
+#         return Signal.__new__(cls, *args)
+
+#     @staticmethod
+#     def reduce(args):
+#         """
+#         Simplify :class:`SignalAdd` using known rules.
+#         """
+#         new_args = True
+#         while new_args:
+#             for id1, s in enumerate(args):
+#                 new_args = False
+#                 for id2, t in enumerate(args):
+#                     if id1 == id2:
+#                         continue
+#                     new_sgn = s._add(t)
+#                     # This returns None if s does not know how to add
+#                     # with t. Returns the newly added signal otherwise
+#                     if new_sgn is not None:
+#                         new_args = [a for a in args if a not in (s, t)]
+#                         new_args.append(new_sgn)
+#                         break
+#                 if new_args:
+#                     args = new_args
+#                     break
+#         if len(args) == 1:
+#             return args.pop()
+#         else:
+#             return SignalAdd(args)
+
+#     def eval(self, r):
+#         return sum(a.eval(r) for a in self.args)
+
+# class SignalMul(SignalOp):
+#     # self.period = sp.lcm(s0.period, s1.period)
+
+#     def __new__(cls, *args):
+#         evaluate = global_evaluate[0]
+#         # flatten inputs
+#         args = list(args)
+#         # adapted from sequences.SeqMul
+#         def _flatten(arg):
+#             if isinstance(arg, Signal):
+#                 if isinstance(arg, SignalMul):
+#                     return sum(map(_flatten, arg.args), [])
+#                 else:
+#                     return [arg]
+#             if iterable(arg):
+#                 return sum(map(_flatten, arg), [])
+#             raise TypeError("Input must be signals or " " iterables of signals")
+#         args = _flatten(args)
+#         # reduce using known rules
+#         if evaluate:
+#             return SignalMul.reduce(args)
+#         return Signal.__new__(cls, *args)
+
+#     @staticmethod
+#     def reduce(args):
+#         """
+#         Simplify :class:`SignalMul` using known rules.
+#         """
+#         new_args = True
+#         while new_args:
+#             for id1, s in enumerate(args):
+#                 new_args = False
+#                 for id2, t in enumerate(args):
+#                     if id1 == id2:
+#                         continue
+#                     new_sgn = s._mul(t)
+#                     # This returns None if s does not know how to add
+#                     # with t. Returns the newly added signal otherwise
+#                     if new_sgn is not None:
+#                         new_args = [a for a in args if a not in (s, t)]
+#                         new_args.append(new_sgn)
+#                         break
+#                 if new_args:
+#                     args = new_args
+#                     break
+#         if len(args) == 1:
+#             return args.pop()
+#         else:
+#             return SignalMul(args)
+
+#     def eval(self, r):
+#         val = 1
+#         for a in self.args:
+#             val *= a.eval(r)
+#         return val
+
+    # --- independent variable operations -------------------------------------
+    def scale(self, s):
+        """ Scales the independent variable by `s`."""
+        r = sp.nsimplify(s, rational=True)
+        if not isinstance(r, sp.Rational):
+            raise ValueError("expansion/compression value not rational")
+        return self.expand(r.p).compress(r.q)
+
+    def compress(self, n):
+        if not _is_integer_scalar(n):
+            raise ValueError("compress factor must be integer")
+        if n == sp.S.One:
+            return self
+        return _Signal.scale(self, n, mul=False)
+
+    def expand(self, n):
+        if not _is_integer_scalar(n):
+            raise ValueError("expand factor must be integer")
+        if n == sp.S.One:
+            return self
+        return _Signal.scale(self, n, mul=True)
+
+    # --- other operations ----------------------------------------------------
+    #     def ccshift(self, k, N):
+    #         if not isinstance(k, Integral):
+    #             raise ValueError('delay/advance must be integer')
+    #         if not isinstance(N, Integral):
+    #             raise ValueError('modulo length must be integer')
+    #         return _Signal.cshift(self, k, N)
+
+    def dfs(self, P=None, force=False, symbolic=False):
+        if not force and not self.is_periodic():
+            raise TypeError("cant compute DFS of non periodic signal")
+        # es difícil determinar si una señal es periódica, así que suponemos
+        # que si se quiere calcular la DFS es porque se sabe que es periódica
+        # de periodo P (que no debe ser None)
+        if force:
+            N = P
+        else:
+            # periodo de la señal
+            N = int(self._period)
+            if P is not None:
+                # P debe ser un múltiplo de N
+                if P % N != 0:
+                    raise ValueError("P must be a multiple of N = {0}".format(N))
+        if symbolic:
+            n = self._xvar
+            k = sp.symbols("k", integer=True)
+            Xs = sp.Sum(
+                self._yexpr * sp.exp(-sp.I * 2 * sp.S.Pi * k * n / N), (n, 0, N - 1)
+            )
+            Xl = [Xs.xreplace({k: k0}) for k0 in range(0, N)]
+            X = np.array(Xl)
+        else:
+            X = np.zeros(N, np.complex_)
+            n = np.arange(0, N)
+            x = self.eval(n)
+            for k0 in np.arange(0, N):
+                X[k0] = np.sum(x * np.exp(-sp.I * 2 * np.pi * k0 * n / N))
+        return X
+
+
+class DiscreteFunctionSignal(_DiscreteMixin, _FunctionSignal):
+
+    def eval(self, x, force=False):
+        is_scalar = False
+        if isinstance(x, np.ndarray):
+            if x.size == 1:
+                is_scalar = True
+        else:
+            is_scalar = True
+            x = np.array([x])
+        if not force:
+            self._check_indexes(x)
+        y = _FunctionSignal.eval(self, x)
+        if is_scalar:
+            y = np.asscalar(y)
+        return y
+
+
+class RectPulse(DiscreteFunctionSignal):
+
+    is_finite = True
+    is_integer = True
+    is_nonnegative = True
+
+    def __new__(cls, xexpr=_DiscreteMixin._default_xvar, width=16, **_kwargs):
+        return _Signal.__new__(cls, xexpr, width)
+
+    def __init__(self, xexpr=_DiscreteMixin._default_xvar, width=16, **kwargs):
+        width = sp.sympify(width)
+        if not width.is_integer or not width.is_nonnegative:
+            raise ValueError("width must be a non-negative integer")
+        xexpr = self._sympify_xexpr(xexpr)
+        yexpr = sp.Piecewise((1, sp.Abs(xexpr) <= width), (0, True))
+        DiscreteFunctionSignal.__init__(self, xexpr, yexpr, **kwargs)
+        self._period = sp.oo
+
+    @property
+    def width(self):
+        return self.args[1]
+
+    def __str__(self):
+        return "Pi{0}[{1}]".format(self.width, self.xexpr)
+
+    def __repr__(self):
+        return "RectPulse({0}, {1})".format(self.xexpr, self.width)
+
+
+class TriangPulse(DiscreteFunctionSignal):
+
+    is_finite = True
+    is_integer = True
+    is_nonnegative = True
+
+    def __new__(cls, xexpr=_DiscreteMixin._default_xvar, width=16, **_kwargs):
+        return _Signal.__new__(cls, xexpr, width)
+
+    def __init__(self, xexpr=_DiscreteMixin._default_xvar, width=16, **kwargs):
+        width = sp.sympify(width)
+        if not width.is_integer or not width.is_nonnegative:
+            raise ValueError("width must be a non-negative integer")
+        xexpr = self._sympify_xexpr(xexpr)
+        yexpr = sp.Max(0, 1 - sp.Abs(xexpr / width))
+        DiscreteFunctionSignal.__init__(self, xexpr, yexpr, **kwargs)
+        self._period = sp.oo
+
+    @property
+    def width(self):
+        return self.args[1]
+
+    def __str__(self):
+        return "Delta{0}[{1}]".format(self.width, str(self.xexpr))
+
+    def __repr__(self):
+        return "TriangPulse({0}, {1})".format(self.xexpr, self.width)
+
+
+
+
+class Exponential(_TrigMixin, DiscreteFunctionSignal):
+
+    is_real = True
+
+    def __new__(cls, xexpr=_DiscreteMixin._default_xvar, A=1, alpha=1, **_kwargs):
+        return _Signal.__new__(cls, xexpr, A, alpha)
+
+    def __init__(self, xexpr=_DiscreteMixin._default_xvar, A=1, alpha=1, **kwargs):
+        A = sp.sympify(A)
+        alpha = sp.sympify(alpha)
+        _TrigMixin.__init__(self, _extract_omega(alpha), _extract_phase(A))
+        xexpr = self._sympify_xexpr(xexpr)
+        yexpr = A * sp.Pow(alpha, xexpr)
+        DiscreteFunctionSignal.__init__(self, xexpr, yexpr, **kwargs)
+        _, Ai = A.as_real_imag()
+        _, ai = alpha.as_real_imag()
+        if Ai.is_nonzero or ai.is_nonzero:
+            self.dtype = np.complex_
+            self.is_complex = True
+
+    @property
+    def amplitude(self):
+        return self.args[1]
+
+    @property
+    def base(self):
+        return self.args[2]
+
+    @property
+    def is_periodic(self):
+        mod1 = sp.Abs(self.base) == sp.S.One
+        return mod1 and super().is_periodic
+
+    @property
+    def phasor(self):
+        # TODO verificar
+        ph = sp.Abs(self.amplitude) * sp.exp(sp.I * self.phase)
+        if ph.is_constant:
+            return Constant(ph)
+        return DiscreteFunctionSignal(self._xvar, ph)
+
+    @property
+    def carrier(self):
+        # TODO verificar
+        o = self.frequency
+        c, _ = self._xexpr.as_coeff_mul(self.xvar)
+        if c.is_negative:
+            o = -o
+        s = Exponential(self.xvar, 1, sp.exp(sp.I * o))
+        if s.yexpr.is_constant():
+            s = Constant(s.yexpr)
+        return s
+
+    def __str__(self):
+        # s = '{0}'.format(str(self.yexpr))
+        return str(self.yexpr)
+
+    def __repr__(self):
+        return "Exponential({0}, {1}, {2})".format(
+            self.xexpr, self.amplitude, self.base
+        )
+
+
+class RealExponential(Exponential):
+    def __new__(cls, xexpr=_DiscreteMixin._default_xvar, A=1, alpha=1, **_kwargs):
+        return Exponential.__new__(cls, xexpr, A, alpha, **_kwargs)
+
+    def __init__(self, xexpr=_DiscreteMixin._default_xvar, A=1, alpha=1, **kwargs):
+        Exponential.__init__(self, xexpr, A, alpha, **kwargs)
+        if self.dtype_is_complex:
+            raise ValueError("amplitude and base must be real")
+
+
+class Square(DiscreteFunctionSignal):
+
+    is_finite = True
+    is_integer = True
+
+    def __new__(cls, xexpr=_DiscreteMixin._default_xvar, N=16, width=8, **_kwargs):
+        return _Signal.__new__(cls, xexpr, N, width)
+
+    def __init__(self, xexpr=_DiscreteMixin._default_xvar, N=16, width=8, **kwargs):
+        N = sp.sympify(N)
+        width = sp.sympify(width)
+        if isinstance(N, sp.Symbol):
+            if not N.is_integer or not N.is_positive:
+                raise ValueError("period must a positive integer")
+        if isinstance(width, sp.Symbol):
+            if not width.is_integer or not width.is_positive:
+                raise ValueError("width must a positive integer")
+        if N.is_number:
+            if N <= 0:
+                raise ValueError("N must be greater than 0")
+            if width.is_number:
+                if width >= N:
+                    raise ValueError("width must be less than N")
+        xexpr = self._sympify_xexpr(xexpr)
+        nm = sp.Mod(xexpr, N)
+        yexpr = sp.Piecewise((1, nm < width), (-1, nm < N))
+        DiscreteFunctionSignal.__init__(self, xexpr, yexpr, **kwargs)
+        self.period = N
+
+    @property
+    def width(self):
+        return self.args[2]
+
+    def __str__(self, *_args, **_kwargs):
+        return "square[(({0})){1}/{2}]".format(self.xexpr, self.period, self.width)
+
+    def __repr__(self):
+        return "Square({0}, {1}, {2})".format(self.xexpr, self.period, self.width)
+
+
+class Sawtooth(DiscreteFunctionSignal):
+
+    is_finite = True
+    is_integer = False
+    is_real = True
+
+    def __new__(cls, xexpr=_DiscreteMixin._default_xvar, N=16, width=8, **_kwargs):
+        return _Signal.__new__(cls, xexpr, N, width)
+
+    def __init__(self, xexpr=_DiscreteMixin._default_xvar, N=16, width=8, **kwargs):
+        N = sp.sympify(N)
+        width = sp.sympify(width)
+        if isinstance(N, sp.Symbol):
+            if not N.is_integer or not N.is_positive:
+                raise ValueError("period must a positive integer")
+        if isinstance(width, sp.Symbol):
+            if not width.is_integer or not width.is_positive:
+                raise ValueError("width must a positive integer")
+        if N.is_number:
+            if N <= 0:
+                raise ValueError("N must be greater than 0")
+            if width.is_number:
+                if width >= N:
+                    raise ValueError("width must be less than N")
+        xexpr = self._sympify_xexpr(xexpr)
+        nm = sp.Mod(xexpr, N)
+        yexpr = sp.Piecewise(
+            (-1 + (2 * nm) / width, nm < width),
+            (1 - 2 * (nm - width) / (N - width), nm < N),
+        )
+        DiscreteFunctionSignal.__init__(self, xexpr, yexpr, **kwargs)
+        self.period = N
+
+    @property
+    def width(self):
+        return self.args[2]
+
+    def __str__(self, *_args, **_kwargs):
+        return "saw[(({0})){1}/{2}]".format(self.xexpr, self.period, self.width)
+
+    def __repr__(self):
+        return "Sawtooth({0}, {1}, {2})".format(self.xexpr, self.period, self.width)
+
