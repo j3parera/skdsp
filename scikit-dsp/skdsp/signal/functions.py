@@ -137,7 +137,11 @@ class UnitRamp(sp.Function):
         return sp.Piecewise((arg, arg >= 0), (0, True))
 
     def _eval_rewrite_as_UnitStep(self, *args, **kwargs):
-        return args[0] * UnitStep(args[0])
+        k = sp.Dummy(integer=True)
+        if "form" in kwargs and kwargs["form"] == "accum":
+            return sp.Sum(UnitStep(k - 1), (k, sp.S.NegativeInfinity, args[0]))
+        else:
+            return args[0] * UnitStep(args[0])
 
     def _eval_rewrite_as_Max(self, *args, **kwargs):
         return sp.Max(0, args[0])

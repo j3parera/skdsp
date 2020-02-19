@@ -1,9 +1,10 @@
 import numpy as np
 import sympy as sp
 
-from skdsp.signal.functions import UnitDelta, UnitRamp, UnitStep, UnitDeltaTrain
+from skdsp.signal.functions import (UnitDelta, UnitDeltaTrain, UnitRamp,
+                                    UnitStep)
 from skdsp.signal.signal import Signal
-from skdsp.signal.util import stem, ipystem
+from skdsp.signal.util import ipystem, complex2polar
 
 __all__ = [s for s in dir() if not s.startswith("_")]
 
@@ -11,21 +12,79 @@ n, m, k = sp.symbols("n, m, k", integer=True)
 
 
 class DiscreteSignal(Signal):
-
     @classmethod
     def from_period(cls, amp, iv, period, codomain=sp.S.Reals):
         amp = sp.S(amp)
         amp = amp.subs({iv: sp.Mod(iv, period)})
-        return cls(amp, iv, period, sp.S.Integers, codomain)
+        obj = cls(amp, iv, period, sp.S.Integers, codomain)
+        cls._transmute(obj)
+        return obj
 
     @classmethod
     def from_sampling(cls, camp, civ, div, fs, codomain=sp.S.Reals):
         camp = sp.S(camp)
-        amp = camp.subs({civ: div/fs})
-        return cls(amp, div, None, sp.S.Integers, codomain)
+        amp = camp.subs({civ: div / fs})
+        obj = cls(amp, div, None, sp.S.Integers, codomain)
+        tcls, d, A, k, omg, phi = cls._transmute(obj, False)
+        if tcls is not None:
+            # TODO otras transmutaciones
+            if tcls == Sinusoid.__mro__[0]:
+                om, pio = d[omg].as_independent(sp.S.Pi)
+                ph, pip = d[phi].as_independent(sp.S.Pi)
+                obj = tcls(
+                    d[A],
+                    sp.Rational(sp.sstr(om)) * pio,
+                    sp.Rational(sp.sstr(ph)) * pip,
+                    obj.iv,
+                )
+                if d[k] != 0:
+                    obj = obj.shift(d[k])
+        return obj
+
+    @classmethod
+    def from_formula(cls, amp, iv=None, codomain=sp.S.Reals):
+        amp = sp.S(amp)
+        obj = cls(amp, iv, None, sp.S.Integers, codomain)
+        cls._transmute(obj)
+        return obj
 
     @staticmethod
-    def deltify(data, start, iv, periodic):
+    def _transmute(obj, apply=True):
+        try:
+            if obj.amplitude.is_constant():
+                obj.__class__ = Constant.__mro__[0]
+                return
+        except:
+            pass
+        A = sp.Wild("A")
+        k = sp.Wild("k")
+        omg = sp.Wild("omega")
+        phi = sp.Wild("phi")
+        N = sp.Wild("N")
+        patterns = [
+            (A * UnitDelta(obj.iv - k), Delta.__mro__[0]),
+            (A * UnitStep(obj.iv - k), Step.__mro__[0]),
+            (A * UnitRamp(obj.iv - k), Ramp.__mro__[0]),
+            (A * UnitDeltaTrain((obj.iv - k), N), Ramp.__mro__[0]),
+            (A * sp.cos(omg * (obj.iv - k) + phi), Sinusoid.__mro__[0]),
+            (A * sp.sin(omg * (obj.iv - k) + phi), Sinusoid.__mro__[0]),
+        ]
+        for pattern in patterns:
+            d = obj.amplitude.match(pattern[0])
+            if d is not None:
+                try:
+                    if d[A].is_constant():
+                        if apply:
+                            obj.__class__ = pattern[1]
+                            break
+                        else:
+                            return (pattern[1], d, A, k, omg, phi)
+                except:
+                    pass
+        return None
+
+    @staticmethod
+    def _deltify(data, start, iv, periodic):
         if periodic:
             M = len(data)
             s = start % M
@@ -39,7 +98,7 @@ class DiscreteSignal(Signal):
         return expr
 
     def __new__(cls, amp, iv, period, domain, codomain):
-        if not iv.is_symbol or not iv.is_integer:
+        if iv is not None and (not iv.is_symbol or not iv.is_integer):
             raise ValueError("Invalid independent variable.")
         # pylint: disable-msg=too-many-function-args
         return Signal.__new__(cls, amp, iv, period, domain, codomain)
@@ -128,7 +187,7 @@ class Delta(DiscreteSignal):
         iv = sp.sympify(iv) if iv is not None else n
         # pylint: disable-msg=too-many-function-args
         obj = DiscreteSignal.__new__(
-            cls, UnitDelta(iv), iv, None, sp.S.Integers, sp.S.Reals
+            cls, UnitDelta(iv), iv, sp.S.Zero, sp.S.Integers, sp.S.Reals
         )
         # pylint: enable-msg=too-many-function-args
         obj.amplitude.__class__ = UnitDelta
@@ -161,7 +220,7 @@ class Step(DiscreteSignal):
         iv = sp.sympify(iv) if iv is not None else n
         # pylint: disable-msg=too-many-function-args
         obj = DiscreteSignal.__new__(
-            cls, UnitStep(iv), iv, None, sp.S.Integers, sp.S.Reals
+            cls, UnitStep(iv), iv, sp.S.Zero, sp.S.Integers, sp.S.Reals
         )
         # pylint: enable-msg=too-many-function-args
         return obj
@@ -188,7 +247,7 @@ class Ramp(DiscreteSignal):
         iv = sp.sympify(iv) if iv is not None else n
         # pylint: disable-msg=too-many-function-args
         obj = DiscreteSignal.__new__(
-            cls, UnitRamp(iv), iv, None, sp.S.Integers, sp.S.Reals
+            cls, UnitRamp(iv), iv, sp.S.Zero, sp.S.Integers, sp.S.Reals
         )
         # pylint: enable-msg=too-many-function-args
         return obj
@@ -293,8 +352,8 @@ class Data(DiscreteSignal):
         if len(data) == 1 and not periodic:
             obj = Delta(iv - start)
         else:
-            expr = DiscreteSignal.deltify(data, start, iv, periodic)
-            period = len(data) if periodic else None
+            expr = DiscreteSignal._deltify(data, start, iv, periodic)
+            period = len(data) if periodic else sp.S.Zero
             # pylint: disable-msg=too-many-function-args
             obj = DiscreteSignal.__new__(cls, expr, iv, period, sp.S.Integers, codomain)
             # pylint: enable-msg=too-many-function-args
@@ -317,15 +376,15 @@ class _TrigonometricDiscreteSignal(DiscreteSignal):
             _, e = omega.as_coeff_exponent(sp.S.Pi)
             if e != 1:
                 # there is pi**(e != 1)
-                return None
+                return sp.S.Zero
             om, _ = omega.as_independent(sp.S.Pi)
             try:
                 r = sp.Rational(str(om))
                 return sp.S(2 * r.q)
             except:
                 # not rational
-                return None
-        return None
+                return sp.S.Zero
+        return sp.S.Zero
 
     @staticmethod
     def _reduce_phase(phi, nonnegative=False):
@@ -333,6 +392,10 @@ class _TrigonometricDiscreteSignal(DiscreteSignal):
         if not nonnegative and phi0 >= sp.S.Pi:
             phi0 -= 2 * sp.S.Pi
         return phi0
+
+    @property
+    def gain(self):
+        return self.A
 
     @property
     def frequency(self):
@@ -358,6 +421,13 @@ class _TrigonometricDiscreteSignal(DiscreteSignal):
         obj.A = self.A
         obj.omega = self.omega
         obj.phi = self.phi
+
+    def alias(self, interval=0):
+        romega = self.reduced_frequency() + 2 * sp.S.Pi * interval
+        rphi = self.reduced_phase()
+        # pylint: disable-msg=no-value-for-parameter
+        return self.__class__.__mro__[0](self.A, romega, rphi, self.iv)
+        # pylint: enable-msg=no-value-for-parameter
 
 
 class Sinusoid(_TrigonometricDiscreteSignal):
@@ -390,10 +460,6 @@ class Sinusoid(_TrigonometricDiscreteSignal):
                 raise ValueError("Aplitude must be real.")
 
     @property
-    def gain(self):
-        return self.A
-
-    @property
     def in_phase(self):
         g = self.gain * sp.cos(self.phase)
         return g * sp.cos(self.frequency * self.iv)
@@ -411,12 +477,76 @@ class Sinusoid(_TrigonometricDiscreteSignal):
     def Q(self):
         return self.in_quadrature
 
-    def alias(self, interval=0):
-        romega = self.reduced_frequency() + 2 * sp.S.Pi * interval
-        rphi = self.reduced_phase()
-        return Sinusoid(self.gain, romega, rphi, self.iv)
+    @property
+    def euler(self):
+        return self.amplitude.rewrite(sp.exp)
 
     def __repr__(self):
         return "Sinusoid({0}, {1}, {2}, {3})".format(
             str(self.gain), str(self.frequency), str(self.phase), str(self.iv)
+        )
+
+
+class Exponential(_TrigonometricDiscreteSignal):
+
+    is_real = True
+
+    def __new__(cls, C=1, alpha=None, iv=None):
+        if alpha is None:
+            raise ValueError("The exponential base must be supplied")
+        C = sp.S(C)
+        alpha = sp.S(alpha)
+        if not C.is_constant() or not alpha.is_constant():
+            raise ValueError("Gain and base must me constant")
+        r, omega = complex2polar(alpha)
+        iv = sp.sympify(iv) if iv is not None else n
+        if r == sp.S.One:
+            if omega == sp.S.Zero:
+                amp = C
+                period = 1
+            elif omega == sp.S.Pi:
+                amp = sp.Mul(C, sp.Pow(-1, iv), evaluate=False)
+                period = 2
+            else:
+                amp = sp.Mul(C, sp.exp(sp.I * omega * iv), evaluate=False)
+                period = _TrigonometricDiscreteSignal._period(omega)
+        else:
+            if omega == sp.S.Zero or omega == sp.S.Pi:
+                amp = sp.Mul(C, sp.Pow(alpha, iv), evaluate=False)
+            else:
+                amp = sp.Mul(C, sp.Pow(r, iv) * sp.exp(sp.I * omega * iv), evaluate=False)
+            period = 0
+        # pylint: disable-msg=too-many-function-args
+        obj = DiscreteSignal.__new__(cls, amp, iv, period, sp.S.Integers, None)
+        # pylint: enable-msg=too-many-function-args
+        return obj
+
+    def __init__(self, C=1, alpha=None, iv=None):
+        c, phi  = complex2polar(sp.S(C))
+        r, omega = complex2polar(sp.S(alpha))
+        iv = sp.sympify(iv) if iv is not None else n
+        G = c * sp.Pow(r, iv)
+        _TrigonometricDiscreteSignal.__init__(self, G, omega, phi)
+        self.C = C
+        self.alpha = alpha
+
+    def _clone_extra(self, obj):
+        obj.C = self.C
+        obj.alpha = self.alpha
+
+    @property
+    def base(self):
+        return self.alpha
+
+    @property
+    def phasor(self):
+        return sp.Abs(self.C) * sp.exp(sp.I * self.phase)
+
+    @property
+    def carrier(self):
+        return sp.exp(sp.I * self.frequency * self.iv)
+
+    def __repr__(self):
+        return "Exponential({0}, {1}, {2})".format(
+            self.C, self.alpha, self.iv
         )

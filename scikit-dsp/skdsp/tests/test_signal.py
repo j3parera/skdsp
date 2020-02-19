@@ -755,7 +755,7 @@ class Test_Signal(object):
         assert s.imag == sp.im(s.amplitude)
         assert s.conjugate == Signal(sp.conjugate(sp.Function("X")(k)))
         # pylint: enable-msg=not-callable
-
+ 
     def test_Signal_delay_shift(self):
         k = sp.Symbol("k", integer=True)
         n = sp.Symbol("n", integer=True)
@@ -1044,8 +1044,3 @@ class Test_Signal(object):
         s2 = Signal(sp.Function("y")(n))
         assert s1 != s2
         # pylint: enable-msg=not-callable
-
-    def test_Signal_misc(self):
-        # TODO odd/even -> necesita algebra"
-        # TODO abs
-        pass

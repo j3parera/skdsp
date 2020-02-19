@@ -57,6 +57,9 @@ class Signal(sp.Basic):
                 period = None
         else:
             period = sp.sympify(period)
+            # known to be non periodic
+            if period == sp.S.Zero:
+                period = None
         # undefs
         if isinstance(amplitude, AppliedUndef):
             if hasattr(amplitude, "period") and hasattr(amplitude, "duration"):
@@ -152,11 +155,16 @@ class Signal(sp.Basic):
         for arg in obj.amplitude.args:
             if isinstance(arg, sp.KroneckerDelta):
                 arg.__class__ = UnitDelta
-        obj.sys_transform = self.sys_transform
-        obj.fourier_transform = self.fourier_transform
+        # TODO
+        # obj.sys_transform = self.sys_transform
+        # obj.fourier_transform = self.fourier_transform
         # pylint: disable-msg=no-member
-        if hasattr(self, '_clone_extra'):
-            self._clone_extra(obj)
+        # if hasattr(self, '_clone_extra'):
+        #     self._clone_extra(obj)
+        if hasattr(cls, '_clone_extra'):
+            cls._clone_extra(self, obj)
+        if hasattr(cls, '_transmute'):
+            cls._transmute(obj)
         # pylint: enable-msg=no-member
         return obj
 
@@ -165,6 +173,9 @@ class Signal(sp.Basic):
 
     def _hashable_content(self):
         return sp.Basic._hashable_content(self)
+
+    def as_coeff_Mul(self, *args, **kwargs):
+        return self.amplitude.as_coeff_Mul(*args, **kwargs)
 
     @property
     def amplitude(self):
@@ -275,11 +286,11 @@ class Signal(sp.Basic):
 
     @property
     def is_even(self):
-        return self == self.flip()
+        return (self.amplitude + self.amplitude.subs({self.iv: - self.iv})) == 0
 
     @property
     def is_odd(self):
-        return self == -self.flip()
+        return (self.amplitude - self.amplitude.subs({self.iv: - self.iv})) == 0
 
     @property
     def even(self):
@@ -287,7 +298,8 @@ class Signal(sp.Basic):
             return self
         if self.is_odd:
             return sp.S.Zero
-        return sp.S.Half * (self + self.flip().conjugate)
+        # expr * signal lo captura sympy como expr * expr -> mal
+        return (self + self.flip().conjugate) * sp.S.Half
 
     @property
     def odd(self):
@@ -295,11 +307,20 @@ class Signal(sp.Basic):
             return self
         if self.is_even:
             return sp.S.Zero
-        return sp.S.Half * (self - self.flip().conjugate)
+        # expr * signal lo captura sympy como expr * expr -> mal
+        return (self - self.flip().conjugate) * sp.S.Half
+
+    @property
+    def abs(self):
+        mro = self.__class__.__mro__
+        cls = mro[-4] if len(mro) >= 4 else mro[0]
+        return self.clone(cls, sp.Abs(self.amplitude), period=None)
 
     @property
     def conjugate(self):
-        return self.clone(self.__class__, sp.conjugate(self.amplitude))
+        mro = self.__class__.__mro__
+        cls = mro[-4] if len(mro) >= 4 else mro[0]
+        return self.clone(cls, sp.conjugate(self.amplitude))
         
     def magnitude(self, dB=False):
         m = sp.Abs(self.amplitude)
@@ -442,15 +463,15 @@ class Signal(sp.Basic):
         return self.clone(self.__class__, self.amplitude.subs({self.iv: - self.iv}))
         
     def __abs__(self):
-        return self.clone(self.__class__, sp.Abs(self.amplitude))
+        return self.abs
 
-    def _codomain(self, other):
+    def _join_codomain(self, other):
         if self.codomain == sp.S.Complexes or other.codomain == sp.S.Complexes:
             return sp.S.Complexes
         # None para que se calcule
         return None
 
-    def _period(self, other):
+    def _join_period(self, other):
         if self.period is not None and other.period is not None:
             return sp.lcm(self.period, other.period)
         return None
@@ -463,22 +484,17 @@ class Signal(sp.Basic):
                 return NotImplemented, None, None
             if other.amplitude - identity == 0:
                 return None, None, None
-            return (other, self._period(other), self._codomain(other))
+            return (other, self._join_period(other), self._join_codomain(other))
         if isinstance(other, Number):
             if sp.S(other) - identity == 0:
                 return None, None, None
             # pylint: disable-msg=too-many-function-args
             cls = self.__class__.__mro__[-4]
             other = Signal.__new__(cls, other, self.iv, None, self.domain, self.codomain)
-            return (other, self._period(other), self._codomain(other))
+            return (other, self._join_period(other), self._join_codomain(other))
             # pylint: enable-msg=too-many-function-args
         return NotImplemented, None, None
 
-    # TODO Después de operar las señales pierden su esencia y debe ser así a no ser
-    # que tras la operación se conviertan recuperen otra. Me explico: x1 = Delta() + Delta().shift(1)
-    # y x2 = Delta().shift(-1) son señales genéricas, pero x3 = x1 - x2 es Delta(), así que debería
-    # transmutarse. Se puede usar amplitude.match(pattern) para saber si responden a un patrón y extraer
-    # sus parámetros.
     def __add__(self, other):
         other, period, codomain = self._convert_other(other, sp.S.Zero)
         if other is None:
@@ -494,6 +510,7 @@ class Signal(sp.Basic):
         Signal.__init__(obj)
         # obj.system_transform = self.system_transform + other.system_transform
         # obj.fourier_transform = self.fourier_transform + other.fourier_transform
+        cls._transmute(obj)
         return obj
 
     def __radd__(self, other):
@@ -516,6 +533,7 @@ class Signal(sp.Basic):
         Signal.__init__(obj)
         # obj.system_transform = self.system_transform - other.system_transform
         # obj.fourier_transform = self.fourier_transform - other.fourier_transform
+        cls._transmute(obj)
         return obj
 
     def __rsub__(self, other):
@@ -538,6 +556,7 @@ class Signal(sp.Basic):
         Signal.__init__(obj)
         # obj.system_transform = conv(self.system_transform, other.system_transform)
         # obj.fourier_transform = conv(self.fourier_transform, other.fourier_transform)
+        cls._transmute(obj)
         return obj
 
     def __rmul__(self, other):
@@ -562,8 +581,9 @@ class Signal(sp.Basic):
         # pylint: enable-msg=too-many-function-args
         # TODO
         Signal.__init__(obj)
-        # obj.system_transform = self.system_transform + other.system_transform
-        # obj.fourier_transform = self.fourier_transform + other.fourier_transform
+        # obj.system_transform = conv(self.system_transform, 1/other.system_transform)
+        # obj.fourier_transform = conv(self.fourier_transform, 1/other.fourier_transform)
+        cls._transmute(obj)
         return obj
 
     __itruediv__ = __truediv__
@@ -576,8 +596,9 @@ class Signal(sp.Basic):
         # pylint: enable-msg=too-many-function-args
         # TODO
         Signal.__init__(obj)
-        # obj.system_transform = self.system_transform + other.system_transform
-        # obj.fourier_transform = self.fourier_transform + other.fourier_transform
+        # obj.system_transform = -self.system_transform
+        # obj.fourier_transform = -self.fourier_transform
+        cls._transmute(obj)
         return obj
 
 

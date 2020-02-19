@@ -1,14 +1,19 @@
-import numpy as np
-import sympy as sp
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-
-from sympy.plotting.plot import Line2DBaseSeries, Plot, check_arguments, vectorized_lambdify
+import numpy as np
+import sympy as sp
+from sympy.functions.elementary.trigonometric import _pi_coeff
+from sympy.plotting.plot import (
+    Line2DBaseSeries,
+    Plot,
+    check_arguments,
+    vectorized_lambdify,
+)
 
 __all__ = [s for s in dir() if not s.startswith("_")]
 
-class StemOver1DRangeSeries(Line2DBaseSeries):
 
+class StemOver1DRangeSeries(Line2DBaseSeries):
     def __init__(self, expr, var_start_end, **kwargs):
         super().__init__()
         self.expr = sp.sympify(expr)
@@ -18,13 +23,16 @@ class StemOver1DRangeSeries(Line2DBaseSeries):
         self.end = float(var_start_end[2])
         self.nb_of_points = self.end - self.start + 1
         self.adaptive = False
-        self.depth = kwargs.get('depth', 12)
-        self.line_color = kwargs.get('line_color', None)
-        self.xscale = kwargs.get('xscale', 'linear')
+        self.depth = kwargs.get("depth", 12)
+        self.line_color = kwargs.get("line_color", None)
+        self.xscale = kwargs.get("xscale", "linear")
 
     def __str__(self):
-        return 'stem lines: %s for %s over %s' % (
-            str(self.expr), str(self.var), str((self.start, self.end)))
+        return "stem lines: %s for %s over %s" % (
+            str(self.expr),
+            str(self.var),
+            str((self.start, self.end)),
+        )
 
     def get_segments(self):
         x, y = self.get_points()
@@ -32,10 +40,14 @@ class StemOver1DRangeSeries(Line2DBaseSeries):
         return stemlines
 
     def get_points(self):
-        if self.xscale == 'log':
-            list_x = np.logspace(int(self.start), int(self.end), num=int(self.end) - int(self.start) + 1)
+        if self.xscale == "log":
+            list_x = np.logspace(
+                int(self.start), int(self.end), num=int(self.end) - int(self.start) + 1
+            )
         else:
-            list_x = np.linspace(int(self.start), int(self.end), num=int(self.end) - int(self.start) + 1)
+            list_x = np.linspace(
+                int(self.start), int(self.end), num=int(self.end) - int(self.start) + 1
+            )
         f = vectorized_lambdify([self.var], self.expr)
         list_y = f(list_x)
         return (list_x, list_y)
@@ -49,16 +61,17 @@ def stem(*args, **kwargs):
             free |= a.free_symbols
             if len(free) > 1:
                 raise ValueError(
-                    'The same variable should be used in all '
-                    'univariate expressions being plotted.')
-    x = free.pop() if free else sp.Symbol('x')
+                    "The same variable should be used in all "
+                    "univariate expressions being plotted."
+                )
+    x = free.pop() if free else sp.Symbol("x")
     # pylint: disable-msg=no-member
-    kwargs.setdefault('xlabel', x.name)
-    kwargs.setdefault('ylabel', 'f(%s)' % x.name)
+    kwargs.setdefault("xlabel", x.name)
+    kwargs.setdefault("ylabel", "f(%s)" % x.name)
     # TODO continuar o no
-    kwargs.setdefault('markers', [{'args': 'o'}])
+    kwargs.setdefault("markers", [{"args": "o"}])
     # pylint: enable-msg=no-member
-    show = kwargs.pop('show', True)
+    show = kwargs.pop("show", True)
     series = []
     plot_expr = check_arguments(args, 1, 1)
     series = [StemOver1DRangeSeries(*arg, **kwargs) for arg in plot_expr]
@@ -67,6 +80,7 @@ def stem(*args, **kwargs):
     if show:
         plots.show()
     return plots
+
 
 def ipystem(
     nx, x, xlabel=None, title=None, axis=None, color="k", marker="o", markersize=8
@@ -99,3 +113,18 @@ def ipystem(
     # plt.tight_layout()
     return ax
 
+
+def complex2polar(z):
+    if z.is_Add:
+        return (sp.Abs(z), sp.arg(z))
+    re, im = z.as_real_imag()
+    if (re != sp.S.Zero and im == sp.S.Zero) or (re == sp.S.Zero and im != sp.S.Zero):
+        # pure real or pure imag
+        return (sp.Abs(z), sp.arg(z))
+    # (+-)r*exp(sp.I*phi)
+    r = sp.Wild("r")
+    phi = sp.Wild("phi")
+    d = z.match(r * sp.exp(sp.I * phi))
+    if d is None or d[r] == sp.S.Zero:
+        return (sp.S.Zero, None)
+    return (sp.Abs(d[r]), sp.arg(d[r]) + d[phi])

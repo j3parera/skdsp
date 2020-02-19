@@ -416,6 +416,10 @@ class Test_Ramp(object):
         g = f(ds.n).rewrite(UnitStep)
         assert g == ds.n * UnitStep(ds.n)
 
+        g = f(ds.n).rewrite(UnitStep, form='accum')
+        k = sp.Dummy(integer=True)
+        assert g.dummy_eq(sp.Sum(UnitStep(k - 1), (k, sp.S.NegativeInfinity, ds.n)))
+
         g = f(ds.n).rewrite(sp.Piecewise)
         assert g == sp.Piecewise((ds.n, ds.n >= 0), (0, True))
 
@@ -1190,8 +1194,8 @@ class Test_Sinusoid(object):
         s = ds.Sinusoid(1, -7 / 2)
         assert s.is_periodic == False
         assert s.frequency == -7 / 2
-        assert s.reduced_frequency(False) == -7/2+2*sp.S.Pi
-        assert s.reduced_frequency(True) == -7/2+2*sp.S.Pi
+        assert s.reduced_frequency(False) == -7 / 2 + 2 * sp.S.Pi
+        assert s.reduced_frequency(True) == -7 / 2 + 2 * sp.S.Pi
         assert s.phase == 0
 
         s = ds.Sinusoid(1, sp.sqrt(2) * sp.S.Pi)
@@ -1274,25 +1278,73 @@ class Test_Sinusoid(object):
             x, 2.0 * np.cos(np.pi * np.arange(-1, 2) / 4)
         )
 
+        s = ds.Sinusoid(omega=sp.S.Pi / 4, phi=sp.S.Pi / 3)
+        assert (
+            sp.simplify(
+                s.euler
+                - sp.S(
+                    1 / 2 * sp.exp(-sp.I * (sp.S.Pi * ds.n / 4 + sp.S.Pi / 3))
+                    + 1 / 2 * sp.exp(sp.I * (sp.S.Pi * ds.n / 4 + sp.S.Pi / 3))
+                )
+            )
+            == 0
+        )
+
+
+class Test_Exponential(object):
+    def test_Exponential_constructor(self):
+        s = ds.Exponential(alpha=0.5)
+        assert s is not None
+
+        s = ds.Exponential(alpha=-1)
+        assert s is not None
+
+        s = ds.Exponential(alpha=1)
+        assert s is not None
+
+        s = ds.Exponential(3, sp.Rational(1, 2))
+        assert s is not None
+
+        s = ds.Exponential(3, 1 + sp.I)
+        assert s is not None
+
+        s = ds.Exponential(2 * sp.exp(sp.I * sp.S.Pi / 4), sp.Rational(1, 2))
+        assert s is not None
+
+        s = ds.Exponential(1 - sp.I, 1 + sp.I)
+        assert s is not None
+
+        s = ds.Exponential(-2 * sp.exp(sp.I * sp.S.Pi / 10), 3 * sp.exp(sp.I * sp.S.Pi / 4))
+        assert s is not None
+
+        with pytest.raises(ValueError):
+            ds.Exponential()
+
+        with pytest.raises(ValueError):
+            ds.Exponential(C=ds.n)
+
+        with pytest.raises(ValueError):
+            ds.Exponential(alpha=ds.n)
+
+    def test_Exponential_misc(self):
+        s = ds.Exponential(alpha=0.5)
+        assert s.amplitude == sp.Pow(0.5, ds.n)
+
+        s = ds.Exponential(alpha=-1)
+        assert s.amplitude == sp.Pow(-1, ds.n)
+
+        s = ds.Exponential(2, sp.Rational(1, 2))
+        assert sp.simplify(s.amplitude - 2*sp.Pow(sp.Rational(1, 2), ds.n)) == 0
+
+        s = ds.Exponential(-2 * sp.exp(sp.I * sp.S.Pi / 10), 3 * sp.exp(sp.I * sp.S.Pi / 4))
+        assert sp.simplify(s.amplitude - (sp.Pow(3, ds.n) * sp.exp(sp.I * sp.S.Pi * ds.n / 4)) * (-2 * sp.exp(sp.I * sp.S.Pi / 10))) == 0
+
 
 class Test_Arithmetic(object):
-
-    # TODO añadir tests para recuperación de esencia (nature)
-    # x1 = ds.Delta() + ds.Delta().shift(1)
-    # x2 = ds.Delta().shift(1)
-    # x3 = x1 - x2
-    # A = sp.Wild('A')
-    # B = sp.Wild('B')
-    # s = x3.amplitude.match(A * UnitDelta(ds.n - B))
-    # x33 = s[A] * ds.Delta(ds.n).shift(s[B])
-    # x3 'es' una delta como x33
-    # assert (x33 - x3).amplitude == sp.S.Zero
-    # assert (x33 - x3) == ds.Constant(0)
-
     def test_Arithmetic_neg(self):
         s = -ds.Delta()
         assert s[-1:3] == [0, -1, 0, 0]
-        assert isinstance(s, ds.DiscreteSignal)
+        assert isinstance(s, ds.Delta)
         assert s.is_discrete == True
 
         s = ds.Constant(0)
@@ -1327,12 +1379,12 @@ class Test_Arithmetic(object):
 
         s = ds.Delta() + 0
         assert s == ds.Delta()
-        assert isinstance(s, ds.DiscreteSignal)
+        assert isinstance(s, ds.Delta)
         assert s.is_discrete == True
 
         s = 0 + ds.Delta()
         assert s == ds.Delta()
-        assert isinstance(s, ds.DiscreteSignal)
+        assert isinstance(s, ds.Delta)
         assert s.is_discrete == True
 
         s = ds.Delta() + ds.Constant(0)
@@ -1347,10 +1399,10 @@ class Test_Arithmetic(object):
 
         s = ds.Delta()
         assert s == s + 0
-        assert isinstance(s, ds.DiscreteSignal)
+        assert isinstance(s, ds.Delta)
         assert s.is_discrete == True
         assert s == 0 + s
-        assert isinstance(s, ds.DiscreteSignal)
+        assert isinstance(s, ds.Delta)
         assert s.is_discrete == True
         assert s == s + ds.Constant(0)
         assert isinstance(s, ds.DiscreteSignal)
@@ -1379,37 +1431,42 @@ class Test_Arithmetic(object):
 
         s = ds.Delta() - 0
         assert s == ds.Delta()
-        assert isinstance(s, ds.DiscreteSignal)
+        assert isinstance(s, ds.Delta)
         assert s.is_discrete == True
 
         s = 0 - ds.Delta()
         assert s == -ds.Delta()
-        assert isinstance(s, ds.DiscreteSignal)
+        assert isinstance(s, ds.Delta)
         assert s.is_discrete == True
 
         s = ds.Delta() - ds.Constant(0)
         assert s == ds.Delta()
-        assert isinstance(s, ds.DiscreteSignal)
+        assert isinstance(s, ds.Delta)
         assert s.is_discrete == True
 
         s = ds.Constant(0) - ds.Delta()
         assert s == -ds.Delta()
-        assert isinstance(s, ds.DiscreteSignal)
+        assert isinstance(s, ds.Delta)
         assert s.is_discrete == True
 
         s = ds.Delta()
         assert s == s - 0
-        assert isinstance(s, ds.DiscreteSignal)
+        assert isinstance(s, ds.Delta)
         assert s.is_discrete == True
         assert -s == 0 - s
-        assert isinstance(s, ds.DiscreteSignal)
+        assert isinstance(s, ds.Delta)
         assert s.is_discrete == True
         assert s == s - ds.Constant(0)
-        assert isinstance(s, ds.DiscreteSignal)
+        assert isinstance(s, ds.Delta)
         assert s.is_discrete == True
         assert -s == ds.Constant(0) - s
-        assert isinstance(s, ds.DiscreteSignal)
+        assert isinstance(s, ds.Delta)
         assert s.is_discrete == True
+
+        x1 = ds.Delta() + ds.Delta().shift(1)
+        x2 = ds.Delta().shift(1)
+        x3 = x1 - x2
+        assert isinstance(x3, ds.Delta)
 
     def test_Arithmetic_mul(self):
         s = ds.Delta() * ds.Step()
@@ -1419,28 +1476,28 @@ class Test_Arithmetic(object):
 
         s = ds.Delta()
         assert s * 0 == ds.Constant(0)
-        assert isinstance(s, ds.DiscreteSignal)
+        assert isinstance(s * 0, ds.Constant)
         assert s.is_discrete == True
         assert 0 * s == ds.Constant(0)
-        assert isinstance(s, ds.DiscreteSignal)
+        assert isinstance(0 * s, ds.Constant)
         assert s.is_discrete == True
         assert ds.Constant(0) == s * ds.Constant(0)
-        assert isinstance(s, ds.DiscreteSignal)
+        assert isinstance(s * ds.Constant(0), ds.Constant)
         assert s.is_discrete == True
         assert ds.Constant(0) == ds.Constant(0) * s
-        assert isinstance(s, ds.DiscreteSignal)
+        assert isinstance(ds.Constant(0) * s, ds.Constant)
         assert s.is_discrete == True
         assert s == s * 1
-        assert isinstance(s, ds.DiscreteSignal)
+        assert isinstance(s, ds.Delta)
         assert s.is_discrete == True
         assert s == 1 * s
-        assert isinstance(s, ds.DiscreteSignal)
+        assert isinstance(s, ds.Delta)
         assert s.is_discrete == True
         assert s == s * ds.Constant(1)
-        assert isinstance(s, ds.DiscreteSignal)
+        assert isinstance(s, ds.Delta)
         assert s.is_discrete == True
         assert s == ds.Constant(1) * s
-        assert isinstance(s, ds.DiscreteSignal)
+        assert isinstance(s, ds.Delta)
         assert s.is_discrete == True
 
         s = ds.Constant(1)
@@ -1452,27 +1509,27 @@ class Test_Arithmetic(object):
 
         s = ds.Ramp() * 3
         assert s[-1:4] == [0, 0, 3, 6, 9]
-        assert isinstance(s, ds.DiscreteSignal)
+        assert isinstance(s, ds.Ramp)
         assert s.is_discrete == True
 
         s = 3 * ds.Ramp()
         assert s[-1:4] == [0, 0, 3, 6, 9]
-        assert isinstance(s, ds.DiscreteSignal)
+        assert isinstance(s, ds.Ramp)
         assert s.is_discrete == True
 
         s = ds.Delta() * complex(2, 2)
         assert s[-1:2] == [0, 2.0 + 2.0 * sp.I, 0]
-        assert isinstance(s, ds.DiscreteSignal)
+        assert isinstance(s, ds.Delta)
         assert s.is_discrete == True
 
         s = complex(2, 2) * ds.Delta()
         assert s[-1:2] == [0, 2.0 + 2.0 * sp.I, 0]
-        assert isinstance(s, ds.DiscreteSignal)
+        assert isinstance(s, ds.Delta)
         assert s.is_discrete == True
 
         # problemas con s = sp.I * ds.Delta() porque sympy lo intenta interpretar como Expr * Expr
 
-    def test_Discrete_div(self):
+    def test_Arithmetic_div(self):
         with pytest.raises(TypeError):
             s = ds.Delta() / ds.Step()
 
@@ -1490,12 +1547,12 @@ class Test_Arithmetic(object):
             ds.Constant(0) / s
 
         assert s == s / 1
-        assert isinstance(s, ds.DiscreteSignal)
+        assert isinstance(s, ds.Delta)
         assert s.is_discrete == True
         with pytest.raises(TypeError):
             1 / s
         assert s == s / ds.Constant(1)
-        assert isinstance(s, ds.DiscreteSignal)
+        assert isinstance(s, ds.Delta)
         assert s.is_discrete == True
         with pytest.raises(TypeError):
             ds.Constant(1) / s
@@ -1506,11 +1563,11 @@ class Test_Arithmetic(object):
 
         s = ds.Ramp() / 3
         assert s[-1:4] == [0, 0, sp.Rational(1, 3), sp.Rational(2, 3), 1]
-        assert isinstance(s, ds.DiscreteSignal)
+        assert isinstance(s, ds.Ramp)
         assert s.is_discrete == True
         s /= 2
         assert s[-1:4] == [0, 0, sp.Rational(1, 6), sp.Rational(2, 6), sp.S.Half]
-        assert isinstance(s, ds.DiscreteSignal)
+        assert isinstance(s, ds.Ramp)
         assert s.is_discrete == True
 
         with pytest.raises(TypeError):
@@ -1518,11 +1575,43 @@ class Test_Arithmetic(object):
 
         s = ds.Delta() / complex(2, 2)
         assert s[-1:2] == [0, 0.25 - 0.25 * sp.I, 0]
-        assert isinstance(s, ds.DiscreteSignal)
+        assert isinstance(s, ds.Delta)
         assert s.is_discrete == True
 
         with pytest.raises(TypeError):
             s = complex(2, 2) / ds.Delta()
+
+    def test_Discrete_misc(self):
+        s = ds.Sinusoid(2, sp.S.Pi / 4)
+        assert s.odd == s
+        assert s.even == 0
+        assert s.abs == ds.DiscreteSignal.from_formula(
+            sp.Abs(2 * sp.cos(sp.S.Pi * ds.n / 4))
+        )
+
+        s = ds.Sinusoid(2, sp.S.Pi / 4, -sp.S.Pi / 2)
+        assert s.odd == 0
+        assert s.even == s
+        assert s.abs == ds.DiscreteSignal.from_formula(
+            sp.Abs(2 * sp.sin(sp.S.Pi * ds.n / 4))
+        )
+
+    def test_Discrete_from_sampling(self):
+        # TODO Otros muestreos
+        t = sp.Symbol("t", real=True)
+        n = sp.Symbol("n", integer=True)
+        fs = 8e3
+        cs = 50 * sp.cos(2 * sp.S.Pi * 1200 * t + sp.S.Pi / 4)
+        s = ds.DiscreteSignal.from_sampling(cs, t, n, fs)
+        d = ds.Sinusoid(50, 3 * sp.S.Pi / 10, sp.S.Pi / 4, n)
+        assert s == d
+        cs = 50 * sp.cos(1200 * t + sp.S.Pi / 4)
+        s = ds.DiscreteSignal.from_sampling(cs, t, n, fs)
+        d = ds.Sinusoid(50, sp.Rational(3, 20), sp.S.Pi / 4, n)
+        assert s == d
+
+    # TODO
+    # def test_Discrete_from_formula(self):
 
 
 class Test_Print(object):
@@ -1551,3 +1640,4 @@ class Test_Print(object):
         ax = x.ipystem(range(-3, 16))
         assert ax is not None
         # stem(x.amplitude, (ds.n, -3, 15))
+

@@ -323,67 +323,6 @@ class TriangPulse(DiscreteFunctionSignal):
 
 
 
-class Exponential(_TrigMixin, DiscreteFunctionSignal):
-
-    is_real = True
-
-    def __new__(cls, xexpr=_DiscreteMixin._default_xvar, A=1, alpha=1, **_kwargs):
-        return _Signal.__new__(cls, xexpr, A, alpha)
-
-    def __init__(self, xexpr=_DiscreteMixin._default_xvar, A=1, alpha=1, **kwargs):
-        A = sp.sympify(A)
-        alpha = sp.sympify(alpha)
-        _TrigMixin.__init__(self, _extract_omega(alpha), _extract_phase(A))
-        xexpr = self._sympify_xexpr(xexpr)
-        yexpr = A * sp.Pow(alpha, xexpr)
-        DiscreteFunctionSignal.__init__(self, xexpr, yexpr, **kwargs)
-        _, Ai = A.as_real_imag()
-        _, ai = alpha.as_real_imag()
-        if Ai.is_nonzero or ai.is_nonzero:
-            self.dtype = np.complex_
-            self.is_complex = True
-
-    @property
-    def amplitude(self):
-        return self.args[1]
-
-    @property
-    def base(self):
-        return self.args[2]
-
-    @property
-    def is_periodic(self):
-        mod1 = sp.Abs(self.base) == sp.S.One
-        return mod1 and super().is_periodic
-
-    @property
-    def phasor(self):
-        # TODO verificar
-        ph = sp.Abs(self.amplitude) * sp.exp(sp.I * self.phase)
-        if ph.is_constant:
-            return Constant(ph)
-        return DiscreteFunctionSignal(self._xvar, ph)
-
-    @property
-    def carrier(self):
-        # TODO verificar
-        o = self.frequency
-        c, _ = self._xexpr.as_coeff_mul(self.xvar)
-        if c.is_negative:
-            o = -o
-        s = Exponential(self.xvar, 1, sp.exp(sp.I * o))
-        if s.yexpr.is_constant():
-            s = Constant(s.yexpr)
-        return s
-
-    def __str__(self):
-        # s = '{0}'.format(str(self.yexpr))
-        return str(self.yexpr)
-
-    def __repr__(self):
-        return "Exponential({0}, {1}, {2})".format(
-            self.xexpr, self.amplitude, self.base
-        )
 
 
 class RealExponential(Exponential):
