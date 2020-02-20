@@ -114,7 +114,7 @@ def ipystem(
     return ax
 
 
-def complex2polar(z):
+def as_coeff_polar(z):
     if z.is_Add:
         return (sp.Abs(z), sp.arg(z))
     re, im = z.as_real_imag()
@@ -123,8 +123,9 @@ def complex2polar(z):
         return (sp.Abs(z), sp.arg(z))
     # (+-)r*exp(sp.I*phi)
     r = sp.Wild("r")
+    om = sp.Wild("om")
     phi = sp.Wild("phi")
-    d = z.match(r * sp.exp(sp.I * phi))
+    d = z.match(r * sp.exp(sp.I * om + phi))
     if d is None or d[r] == sp.S.Zero:
         return (sp.S.Zero, None)
-    return (sp.Abs(d[r]), sp.arg(d[r]) + d[phi])
+    return (sp.Abs(d[r]) * sp.exp(d[phi]), sp.arg(d[r]) + d[om])
