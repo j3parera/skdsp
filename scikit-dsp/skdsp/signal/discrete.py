@@ -4,7 +4,7 @@ import sympy as sp
 from skdsp.signal.functions import (UnitDelta, UnitDeltaTrain, UnitRamp,
                                     UnitStep)
 from skdsp.signal.signal import Signal
-from skdsp.signal.util import ipystem, complex2polar
+from skdsp.signal.util import ipystem, as_coeff_polar
 
 __all__ = [s for s in dir() if not s.startswith("_")]
 
@@ -498,7 +498,7 @@ class Exponential(_TrigonometricDiscreteSignal):
         alpha = sp.S(alpha)
         if not C.is_constant() or not alpha.is_constant():
             raise ValueError("Gain and base must me constant")
-        r, omega = complex2polar(alpha)
+        r, omega = as_coeff_polar(alpha)
         iv = sp.sympify(iv) if iv is not None else n
         if r == sp.S.One:
             if omega == sp.S.Zero:
@@ -522,8 +522,8 @@ class Exponential(_TrigonometricDiscreteSignal):
         return obj
 
     def __init__(self, C=1, alpha=None, iv=None):
-        c, phi  = complex2polar(sp.S(C))
-        r, omega = complex2polar(sp.S(alpha))
+        c, phi  = as_coeff_polar(sp.S(C))
+        r, omega = as_coeff_polar(sp.S(alpha))
         iv = sp.sympify(iv) if iv is not None else n
         G = c * sp.Pow(r, iv)
         _TrigonometricDiscreteSignal.__init__(self, G, omega, phi)

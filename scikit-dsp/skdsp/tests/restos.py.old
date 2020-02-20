@@ -147,3 +147,18 @@
     #     assert d[-12:12:4],
     #                                   np.cos(np.arange(-12, 12, 4)))
 
+    def test_scale(self):
+        ''' Exponential (discrete): shift, delay '''
+        d = ds.Exponential()
+        with self.assertRaises(ValueError):
+            d.scale(sp.pi)
+        d = ds.Exponential(ds.n, 1, sp.Rational(1, 2)).scale(3)
+        np.testing.assert_array_equal(d[-3:3],
+                                      np.power(0.5, np.arange(-3, 3)))
+        d = ds.Exponential(ds.n, 1, sp.Rational(1, 2)).scale(0.75)
+        np.testing.assert_array_equal(d[-12:12:4],
+                                      np.power(0.5, np.arange(-12, 12, 4)))
+        d = ds.Exponential(ds.n, 1, sp.Rational(1, 2)).scale(1.5)
+        np.testing.assert_array_equal(d[-12:12:4],
+                                      np.power(0.5, np.arange(-12, 12, 4)))
+
