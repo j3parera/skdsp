@@ -263,6 +263,7 @@ class Test_Discrete_Arithmetic(object):
             sp.Abs(2 * sp.sin(sp.S.Pi * ds.n / 4))
         )
 
+
 class Test_Discrete_factories(object):
     def test_Discrete_from_sampling(self):
         # TODO Otros muestreos
@@ -276,6 +277,10 @@ class Test_Discrete_factories(object):
         cs = 50 * sp.cos(1200 * t + sp.S.Pi / 4)
         s = ds.DiscreteSignal.from_sampling(cs, t, n, fs)
         d = ds.Sinusoid(50, sp.Rational(3, 20), sp.S.Pi / 4, n)
+        assert s == d
+        cs = 50 * sp.sin(1200 * t + sp.S.Pi / 4)
+        s = ds.DiscreteSignal.from_sampling(cs, t, n, fs)
+        d = ds.Sinusoid(50, sp.Rational(3, 20), 3 * sp.S.Pi / 4, n)
         assert s == d
 
     # TODO
@@ -309,3 +314,150 @@ class Test_Print(object):
         assert ax is not None
         # stem(x.amplitude, (ds.n, -3, 15))
 
+
+class Test_Summations(object):
+    def test_Sum_Deltas(self):
+        s = ds.Delta()
+        S = s.sum(-2, -1)
+        assert S == 0
+        S = s.sum(-2, 0)
+        assert S == 1
+        S = s.sum(-2, 2)
+        assert S == 1
+        S = s.sum(0, 0)
+        assert S == 1
+        S = s.sum(0, 2)
+        assert S == 1
+        S = s.sum(1, 2)
+        assert S == 0
+
+        L = sp.symbols("L", integer=True, positive=True)
+        s = ds.Delta().shift(L)  # L > 0
+        S = s.sum(-2, -1)
+        assert S == 0
+        S = s.sum(-2, 0)
+        assert S == 0
+        S = s.sum(-2, 2)
+        assert S == sp.Piecewise((1, sp.Le(L, 2)), (0, True))
+        S = s.sum(0, 0)
+        assert S == 0
+        S = s.sum(0, 2)
+        assert S == sp.Piecewise((1, sp.Le(L, 2)), (0, True))
+        S = s.sum(1, 2)
+        assert S == sp.Piecewise((1, sp.Le(L, 2)), (0, True))
+
+        L = sp.symbols("L", integer=True, negative=True)
+        s = ds.Delta().shift(L)  # L < 0
+        S = s.sum(-2, -1)
+        assert S == sp.Piecewise((1, sp.Ge(L, -2)), (0, True))
+        S = s.sum(-2, 0)
+        assert S == sp.Piecewise((1, sp.Ge(L, -2)), (0, True))
+        S = s.sum(-2, 2)
+        assert S == sp.Piecewise((1, sp.Ge(L, -2)), (0, True))
+        S = s.sum(0, 0)
+        assert S == 0
+        S = s.sum(0, 2)
+        assert S == 0
+        S = s.sum(1, 2)
+        assert S == 0
+
+    def test_Sum_Steps(self):
+        L = sp.symbols("L", integer=True, positive=True)
+        s = ds.Step()
+        S = s.sum(0, L - 1)
+        assert S == L
+        S = s.sum(-L, L)
+        assert S == L + 1
+        S = s.sum()
+        assert S == sp.S.Infinity
+
+        s = ds.Step() - ds.Step().shift(1)
+        S = s.sum()
+        assert S == 1
+        S = s.sum(-5, 5)
+        assert S == 1
+        S = s.sum(-5, -3)
+        assert S == 0
+        S = s.sum(3, 5)
+        assert S == 0
+
+        s = ds.Step() - ds.Step().shift(4)
+        S = s.sum()
+        assert S == 4
+        S = s.sum(-5, 5)
+        assert S == 4
+        S = s.sum(-5, -3)
+        assert S == 0
+        S = s.sum(3, 5)
+        assert S == 1
+
+        s = ds.Step().shift(-4) - ds.Step().shift(4)
+        S = s.sum()
+        assert S == 8
+        S = s.sum(-5, 5)
+        assert S == 8
+        S = s.sum(-5, -3)
+        assert S == 2
+        S = s.sum(3, 5)
+        assert S == 1
+
+        s = ds.Step().shift(4) - ds.Step()
+        S = s.sum()
+        assert S == -4
+        S = s.sum(-5, 5)
+        assert S == -4
+        S = s.sum(-5, -3)
+        assert S == 0
+        S = s.sum(3, 5)
+        assert S == -1
+
+        s = ds.Step().shift(4).flip() - ds.Step()
+        S = s.sum(-5, 5)
+        assert S == -4
+        S = s.sum(-5, -3)
+        assert S == 2
+        S = s.sum(3, 5)
+        assert S == -3
+
+        s = ds.Step().flip() - ds.Step().shift(8).flip()
+        S = s.sum(-5, 5)
+        assert S == 6
+        S = s.sum(-5, -3)
+        assert S == 3
+        S = s.sum(3, 5)
+        assert S == 0
+
+        s = ds.Step().shift(4).flip() - ds.Step().flip()
+        S = s.sum(-5, 5)
+        assert S == -4
+        S = s.sum(-5, -3)
+        assert S == -1
+        S = s.sum(3, 5)
+        assert S == 0
+
+
+class Test_KK(object):
+    def test_KK_1(self):
+        x = ds.Exponential(alpha=0.9)
+        y = 3 * x
+        assert isinstance(y, ds.Exponential)
+
+        a = sp.Symbol("a", real=True)
+        x = ds.Exponential(alpha=a)
+        y = a * x
+        assert isinstance(y, ds.Exponential)
+        assert y.amplitude == a ** (ds.n + 1)
+
+        y = a * x.shift(1)
+        assert isinstance(y, ds.Exponential)
+        assert y.amplitude == a ** ds.n
+
+    def test_KK_2(self):
+        a = sp.Symbol("a", real=True)
+        y0 = ds.Exponential(alpha=a)
+        ya = y0.subs({a: 0.9})
+        assert isinstance(ya, ds.Exponential)
+
+        y1 = a * y0.shift(1)
+        ya = y1.subs({a: 0.9})
+        assert isinstance(ya, ds.Exponential)

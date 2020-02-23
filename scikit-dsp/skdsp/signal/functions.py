@@ -33,16 +33,21 @@ class UnitDelta(sp.KroneckerDelta):
             obj.__class__ = UnitDelta
         return obj
 
-    def _eval_rewrite_as_UnitStep(self, *args, **kwargs):
-        return UnitStep(args[1]) - UnitStep(args[1] - 1)
+    def _eval_rewrite_as_UnitStep(self, *_args, **_kwargs):
+        return UnitStep(self.iv) - UnitStep(self.iv - 1)
 
     @property
     def func(self):
+        callers = ['lambdify']
         stack = inspect.stack()
         for frame in stack:
-            if frame.function == 'lambdify':
+            if frame.function in callers:
                 return UnitDelta
         return sp.KroneckerDelta
+
+    @property
+    def iv(self):
+        return self.args[1]
 
     @staticmethod
     # zero is the first arg of the KroneckerDelta but not used
@@ -50,16 +55,16 @@ class UnitDelta(sp.KroneckerDelta):
         return np.equal(n, 0).astype(np.float_)
 
     def __str__(self):
-        return "UnitDelta({0})".format(self.args[1])
+        return "UnitDelta({0})".format(self.iv)
 
     def __repr__(self):
-        return "\u03b4[{0}]".format(self.args[1])
+        return "\u03b4[{0}]".format(self.iv)
 
     def _sympystr(self, printer=None):
-        return r"UnitDelta({0})".format(printer.doprint(self.args[1]))
+        return r"UnitDelta({0})".format(printer.doprint(self.iv))
 
     def _latex(self, printer=None):
-        return r"\delta\left[{0}\right]".format(printer.doprint(self.args[1]))
+        return r"\delta\left[{0}\right]".format(printer.doprint(self.iv))
 
 
 class UnitStep(sp.Function):
@@ -77,18 +82,21 @@ class UnitStep(sp.Function):
         elif arg.is_nonnegative:
             return sp.S.One
 
-    def _eval_rewrite_as_Piecewise(self, *args, **kwargs):
-        return sp.Piecewise((1, args[0] >= 0), (0, True))
+    @property
+    def iv(self):
+        return self.args[0]
 
-    def _eval_rewrite_as_UnitDelta(self, *args, **kwargs):
+    def _eval_rewrite_as_Piecewise(self, *_args, **_kwargs):
+        return sp.Piecewise((1, self.iv >= 0), (0, True))
+
+    def _eval_rewrite_as_UnitDelta(self, *_args, **kwargs):
         k = sp.Dummy(integer=True)
-        if "form" in kwargs and kwargs["form"] == "accum":
-            return sp.Sum(UnitDelta(k), (k, sp.S.NegativeInfinity, args[0]))
-        else:
-            return sp.Sum(UnitDelta(args[0] - k), (k, 0, sp.S.Infinity))
+        if kwargs and kwargs.get('form', 'None') == 'accum':
+            return sp.Sum(UnitDelta(k), (k, sp.S.NegativeInfinity, self.iv))
+        return sp.Sum(UnitDelta(self.iv - k), (k, 0, sp.S.Infinity))
 
-    def _eval_rewrite_as_UnitRamp(self, *args, **kwargs):
-        return UnitRamp(args[0] + 1) - UnitRamp(args[0])
+    def _eval_rewrite_as_UnitRamp(self, *_args, **_kwargs):
+        return UnitRamp(self.iv + 1) - UnitRamp(self.iv)
 
     def _eval_difference_delta(self, var, step):
         # f[n+step] - f[n]
@@ -97,9 +105,9 @@ class UnitStep(sp.Function):
             if step == 0:
                 return sp.S.Zero
             elif step == 1:
-                return UnitDelta(self.args[0])
+                return UnitDelta(self.iv)
             elif step == -1:
-                return -UnitDelta(self.args[0])
+                return -UnitDelta(self.iv)
         return None
 
     @staticmethod
@@ -107,17 +115,21 @@ class UnitStep(sp.Function):
         return np.greater_equal(n, 0).astype(np.float_)
 
     def __str__(self):
-        return "UnitStep({0})".format(self.args[0])
+        return "UnitStep({0})".format(self.iv)
 
     def __repr__(self):
-        return "u[{0}]".format(self.args[0])
+        return "u[{0}]".format(self.iv)
 
     def _sympystr(self, printer=None):
-        return r"UnitStep({0})".format(printer.doprint(self.args[0]))
+        return r"UnitStep({0})".format(printer.doprint(self.iv))
 
     def _latex(self, printer=None):
-        return r"u\left[{0}\right]".format(printer.doprint(self.args[0]))
+        return r"u\left[{0}\right]".format(printer.doprint(self.iv))
 
+    def doit(self, *args, **kwargs):
+        if kwargs and kwargs.get('piecewise', False):
+            return self._eval_rewrite_as_Piecewise()
+        return self
 
 class UnitRamp(sp.Function):
 
@@ -133,37 +145,41 @@ class UnitRamp(sp.Function):
         elif arg.is_nonnegative:
             return arg
 
-    def _eval_rewrite_as_Piecewise(self, arg):
-        return sp.Piecewise((arg, arg >= 0), (0, True))
+    @property
+    def iv(self):
+        return self.args[0]
 
-    def _eval_rewrite_as_UnitStep(self, *args, **kwargs):
+    def _eval_rewrite_as_Piecewise(self, *_args, **_kwargs):
+        return sp.Piecewise((self.iv, self.iv >= 0), (0, True))
+
+    def _eval_rewrite_as_UnitStep(self, *_args, **kwargs):
         k = sp.Dummy(integer=True)
         if "form" in kwargs and kwargs["form"] == "accum":
-            return sp.Sum(UnitStep(k - 1), (k, sp.S.NegativeInfinity, args[0]))
+            return sp.Sum(UnitStep(k - 1), (k, sp.S.NegativeInfinity, self.iv))
         else:
-            return args[0] * UnitStep(args[0])
+            return self.iv * UnitStep(self.iv)
 
-    def _eval_rewrite_as_Max(self, *args, **kwargs):
-        return sp.Max(0, args[0])
+    def _eval_rewrite_as_Max(self, *_args, **_kwargs):
+        return sp.Max(0, self.iv)
 
-    def _eval_rewrite_as_Abs(self, *args, **kwargs):
-        return sp.S.Half * (args[0] + sp.Abs(args[0]))
+    def _eval_rewrite_as_Abs(self, *_args, **_kwargs):
+        return sp.S.Half * (self.iv + sp.Abs(self.iv))
 
     @staticmethod
     def _imp_(n):
         return n * np.greater_equal(n, 0).astype(np.float_)
 
     def __str__(self):
-        return "UnitRamp({0})".format(self.args[0])
+        return "UnitRamp({0})".format(self.iv)
 
     def __repr__(self):
-        return "r[{0}]".format(self.args[0])
+        return "r[{0}]".format(self.iv)
 
     def _sympystr(self, printer=None):
-        return r"UnitRamp({0})".format(printer.doprint(self.args[0]))
+        return r"UnitRamp({0})".format(printer.doprint(self.iv))
 
     def _latex(self, printer=None):
-        return r"r\left[{0}\right]".format(printer.doprint(self.args[0]))
+        return r"r\left[{0}\right]".format(printer.doprint(self.iv))
 
 
 class UnitDeltaTrain(sp.Function):
@@ -185,8 +201,16 @@ class UnitDeltaTrain(sp.Function):
         if exp.is_Number and not exp.is_zero:
             return sp.S.Zero
 
-    def _eval_rewrite_as_Piecewise(self, *args, **kwargs):
-        nm = sp.Eq(sp.Mod(args[0], args[1]), 0)
+    @property
+    def iv(self):
+        return self.args[0]
+
+    @property
+    def N(self):
+        return self.args[1]
+
+    def _eval_rewrite_as_Piecewise(self, *_args, **_kwargs):
+        nm = sp.Eq(sp.Mod(self.iv, self.N), 0)
         return sp.Piecewise((1, nm), (0, True))
 
     @staticmethod
@@ -194,17 +218,17 @@ class UnitDeltaTrain(sp.Function):
         return np.equal(np.mod(n, N), 0).astype(np.float_)
 
     def __str__(self):
-        return "UnitDeltaTrain({0}, {1})".format(self.args[0], self.args[1])
+        return "UnitDeltaTrain({0}, {1})".format(self.iv, self.N)
 
     def __repr__(self):
-        return "\u0428[(({0})){1}]".format(self.args[0], self.args[1])
+        return "\u0428[(({0})){1}]".format(self.iv, self.N)
 
     def _sympystr(self, printer=None):
         return r"UnitDeltaTrain({0}, {1})".format(
-            printer.doprint(self.args[0]), printer.doprint(self.args[1])
+            printer.doprint(self.iv), printer.doprint(self.N)
         )
 
     def _latex(self, printer=None):
         return r"{{\rotatebox[origin=c]{{180}}{{$\Pi\kern-0.361em\Pi$}}\left[(({0}))_{{{1}}}\right]".format(
-            printer.doprint(self.args[0]), printer.doprint(self.args[1])
+            printer.doprint(self.iv), printer.doprint(self.N)
         )

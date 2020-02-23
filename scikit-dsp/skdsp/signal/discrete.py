@@ -1,8 +1,7 @@
 import numpy as np
 import sympy as sp
 
-from skdsp.signal.functions import (UnitDelta, UnitDeltaTrain, UnitRamp,
-                                    UnitStep)
+from skdsp.signal.functions import UnitDelta, UnitDeltaTrain, UnitRamp, UnitStep
 from skdsp.signal.signal import Signal
 from skdsp.signal.util import ipystem, as_coeff_polar
 
@@ -18,6 +17,7 @@ class DiscreteSignal(Signal):
         amp = amp.subs({iv: sp.Mod(iv, period)})
         obj = cls(amp, iv, period, sp.S.Integers, codomain)
         cls._transmute(obj)
+        Signal.__init__(obj)
         return obj
 
     @classmethod
@@ -25,20 +25,44 @@ class DiscreteSignal(Signal):
         camp = sp.S(camp)
         amp = camp.subs({civ: div / fs})
         obj = cls(amp, div, None, sp.S.Integers, codomain)
-        tcls, d, A, k, omg, phi = cls._transmute(obj, False)
+        tcls, d, A, k, omg, phi, N = cls._transmute(obj, False)
+        delay = 0
         if tcls is not None:
-            # TODO otras transmutaciones
+            delay = d.get(k, 0)
             if tcls == Sinusoid.__mro__[0]:
                 om, pio = d[omg].as_independent(sp.S.Pi)
                 ph, pip = d[phi].as_independent(sp.S.Pi)
+                if d.get(N) is not None:
+                    # it's a sine
+                    delay = d.get(N)
+                    ph += sp.Rational(1, 2)
                 obj = tcls(
                     d[A],
                     sp.Rational(sp.sstr(om)) * pio,
                     sp.Rational(sp.sstr(ph)) * pip,
                     obj.iv,
                 )
-                if d[k] != 0:
-                    obj = obj.shift(d[k])
+            elif tcls == Exponential.__mro__[0]:
+                if d.get(N) is None:
+                    om, pio = d[omg].as_independent(sp.S.Pi)
+                    obj = tcls(
+                        d[A],
+                        sp.exp(sp.I * sp.Rational(sp.sstr(om))) * pio,
+                        obj.iv
+                    )
+                elif d.get(omg) is None:
+                    obj = tcls(d[A], d[N], obj.iv)
+                else:
+                    om, pio = d[omg].as_independent(sp.S.Pi)
+                    ph, pip = d[phi].as_independent(sp.S.Pi)
+                    obj = tcls(
+                        d[A] * sp.exp(sp.I * sp.Rational(sp.sstr(ph)) * pip),
+                        sp.exp(sp.I * sp.Rational(sp.sstr(om)) * pio),
+                        obj.iv
+                    )
+        Signal.__init__(obj)
+        if delay != 0:
+            obj = obj.shift(delay)
         return obj
 
     @classmethod
@@ -61,24 +85,40 @@ class DiscreteSignal(Signal):
         omg = sp.Wild("omega")
         phi = sp.Wild("phi")
         N = sp.Wild("N")
-        patterns = [
+        all_patterns = [
             (A * UnitDelta(obj.iv - k), Delta.__mro__[0]),
+            (A * UnitDeltaTrain((obj.iv - k), N), Ramp.__mro__[0]),
             (A * UnitStep(obj.iv - k), Step.__mro__[0]),
             (A * UnitRamp(obj.iv - k), Ramp.__mro__[0]),
-            (A * UnitDeltaTrain((obj.iv - k), N), Ramp.__mro__[0]),
             (A * sp.cos(omg * (obj.iv - k) + phi), Sinusoid.__mro__[0]),
-            (A * sp.sin(omg * (obj.iv - k) + phi), Sinusoid.__mro__[0]),
+            (A * sp.sin(omg * (obj.iv - N) + phi), Sinusoid.__mro__[0]),
+            (A * N ** (obj.iv - k), Exponential.__mro__[0]),
+            (A * sp.exp(sp.I * (omg * (obj.iv - k))), Exponential.__mro__[0]),
+            (
+                A * N ** (obj.iv - k) * sp.exp(sp.I * (omg * (obj.iv - k) + phi)),
+                Exponential.__mro__[0],
+            ),
         ]
+        if obj.amplitude.has(UnitDelta, UnitDeltaTrain, sp.KroneckerDelta):
+            patterns = all_patterns[0:2]
+        elif obj.amplitude.has(UnitStep):
+            patterns = all_patterns[2:3]
+        elif obj.amplitude.has(UnitRamp):
+            patterns = all_patterns[3:4]
+        elif obj.amplitude.has(sp.cos, sp.sin):
+            patterns = all_patterns[4:6]
+        else:
+            patterns = all_patterns[6:]
         for pattern in patterns:
             d = obj.amplitude.match(pattern[0])
             if d is not None:
                 try:
-                    if d[A].is_constant():
+                    if d[A] in obj.free_symbols or d[A].is_constant():
                         if apply:
                             obj.__class__ = pattern[1]
                             break
                         else:
-                            return (pattern[1], d, A, k, omg, phi)
+                            return (pattern[1], d, A, k, omg, phi, N)
                 except:
                     pass
         return None
@@ -137,14 +177,80 @@ class DiscreteSignal(Signal):
         color="k",
         marker="o",
         markersize=8,
+        **kwargs
     ):
         n = np.array(span)
         v = [float(x.evalf(2)) for x in self[span]]
-        if title is None:
-            title = r"${0}$".format(self.latex())
+        pre = kwargs.get("pretitle", None)
+        if pre is not None:
+            title = pre + ' ' + r"${0}$".format(self.latex())
         if xlabel is None:
             xlabel = r"${0}$".format(sp.latex(self.iv))
         return ipystem(n, v, xlabel, title, axis, color, marker, markersize)
+
+    def sum(self, low=None, high=None, var=None, term=None):
+        var = sp.S(var) if var is not None else self.iv
+        low = sp.S(low) if low is not None else sp.S.NegativeInfinity
+        high = sp.S(high) if high is not None else sp.S.Infinity
+        amp = self.amplitude
+        c, u = amp.as_coeff_mul(UnitStep)
+        if len(u) != 0:
+            # unit step changes limits of summation if same variable
+            st = u[0]
+            if var in st.free_symbols:
+                k0 = sp.Wild("k0")
+                a0 = sp.Wild("a0")
+                n0 = sp.Wild("n0")
+                pattern = a0 * UnitStep(n0 * var - k0)
+                d = st.match(pattern)
+                if d is not None:
+                    amp = c
+                    if d[n0] == 1:
+                        # u[n-k0]
+                        low = sp.Max(low, d[k0])
+                    elif d[n0] == -1:
+                        # u[-n-k0]
+                        high = sp.Min(high, d[k0])
+                else:
+                    k1 = sp.Wild("k1")
+                    a1 = sp.Wild("a1")
+                    n1 = sp.Wild("n1")
+                    pattern = (a0 * UnitStep(n0 * var - k0)) - (
+                        a1 * UnitStep(n1 * var - k1)
+                    )
+                    d = st.match(pattern)
+                    if d is not None:
+                        if d[a0] == d[a1]:
+                            if d[n0] == d[n1]:
+                                if d[n0] == sp.S.One:
+                                    amp = c * d[a0]
+                                    if d[k1] >= d[k0]:
+                                        # u[n-k0] - u[n-k1]
+                                        low = sp.Max(low, d[k0])
+                                        high = sp.Min(high, d[k1] - 1)
+                                    else:
+                                        # -(u[n-k0] - u[n-k1]) = u[n-k1] - u[n-k0]
+                                        low = sp.Max(low, d[k1])
+                                        high = sp.Min(high, d[k0] - 1)
+                                        amp *= -sp.S.One
+                                elif d[n0] == -sp.S.One:
+                                    amp = c * d[a0]
+                                    if d[k0] <= d[k1]:
+                                        # u[-n-k1] - u[-n-k0]
+                                        low = sp.Max(low, -d[k1] + 1)
+                                        high = sp.Min(high, -d[k0])
+                                    else:
+                                        # -(u[-n-k1] - u[-n-k1]) = u[-n-k1] - u[-n-k0]
+                                        low = sp.Max(low, -d[k0] + 1)
+                                        high = sp.Min(high, -d[k1])
+                                        amp *= -sp.S.One
+                if high < low:
+                    return sp.S.Zero
+        if term is not None:
+            term = sp.S(term)
+            amp *= term ** var
+        S = sp.Sum(amp, (var, low, high)).doit(deep=True)
+        return S
 
 
 class Constant(DiscreteSignal):
@@ -361,12 +467,6 @@ class Data(DiscreteSignal):
 
 
 class _TrigonometricDiscreteSignal(DiscreteSignal):
-    def __init__(self, A, omega, phi):
-        DiscreteSignal.__init__(self)
-        self.A = sp.sympify(A)
-        self.omega = sp.sympify(omega)
-        self.phi = sp.sympify(phi)
-
     @staticmethod
     def _period(omega):
         if omega.is_zero:
@@ -448,10 +548,10 @@ class Sinusoid(_TrigonometricDiscreteSignal):
         # pylint: disable-msg=too-many-function-args
         obj = DiscreteSignal.__new__(cls, expr, iv, period, sp.S.Integers, sp.S.Reals)
         # pylint: enable-msg=too-many-function-args
+        obj.A = A
+        obj.omega = omega
+        obj.phi = phi
         return obj
-
-    def __init__(self, A=1, omega=None, phi=0, iv=None):
-        _TrigonometricDiscreteSignal.__init__(self, A, omega, phi)
 
     def _eval_extra(self, vals, params):
         if self.gain in params.keys():
@@ -496,10 +596,12 @@ class Exponential(_TrigonometricDiscreteSignal):
             raise ValueError("The exponential base must be supplied")
         C = sp.S(C)
         alpha = sp.S(alpha)
-        if not C.is_constant() or not alpha.is_constant():
-            raise ValueError("Gain and base must me constant")
-        r, omega = as_coeff_polar(alpha)
         iv = sp.sympify(iv) if iv is not None else n
+        if not C.is_constant(iv) or not alpha.is_constant(iv):
+            raise ValueError(
+                "Gain and base must me constant with respect to independent variable."
+            )
+        r, omega = as_coeff_polar(alpha)
         if r == sp.S.One:
             if omega == sp.S.Zero:
                 amp = C
@@ -511,28 +613,38 @@ class Exponential(_TrigonometricDiscreteSignal):
                 amp = sp.Mul(C, sp.exp(sp.I * omega * iv), evaluate=False)
                 period = _TrigonometricDiscreteSignal._period(omega)
         else:
-            if omega == sp.S.Zero or omega == sp.S.Pi:
+            if (omega == sp.S.Zero or omega == sp.S.Pi) or (
+                alpha.is_real is not None and alpha.is_real
+            ):
                 amp = sp.Mul(C, sp.Pow(alpha, iv), evaluate=False)
             else:
-                amp = sp.Mul(C, sp.Pow(r, iv) * sp.exp(sp.I * omega * iv), evaluate=False)
+                amp = sp.Mul(
+                    C, sp.Pow(r, iv) * sp.exp(sp.I * omega * iv), evaluate=False
+                )
             period = 0
+        amp = sp.powsimp(amp)
         # pylint: disable-msg=too-many-function-args
         obj = DiscreteSignal.__new__(cls, amp, iv, period, sp.S.Integers, None)
         # pylint: enable-msg=too-many-function-args
+        c, phi = as_coeff_polar(C)
+        A = c * sp.Pow(r, iv)
+        obj.A = A
+        obj.omega = omega
+        obj.phi = phi
+        obj.C = C
+        obj.alpha = alpha
         return obj
 
-    def __init__(self, C=1, alpha=None, iv=None):
-        c, phi  = as_coeff_polar(sp.S(C))
-        r, omega = as_coeff_polar(sp.S(alpha))
-        iv = sp.sympify(iv) if iv is not None else n
-        G = c * sp.Pow(r, iv)
-        _TrigonometricDiscreteSignal.__init__(self, G, omega, phi)
-        self.C = C
-        self.alpha = alpha
-
     def _clone_extra(self, obj):
+        super()._clone_extra(obj)
         obj.C = self.C
         obj.alpha = self.alpha
+
+    def subs(self, *args, **kwargs):
+        obj = super().subs(*args, **kwargs)
+        obj.C = obj.C.subs(*args, **kwargs)
+        obj.alpha = obj.alpha.subs(*args, **kwargs)
+        return obj
 
     @property
     def base(self):
@@ -547,6 +659,5 @@ class Exponential(_TrigonometricDiscreteSignal):
         return sp.exp(sp.I * self.frequency * self.iv)
 
     def __repr__(self):
-        return "Exponential({0}, {1}, {2})".format(
-            self.C, self.alpha, self.iv
-        )
+        return "Exponential({0}, {1}, {2})".format(self.C, self.alpha, self.iv)
+

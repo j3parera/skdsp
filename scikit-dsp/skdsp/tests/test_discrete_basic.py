@@ -1293,6 +1293,10 @@ class Test_Sinusoid(object):
 
 class Test_Exponential(object):
     def test_Exponential_constructor(self):
+        a = sp.Symbol("a", real=True, constant=True)
+        s = ds.Exponential(1, alpha=a)
+        assert s is not None
+
         s = ds.Exponential(alpha=0.5)
         assert s is not None
 
@@ -1486,11 +1490,11 @@ class Test_Exponential(object):
         with pytest.raises(ValueError):
             dg = c.generate(0, step=0.1)
             next(dg)
-        
+
         dg = c.generate(start=-3, size=3, overlap=1)
         assert next(dg) == [16, 8, 4]
         assert next(dg) == [4, 2, 1]
-        assert next(dg) == [1, 1/2, 1/4]
+        assert next(dg) == [1, 1 / 2, 1 / 4]
 
     def test_Exponential_frequency(self):
         c = ds.Exponential(alpha=1)
@@ -1620,8 +1624,8 @@ class Test_Exponential(object):
         assert (
             sp.simplify(
                 s.amplitude
-                - (sp.Pow(3, ds.n) * sp.exp(sp.I * sp.S.Pi * ds.n / 4))
-                * (-2 * sp.exp(sp.I * sp.S.Pi / 10))
+                - ((3 ** ds.n) * sp.exp(sp.I * sp.S.Pi * ds.n / 4))
+                * (-2 * (-1) ** (sp.Rational(1, 10)))
             )
             == 0
         )

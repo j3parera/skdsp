@@ -4,9 +4,11 @@ from numbers import Number
 import numpy as np
 import sympy as sp
 from sympy.calculus.util import continuous_domain, periodicity
+from sympy.core.decorators import call_highest_priority
+from sympy.core.evaluate import global_evaluate
 from sympy.core.function import AppliedUndef, UndefinedFunction
 from sympy.utilities.iterables import flatten, is_sequence, iterable
-from sympy.core.evaluate import global_evaluate
+
 from skdsp.signal.functions import UnitDelta
 
 z = sp.Symbol("z", complex=True)
@@ -14,6 +16,10 @@ omega = sp.Symbol("omega", real=True)
 
 
 class Signal(sp.Basic):
+
+    _op_priority = 16
+    is_conmutative = True
+
     def __new__(
         cls, amplitude, iv=None, period=None, domain=None, codomain=None,
     ):
@@ -155,12 +161,11 @@ class Signal(sp.Basic):
         for arg in obj.amplitude.args:
             if isinstance(arg, sp.KroneckerDelta):
                 arg.__class__ = UnitDelta
+        Signal.__init__(obj)
         # TODO
         # obj.sys_transform = self.sys_transform
         # obj.fourier_transform = self.fourier_transform
         # pylint: disable-msg=no-member
-        # if hasattr(self, '_clone_extra'):
-        #     self._clone_extra(obj)
         if hasattr(cls, '_clone_extra'):
             cls._clone_extra(self, obj)
         if hasattr(cls, '_transmute'):
@@ -328,6 +333,11 @@ class Signal(sp.Basic):
             m = sp.S(20) * sp.log(m, sp.S(10))
         return m
 
+    def subs(self, *args, **kwargs):
+        # TODO tests
+        amp = self.amplitude.subs(*args, **kwargs)
+        return self.clone(self.__class__, amp)
+
     def eval(self, xvals, params={}):
         if not isinstance(params, dict):
             raise ValueError("Parameter values must be in a dictionary")
@@ -477,6 +487,7 @@ class Signal(sp.Basic):
         return None
 
     def _convert_other(self, other, identity):
+        other = sp.S(other)
         if isinstance(other, Signal):
             if self.is_discrete and other.is_continuous or self.is_continuous and other.is_discrete:
                 return NotImplemented, None, None
@@ -485,8 +496,8 @@ class Signal(sp.Basic):
             if other.amplitude - identity == 0:
                 return None, None, None
             return (other, self._join_period(other), self._join_codomain(other))
-        if isinstance(other, Number):
-            if sp.S(other) - identity == 0:
+        if isinstance(other, (Number, sp.Expr)):
+            if other - identity == 0:
                 return None, None, None
             # pylint: disable-msg=too-many-function-args
             cls = self.__class__.__mro__[-4]
@@ -511,8 +522,11 @@ class Signal(sp.Basic):
         # obj.system_transform = self.system_transform + other.system_transform
         # obj.fourier_transform = self.fourier_transform + other.fourier_transform
         cls._transmute(obj)
+        if hasattr(self, '_clone_extra'):
+            self._clone_extra(obj)
         return obj
 
+    @call_highest_priority('__add__')
     def __radd__(self, other):
         return self + other
 
@@ -534,8 +548,11 @@ class Signal(sp.Basic):
         # obj.system_transform = self.system_transform - other.system_transform
         # obj.fourier_transform = self.fourier_transform - other.fourier_transform
         cls._transmute(obj)
+        if hasattr(self, '_clone_extra'):
+            self._clone_extra(obj)
         return obj
 
+    @call_highest_priority('__sub__')
     def __rsub__(self, other):
         return (-self) + other
 
@@ -548,6 +565,8 @@ class Signal(sp.Basic):
         if other is NotImplemented:
             return other
         amp = self.amplitude * other.amplitude
+        if amp.has(sp.Pow):
+            amp = sp.powsimp(amp)
         # pylint: disable-msg=too-many-function-args
         cls = self.__class__.__mro__[-4]
         obj = Signal.__new__(cls, amp, self.iv, period, sp.S.Integers, codomain)
@@ -557,8 +576,11 @@ class Signal(sp.Basic):
         # obj.system_transform = conv(self.system_transform, other.system_transform)
         # obj.fourier_transform = conv(self.fourier_transform, other.fourier_transform)
         cls._transmute(obj)
+        if hasattr(self, '_clone_extra'):
+            self._clone_extra(obj)
         return obj
 
+    @call_highest_priority('__mul__')
     def __rmul__(self, other):
         return self * other
 
@@ -584,6 +606,8 @@ class Signal(sp.Basic):
         # obj.system_transform = conv(self.system_transform, 1/other.system_transform)
         # obj.fourier_transform = conv(self.fourier_transform, 1/other.fourier_transform)
         cls._transmute(obj)
+        if hasattr(self, '_clone_extra'):
+            self._clone_extra(obj)
         return obj
 
     __itruediv__ = __truediv__
@@ -599,6 +623,6 @@ class Signal(sp.Basic):
         # obj.system_transform = -self.system_transform
         # obj.fourier_transform = -self.fourier_transform
         cls._transmute(obj)
+        if hasattr(self, '_clone_extra'):
+            self._clone_extra(obj)
         return obj
-
-

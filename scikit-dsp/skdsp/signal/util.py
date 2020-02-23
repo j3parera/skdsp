@@ -83,10 +83,13 @@ def stem(*args, **kwargs):
 
 
 def ipystem(
-    nx, x, xlabel=None, title=None, axis=None, color="k", marker="o", markersize=8
+    nx, x, xlabel=None, title=None, axis=None, color="k", marker="o", markersize=8, **kwargs
 ):
+    # TODO
+    # comprobar que no existan símbolos libres sin asignar
+    # pretítulo + título por defecto
+    # complejos (modulo/fase, re/im)
     offx = 0.5
-    offy = 0.5
     lines = plt.stem(
         nx,
         x,
@@ -99,8 +102,16 @@ def ipystem(
     lines[2].set_xdata([nx[0] - offx, nx[-1] + offx])
     ax = plt.gca()
     if axis is None:
+        mmin = np.min(x)
+        mmax = np.max(x)
+        dy = 0.1 * (mmax - mmin)
+        ymin = min(-dy, mmin - dy) 
+        ymax = max(dy, mmax + dy)
+        if ymin == ymax:
+            ymin = -0.5
+            ymax = 0.5
         plt.axis(
-            [np.min(nx) - offx, np.max(nx) + offx, np.min(x) - offy, np.max(x) + offy]
+            [np.min(nx) - offx, np.max(nx) + offx, ymin, ymax]
         )
     else:
         plt.axis(axis)
@@ -110,6 +121,7 @@ def ipystem(
         plt.xlabel(xlabel, size=20, labelpad=0, ha="left")
         ax.xaxis.set_label_coords(1.02, 0.06)
     plt.grid(True)
+    plt.xticks(range(nx[0], nx[-1]+1, max(1, (nx[-1]-nx[0])//10)))
     # plt.tight_layout()
     return ax
 
