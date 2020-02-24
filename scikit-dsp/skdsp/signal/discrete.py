@@ -1,9 +1,12 @@
+import re
+
 import numpy as np
 import sympy as sp
 
-from skdsp.signal.functions import UnitDelta, UnitDeltaTrain, UnitRamp, UnitStep
+from skdsp.signal.functions import (UnitDelta, UnitDeltaTrain, UnitRamp,
+                                    UnitStep)
 from skdsp.signal.signal import Signal
-from skdsp.signal.util import ipystem, as_coeff_polar
+from skdsp.signal.util import as_coeff_polar, ipystem
 
 __all__ = [s for s in dir() if not s.startswith("_")]
 
@@ -14,10 +17,12 @@ def filter(B, A, x, ci=None):
     # transposed DFII
     mm = max(len(B), len(A))
     B = B + [0] * (mm - len(B))
+    B = sp.S(B)
     A = A + [0] * (mm - len(A))
-    A = [a / A[0] for a in A]
-    M = ci if ci is not None else [0] * (mm - 1)
-    Y = [0] * len(x)
+    A = sp.S([a / A[0] for a in A])
+    M = sp.S(ci) if ci is not None else sp.S([0] * (mm - 1))
+    Y = sp.S([0] * len(x))
+    x = sp.S(x)
     for k, v in enumerate(x):
         y = B[0] * v + M[0]
         Y[k] = y
@@ -176,10 +181,26 @@ class DiscreteSignal(Signal):
         return sp.sstr(self.amplitude)
 
     def _latex(self, printer=None):
-        return printer.doprint(self.amplitude)
+        return printer.doprint(self.amplitude, imaginary_unit="rj")
 
     def latex(self):
-        return sp.latex(self.amplitude, imaginary_unit="rj")
+        ltx = sp.latex(self.amplitude, imaginary_unit="rj")
+        fr = re.compile(r'(.+)(\\frac{.+)(.+)(})({.+})(.+)')
+        s = fr.split(ltx)
+        ivs = '{0}'.format(self.iv.name)
+        if ivs in s:
+            sr = ''
+            k0 = -100
+            for k, x in enumerate(s):
+                if k == k0:
+                    continue
+                elif k == k0 + 3:
+                    sr += ivs
+                if x.startswith(r'\frac{'):
+                    k0 = k + 1
+                sr += x
+            return sr
+        return ltx
 
     def display(self, span=None):
         if span is None:
@@ -695,4 +716,3 @@ class Exponential(_TrigonometricDiscreteSignal):
 
     def __repr__(self):
         return "Exponential({0}, {1}, {2})".format(self.C, self.alpha, self.iv)
-

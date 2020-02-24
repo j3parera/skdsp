@@ -461,3 +461,9 @@ class Test_KK(object):
         y1 = a * y0.shift(1)
         ya = y1.subs({a: 0.9})
         assert isinstance(ya, ds.Exponential)
+
+    def test_KK_3(self):
+        import re
+        x = ds.Sinusoid(omega=sp.S.Pi * sp.Rational(1, 17), phi=-sp.S.Pi * sp.S.Half)
+        ltx = x.latex()
+        assert ltx != ''
