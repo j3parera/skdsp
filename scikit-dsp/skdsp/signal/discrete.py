@@ -10,23 +10,29 @@ __all__ = [s for s in dir() if not s.startswith("_")]
 n, m, k = sp.symbols("n, m, k", integer=True)
 
 
+def filter(B, A, x, ci=None):
+    # transposed DFII
+    mm = max(len(B), len(A))
+    B = B + [0] * (mm - len(B))
+    A = A + [0] * (mm - len(A))
+    A = [a / A[0] for a in A]
+    M = ci if ci is not None else [0] * (mm - 1)
+    Y = [0] * len(x)
+    for k, v in enumerate(x):
+        y = B[0] * v + M[0]
+        Y[k] = y
+        for m in range(0, len(M) - 1):
+            M[m] = B[m + 1] * v - A[m + 1] * y + M[m + 1]
+        M[-1] = B[-1] * v - A[-1] * y
+    return Y
+
+
 class DiscreteSignal(Signal):
     @classmethod
-    def from_period(cls, amp, iv, period, codomain=sp.S.Reals):
-        amp = sp.S(amp)
-        amp = amp.subs({iv: sp.Mod(iv, period)})
-        obj = cls(amp, iv, period, sp.S.Integers, codomain)
-        cls._transmute(obj)
-        Signal.__init__(obj)
-        return obj
-
-    @classmethod
-    def from_sampling(cls, camp, civ, div, fs, codomain=sp.S.Reals):
-        camp = sp.S(camp)
-        amp = camp.subs({civ: div / fs})
-        obj = cls(amp, div, None, sp.S.Integers, codomain)
+    def _transmute_renew(cls, obj):
         tcls, d, A, k, omg, phi, N = cls._transmute(obj, False)
         delay = 0
+        done = False
         if tcls is not None:
             delay = d.get(k, 0)
             if tcls == Sinusoid.__mro__[0]:
@@ -42,13 +48,12 @@ class DiscreteSignal(Signal):
                     sp.Rational(sp.sstr(ph)) * pip,
                     obj.iv,
                 )
+                done = True
             elif tcls == Exponential.__mro__[0]:
                 if d.get(N) is None:
                     om, pio = d[omg].as_independent(sp.S.Pi)
                     obj = tcls(
-                        d[A],
-                        sp.exp(sp.I * sp.Rational(sp.sstr(om))) * pio,
-                        obj.iv
+                        d[A], sp.exp(sp.I * sp.Rational(sp.sstr(om))) * pio, obj.iv
                     )
                 elif d.get(omg) is None:
                     obj = tcls(d[A], d[N], obj.iv)
@@ -58,24 +63,47 @@ class DiscreteSignal(Signal):
                     obj = tcls(
                         d[A] * sp.exp(sp.I * sp.Rational(sp.sstr(ph)) * pip),
                         sp.exp(sp.I * sp.Rational(sp.sstr(om)) * pio),
-                        obj.iv
+                        obj.iv,
                     )
-        Signal.__init__(obj)
-        if delay != 0:
-            obj = obj.shift(delay)
+                done = True
+            # TODO otros casos
+            if delay != 0:
+                obj = obj.shift(delay)
+        return done, obj
+    
+    @classmethod
+    def from_period(cls, amp, iv, period, codomain=sp.S.Reals):
+        amp = sp.S(amp)
+        amp = amp.subs({iv: sp.Mod(iv, period)})
+        obj = cls(amp, iv, period, sp.S.Integers, codomain)
+        done, obj = cls._transmute_renew(obj)
+        if not done:
+            Signal.__init__(obj)
+        return obj
+
+    @classmethod
+    def from_sampling(cls, camp, civ, div, fs, codomain=sp.S.Reals):
+        camp = sp.S(camp)
+        amp = camp.subs({civ: div / fs})
+        obj = cls(amp, div, None, sp.S.Integers, codomain)
+        done, obj = cls._transmute_renew(obj)
+        if not done:
+            Signal.__init__(obj)
         return obj
 
     @classmethod
     def from_formula(cls, amp, iv=None, codomain=sp.S.Reals):
         amp = sp.S(amp)
         obj = cls(amp, iv, None, sp.S.Integers, codomain)
-        cls._transmute(obj)
+        done, obj = cls._transmute_renew(obj)
+        if not done:
+            Signal.__init__(obj)
         return obj
 
     @staticmethod
     def _transmute(obj, apply=True):
         try:
-            if obj.amplitude.is_constant():
+            if obj.amplitude.is_constant() and apply:
                 obj.__class__ = Constant.__mro__[0]
                 return
         except:
@@ -85,35 +113,35 @@ class DiscreteSignal(Signal):
         omg = sp.Wild("omega")
         phi = sp.Wild("phi")
         N = sp.Wild("N")
-        all_patterns = [
-            (A * UnitDelta(obj.iv - k), Delta.__mro__[0]),
-            (A * UnitDeltaTrain((obj.iv - k), N), Ramp.__mro__[0]),
-            (A * UnitStep(obj.iv - k), Step.__mro__[0]),
-            (A * UnitRamp(obj.iv - k), Ramp.__mro__[0]),
-            (A * sp.cos(omg * (obj.iv - k) + phi), Sinusoid.__mro__[0]),
-            (A * sp.sin(omg * (obj.iv - N) + phi), Sinusoid.__mro__[0]),
-            (A * N ** (obj.iv - k), Exponential.__mro__[0]),
-            (A * sp.exp(sp.I * (omg * (obj.iv - k))), Exponential.__mro__[0]),
-            (
-                A * N ** (obj.iv - k) * sp.exp(sp.I * (omg * (obj.iv - k) + phi)),
-                Exponential.__mro__[0],
-            ),
-        ]
         if obj.amplitude.has(UnitDelta, UnitDeltaTrain, sp.KroneckerDelta):
-            patterns = all_patterns[0:2]
+            patterns = [
+                (A * UnitDelta(obj.iv - k), Delta.__mro__[0]),
+                (A * UnitDeltaTrain((obj.iv - k), N), Ramp.__mro__[0]),
+            ]
         elif obj.amplitude.has(UnitStep):
-            patterns = all_patterns[2:3]
+            patterns = [(A * UnitStep(obj.iv - k), Step.__mro__[0])]
         elif obj.amplitude.has(UnitRamp):
-            patterns = all_patterns[3:4]
+            patterns = [(A * UnitRamp(obj.iv - k), Ramp.__mro__[0])]
         elif obj.amplitude.has(sp.cos, sp.sin):
-            patterns = all_patterns[4:6]
-        else:
-            patterns = all_patterns[6:]
+            patterns = [
+                (A * sp.cos(omg * (obj.iv - k) + phi), Sinusoid.__mro__[0]),
+                (A * sp.sin(omg * (obj.iv - N) + phi), Sinusoid.__mro__[0]),
+            ]
+        elif obj.amplitude.has(sp.exp, sp.Pow):
+            patterns = [
+                (A * N ** (obj.iv - k), Exponential.__mro__[0]),
+                (A * sp.exp(sp.I * (omg * (obj.iv - k))), Exponential.__mro__[0]),
+                (
+                    A * N ** (obj.iv - k) * sp.exp(sp.I * (omg * (obj.iv - k) + phi)),
+                    Exponential.__mro__[0],
+                ),
+            ]
         for pattern in patterns:
             d = obj.amplitude.match(pattern[0])
             if d is not None:
                 try:
-                    if d[A] in obj.free_symbols or d[A].is_constant():
+                    # if d[A] in obj.free_symbols or d[A].is_constant():
+                    if d[A].is_constant():
                         if apply:
                             obj.__class__ = pattern[1]
                             break
@@ -121,7 +149,7 @@ class DiscreteSignal(Signal):
                             return (pattern[1], d, A, k, omg, phi, N)
                 except:
                     pass
-        return None
+        return None, None, None, None, None, None, None
 
     @staticmethod
     def _deltify(data, start, iv, periodic):
@@ -183,7 +211,7 @@ class DiscreteSignal(Signal):
         v = [float(x.evalf(2)) for x in self[span]]
         pre = kwargs.get("pretitle", None)
         if pre is not None:
-            title = pre + ' ' + r"${0}$".format(self.latex())
+            title = pre + " " + r"${0}$".format(self.latex())
         if xlabel is None:
             xlabel = r"${0}$".format(sp.latex(self.iv))
         return ipystem(n, v, xlabel, title, axis, color, marker, markersize)
@@ -299,9 +327,10 @@ class Delta(DiscreteSignal):
         obj.amplitude.__class__ = UnitDelta
         return obj
 
-    def clone(self, cls, amplitude, **kwargs):
-        obj = super().clone(cls, amplitude, **kwargs)
-        obj.amplitude.__class__ = UnitDelta
+    def _clone_extra(self, obj):
+        for arg in obj.amplitude.args:
+            if isinstance(arg, sp.KroneckerDelta):
+                arg.__class__ = UnitDelta
         return obj
 
     @property
@@ -505,6 +534,9 @@ class _TrigonometricDiscreteSignal(DiscreteSignal):
     def phase(self):
         return self.phi
 
+    def _hashable_content(self):
+        return (self.A, self.omega, self.phi) + super()._hashable_content(self)
+
     def reduced_phase(self, nonnegative=False):
         if self.phase.is_number:
             return _TrigonometricDiscreteSignal._reduce_phase(self.phase, nonnegative)
@@ -634,6 +666,9 @@ class Exponential(_TrigonometricDiscreteSignal):
         obj.C = C
         obj.alpha = alpha
         return obj
+
+    def _hashable_content(self):
+        return (self.C, self.alpha) + super()._hashable_content(self)
 
     def _clone_extra(self, obj):
         super()._clone_extra(obj)

@@ -721,6 +721,9 @@ class Test_Data(object):
         a = sp.Symbol("a", integer=True)
         b = sp.Symbol("b", real=True)
 
+        s = ds.Data([1, 1])
+        assert s.amplitude == UnitDelta(ds.n) + UnitDelta(ds.n - 1)
+
         s = ds.Data([1, 2, 3], start=3, iv=n)
         assert s.amplitude == (
             UnitDelta(n - 3) + 2 * UnitDelta(n - 4) + 3 * UnitDelta(n - 5)

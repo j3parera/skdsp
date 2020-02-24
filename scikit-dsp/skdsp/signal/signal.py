@@ -135,10 +135,14 @@ class Signal(sp.Basic):
                     period /= sp.S.Pi
                     return Signal._domain_periodicity(amp, period, domain)
         # 5.- sympy also fails with (-1)**n (n = integer)
-        if domain == sp.S.Integers and sp.simplify(amp - (-1)**iv) == 0:
+        if domain == sp.S.Integers and sp.simplify(amp - (-1) ** iv) == 0:
             return sp.S(2)
         # TODO 6.- sympy also fails with delta[((n-k))M] and maybe other modulus
         return period
+
+    def _upclass(self):
+        mro = self.__class__.__mro__
+        return mro[-4] if len(mro) >= 4 else mro[0]
 
     def copy(self):
         obj = copy.copy(self)
@@ -158,18 +162,15 @@ class Signal(sp.Basic):
         # pylint: disable-msg=redundant-keyword-arg
         obj = Signal.__new__(cls, amplitude, **args)
         # pylint: enable-msg=redundant-keyword-arg
-        for arg in obj.amplitude.args:
-            if isinstance(arg, sp.KroneckerDelta):
-                arg.__class__ = UnitDelta
         Signal.__init__(obj)
         # TODO
         # obj.sys_transform = self.sys_transform
         # obj.fourier_transform = self.fourier_transform
         # pylint: disable-msg=no-member
-        if hasattr(cls, '_clone_extra'):
-            cls._clone_extra(self, obj)
         if hasattr(cls, '_transmute'):
             cls._transmute(obj)
+        if hasattr(self, "_clone_extra"):
+            self._clone_extra(obj)
         # pylint: enable-msg=no-member
         return obj
 
@@ -291,11 +292,11 @@ class Signal(sp.Basic):
 
     @property
     def is_even(self):
-        return (self.amplitude + self.amplitude.subs({self.iv: - self.iv})) == 0
+        return (self.amplitude + self.amplitude.subs({self.iv: -self.iv})) == 0
 
     @property
     def is_odd(self):
-        return (self.amplitude - self.amplitude.subs({self.iv: - self.iv})) == 0
+        return (self.amplitude - self.amplitude.subs({self.iv: -self.iv})) == 0
 
     @property
     def even(self):
@@ -317,16 +318,14 @@ class Signal(sp.Basic):
 
     @property
     def abs(self):
-        mro = self.__class__.__mro__
-        cls = mro[-4] if len(mro) >= 4 else mro[0]
+        cls = self._upclass()
         return self.clone(cls, sp.Abs(self.amplitude), period=None)
 
     @property
     def conjugate(self):
-        mro = self.__class__.__mro__
-        cls = mro[-4] if len(mro) >= 4 else mro[0]
+        cls = self.__class__ if self.imag == 0 else self._upclass()
         return self.clone(cls, sp.conjugate(self.amplitude))
-        
+
     def magnitude(self, dB=False):
         m = sp.Abs(self.amplitude)
         if dB:
@@ -350,7 +349,7 @@ class Signal(sp.Basic):
                 xval = int(xval)
             if not xval in self.domain:
                 raise ValueError("Independent variable value not in domain")
-            if hasattr(self, '_eval_extra'):
+            if hasattr(self, "_eval_extra"):
                 # pylint: disable-msg=no-member
                 self._eval_extra(xvals, params)
                 # pylint: enable-msg=no-member
@@ -387,7 +386,9 @@ class Signal(sp.Basic):
             [s[0.2], s[0.3], s[0.4]], ...
 
         """
-        if self.is_discrete and any([not sp.S(p).is_integer for p in (start, step, size, overlap)]):
+        if self.is_discrete and any(
+            [not sp.S(p).is_integer for p in (start, step, size, overlap)]
+        ):
             raise ValueError("Arguments(s) not valid for discrete signal")
 
         s = start
@@ -470,8 +471,8 @@ class Signal(sp.Basic):
         """Returns the signal reversed in time; ie s[-n] if discrete,
         otherwise s(-t).
         """
-        return self.clone(self.__class__, self.amplitude.subs({self.iv: - self.iv}))
-        
+        return self.clone(self.__class__, self.amplitude.subs({self.iv: -self.iv}))
+
     def __abs__(self):
         return self.abs
 
@@ -489,7 +490,12 @@ class Signal(sp.Basic):
     def _convert_other(self, other, identity):
         other = sp.S(other)
         if isinstance(other, Signal):
-            if self.is_discrete and other.is_continuous or self.is_continuous and other.is_discrete:
+            if (
+                self.is_discrete
+                and other.is_continuous
+                or self.is_continuous
+                and other.is_discrete
+            ):
                 return NotImplemented, None, None
             if self.iv != other.iv:
                 return NotImplemented, None, None
@@ -500,8 +506,10 @@ class Signal(sp.Basic):
             if other - identity == 0:
                 return None, None, None
             # pylint: disable-msg=too-many-function-args
-            cls = self.__class__.__mro__[-4]
-            other = Signal.__new__(cls, other, self.iv, None, self.domain, self.codomain)
+            cls = self._upclass()
+            other = Signal.__new__(
+                cls, other, self.iv, None, self.domain, self.codomain
+            )
             return (other, self._join_period(other), self._join_codomain(other))
             # pylint: enable-msg=too-many-function-args
         return NotImplemented, None, None
@@ -513,20 +521,11 @@ class Signal(sp.Basic):
         if other is NotImplemented:
             return other
         amp = self.amplitude + other.amplitude
-        # pylint: disable-msg=too-many-function-args
-        cls = self.__class__.__mro__[-4]
-        obj = Signal.__new__(cls, amp, self.iv, period, sp.S.Integers, codomain)
-        # pylint: enable-msg=too-many-function-args
-        # TODO
-        Signal.__init__(obj)
-        # obj.system_transform = self.system_transform + other.system_transform
-        # obj.fourier_transform = self.fourier_transform + other.fourier_transform
-        cls._transmute(obj)
-        if hasattr(self, '_clone_extra'):
-            self._clone_extra(obj)
+        cls = self._upclass()
+        obj = self.clone(cls, amp, period=period, codomain=codomain)
         return obj
 
-    @call_highest_priority('__add__')
+    @call_highest_priority("__add__")
     def __radd__(self, other):
         return self + other
 
@@ -539,20 +538,11 @@ class Signal(sp.Basic):
         if other is NotImplemented:
             return other
         amp = self.amplitude - other.amplitude
-        # pylint: disable-msg=too-many-function-args
-        cls = self.__class__.__mro__[-4]
-        obj = Signal.__new__(cls, amp, self.iv, period, sp.S.Integers, codomain)
-        # pylint: enable-msg=too-many-function-args
-        # TODO
-        Signal.__init__(obj)
-        # obj.system_transform = self.system_transform - other.system_transform
-        # obj.fourier_transform = self.fourier_transform - other.fourier_transform
-        cls._transmute(obj)
-        if hasattr(self, '_clone_extra'):
-            self._clone_extra(obj)
+        cls = self._upclass()
+        obj = self.clone(cls, amp, period=period, codomain=codomain)
         return obj
 
-    @call_highest_priority('__sub__')
+    @call_highest_priority("__sub__")
     def __rsub__(self, other):
         return (-self) + other
 
@@ -567,20 +557,15 @@ class Signal(sp.Basic):
         amp = self.amplitude * other.amplitude
         if amp.has(sp.Pow):
             amp = sp.powsimp(amp)
-        # pylint: disable-msg=too-many-function-args
-        cls = self.__class__.__mro__[-4]
-        obj = Signal.__new__(cls, amp, self.iv, period, sp.S.Integers, codomain)
-        # pylint: enable-msg=too-many-function-args
-        # TODO
-        Signal.__init__(obj)
-        # obj.system_transform = conv(self.system_transform, other.system_transform)
-        # obj.fourier_transform = conv(self.fourier_transform, other.fourier_transform)
-        cls._transmute(obj)
-        if hasattr(self, '_clone_extra'):
-            self._clone_extra(obj)
+        cls = (
+            self.__class__
+            if other.amplitude.is_constant() and not other.amplitude.is_zero
+            else self._upclass()
+        )
+        obj = self.clone(cls, amp, period=period, codomain=codomain)
         return obj
 
-    @call_highest_priority('__mul__')
+    @call_highest_priority("__mul__")
     def __rmul__(self, other):
         return self * other
 
@@ -595,34 +580,16 @@ class Signal(sp.Basic):
         if other.amplitude.is_zero:
             raise ZeroDivisionError
         if not other.amplitude.is_constant():
-            raise TypeError('Invalid operation.')
+            raise TypeError("Invalid operation.")
         amp = self.amplitude / other.amplitude
-        # pylint: disable-msg=too-many-function-args
-        cls = self.__class__.__mro__[-4]
-        obj = Signal.__new__(cls, amp, self.iv, period, sp.S.Integers, codomain)
-        # pylint: enable-msg=too-many-function-args
-        # TODO
-        Signal.__init__(obj)
-        # obj.system_transform = conv(self.system_transform, 1/other.system_transform)
-        # obj.fourier_transform = conv(self.fourier_transform, 1/other.fourier_transform)
-        cls._transmute(obj)
-        if hasattr(self, '_clone_extra'):
-            self._clone_extra(obj)
+        cls = self.__class__
+        obj = self.clone(cls, amp, period=period, codomain=codomain)
         return obj
 
     __itruediv__ = __truediv__
 
     def __neg__(self):
         amp = -self.amplitude
-        # pylint: disable-msg=too-many-function-args
-        cls = self.__class__.__mro__[-4]
-        obj = Signal.__new__(cls, amp, self.iv, self.period, sp.S.Integers, self.codomain)
-        # pylint: enable-msg=too-many-function-args
-        # TODO
-        Signal.__init__(obj)
-        # obj.system_transform = -self.system_transform
-        # obj.fourier_transform = -self.fourier_transform
-        cls._transmute(obj)
-        if hasattr(self, '_clone_extra'):
-            self._clone_extra(obj)
+        cls = self.__class__
+        obj = self.clone(cls, amp)
         return obj
