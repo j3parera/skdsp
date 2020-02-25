@@ -27,6 +27,13 @@ class UnitDelta(sp.KroneckerDelta):
         if arg.is_Number and not arg.is_zero:
             return sp.S.Zero
 
+    def _eval_Abs(self):
+        return self
+
+    def _eval_power(self, other):
+        # other is not Nan, 0 or 1
+        return self
+
     def __new__(cls, iv):
         obj = super().__new__(sp.KroneckerDelta, sp.S.Zero, iv)
         if isinstance(obj, sp.KroneckerDelta):
@@ -81,6 +88,13 @@ class UnitStep(sp.Function):
             return sp.S.Zero
         elif arg.is_nonnegative:
             return sp.S.One
+
+    def _eval_Abs(self):
+        return self
+
+    def _eval_power(self, other):
+        # other is not Nan, 0 or 1
+        return self
 
     @property
     def iv(self):
@@ -144,6 +158,13 @@ class UnitRamp(sp.Function):
             return sp.S.Zero
         elif arg.is_nonnegative:
             return arg
+
+    def _eval_Abs(self):
+        return self
+
+    def _eval_power(self, other):
+        # other is not Nan, 0 or 1
+        return self.iv ** other * UnitStep(self.iv)
 
     @property
     def iv(self):

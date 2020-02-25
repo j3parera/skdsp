@@ -3,8 +3,7 @@ import re
 import numpy as np
 import sympy as sp
 
-from skdsp.signal.functions import (UnitDelta, UnitDeltaTrain, UnitRamp,
-                                    UnitStep)
+from skdsp.signal.functions import UnitDelta, UnitDeltaTrain, UnitRamp, UnitStep
 from skdsp.signal.signal import Signal
 from skdsp.signal.util import as_coeff_polar, ipystem
 
@@ -14,6 +13,7 @@ n, m, k = sp.symbols("n, m, k", integer=True)
 
 
 def filter(B, A, x, ci=None):
+    # muy preliminar
     # transposed DFII
     mm = max(len(B), len(A))
     B = B + [0] * (mm - len(B))
@@ -75,7 +75,7 @@ class DiscreteSignal(Signal):
             if delay != 0:
                 obj = obj.shift(delay)
         return done, obj
-    
+
     @classmethod
     def from_period(cls, amp, iv, period, codomain=sp.S.Reals):
         amp = sp.S(amp)
@@ -108,7 +108,7 @@ class DiscreteSignal(Signal):
     @staticmethod
     def _transmute(obj, apply=True):
         try:
-            if obj.amplitude.is_constant() and apply:
+            if obj.amplitude.is_constant(obj.iv) and apply:
                 obj.__class__ = Constant.__mro__[0]
                 return
         except:
@@ -185,18 +185,18 @@ class DiscreteSignal(Signal):
 
     def latex(self):
         ltx = sp.latex(self.amplitude, imaginary_unit="rj")
-        fr = re.compile(r'(.+)(\\frac{.+)(.+)(})({.+})(.+)')
+        fr = re.compile(r"(.+)(\\frac{.+)(.+)(})({.+})(.+)")
         s = fr.split(ltx)
-        ivs = '{0}'.format(self.iv.name)
+        ivs = "{0}".format(self.iv.name)
         if ivs in s:
-            sr = ''
+            sr = ""
             k0 = -100
             for k, x in enumerate(s):
                 if k == k0:
                     continue
                 elif k == k0 + 3:
                     sr += ivs
-                if x.startswith(r'\frac{'):
+                if x.startswith(r"\frac{"):
                     k0 = k + 1
                 sr += x
             return sr
@@ -237,7 +237,7 @@ class DiscreteSignal(Signal):
             xlabel = r"${0}$".format(sp.latex(self.iv))
         return ipystem(n, v, xlabel, title, axis, color, marker, markersize)
 
-    def sum(self, low=None, high=None, var=None, term=None):
+    def sum(self, low=None, high=None, var=None, term=None, doit=True):
         var = sp.S(var) if var is not None else self.iv
         low = sp.S(low) if low is not None else sp.S.NegativeInfinity
         high = sp.S(high) if high is not None else sp.S.Infinity
@@ -298,8 +298,36 @@ class DiscreteSignal(Signal):
         if term is not None:
             term = sp.S(term)
             amp *= term ** var
-        S = sp.Sum(amp, (var, low, high)).doit(deep=True)
+        S = sp.Sum(amp, (var, low, high))
+        if doit:
+            S = S.doit(deep=True)
         return S
+
+    def energy(self, Nmax=sp.S.Infinity):
+        # TODO tests
+        ie = self.square_abs
+        if Nmax == sp.S.Infinity:
+            try:
+                N = sp.Dummy("N", integer=True, positive=True)
+                E = sp.limit(ie.sum(-N, N), N, Nmax)
+            except:
+                E = None
+        else:
+            E = ie.sum(-Nmax, Nmax)
+        return E
+
+    def mean_power(self, Nmax=sp.S.Infinity):
+        # TODO tests
+        if Nmax == sp.S.Infinity:
+            try:
+                N = sp.Dummy("N", integer=True, positive=True)
+                expr = (sp.S.One / (2 * N + 1)) * self.energy(N)
+                P = sp.limit(expr, N, Nmax)
+            except:
+                P = None
+        else:
+            P = (sp.S.One / (2 * Nmax + 1)) * self.energy(Nmax)
+        return P
 
 
 class Constant(DiscreteSignal):

@@ -317,9 +317,31 @@ class Signal(sp.Basic):
         return (self - self.flip().conjugate) * sp.S.Half
 
     @property
+    def peak(self):
+        # TODO tests
+        return sp.Max(self.amplitude)
+
+    @property
+    def is_energy(self):
+        # TODO tests
+        E = self.energy()
+        return E is not None and E.is_finite
+
+    @property
+    def is_power(self):
+        # TODO tests
+        P = self.mean_power()
+        return P is not None and P.is_finite and not P.is_zero
+
+    @property
     def abs(self):
         cls = self._upclass()
         return self.clone(cls, sp.Abs(self.amplitude), period=None)
+
+    @property
+    def square_abs(self):
+        cls = self._upclass()
+        return self.clone(cls, sp.Abs(self.amplitude) ** 2, period=None)
 
     @property
     def conjugate(self):
@@ -593,3 +615,7 @@ class Signal(sp.Basic):
         cls = self.__class__
         obj = self.clone(cls, amp)
         return obj
+
+    def __pow__(self, b):
+        # TODO solo si b es entero (positivo o negativo); si zero -> Constant(0)
+        return NotImplemented

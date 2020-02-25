@@ -240,6 +240,16 @@ class Test_Delta(object):
         assert d.support == sp.Range(0, 0)
         assert d.duration == 1
 
+        N = sp.Symbol('N', integer=True, positive=True)
+        assert d.energy(2) == 1
+        assert d.energy(N) == 1
+        assert d.energy() == 1
+        assert d.is_energy == True
+        assert d.mean_power(2) == sp.Rational(1, 5)
+        assert d.mean_power(N) == sp.S.One / (2 * N + 1)
+        assert d.mean_power() == 0
+        assert d.is_power == False
+
         f = sp.lambdify(d.iv, d.amplitude)
         assert f(0) == 1
         assert f(1) == 0
@@ -385,6 +395,16 @@ class Test_Step(object):
         assert d.period == None
         assert d.support == sp.Range(0, sp.S.Infinity)
         assert d.duration == sp.S.Infinity
+
+        N = sp.Symbol('N', integer=True, positive=True)
+        assert d.energy(2) == 3
+        assert d.energy(N) == N + 1
+        assert d.energy() == sp.S.Infinity
+        assert d.is_energy == False
+        assert d.mean_power(2) == sp.Rational(3, 5)
+        assert d.mean_power(N) == (N + 1) / (2 * N + 1)
+        assert d.mean_power() == sp.S.Half
+        assert d.is_power == True
 
         f = sp.lambdify(d.iv, d.amplitude)
         assert f(0) == 1
@@ -533,6 +553,16 @@ class Test_Ramp(object):
         assert d.period == None
         assert d.support == sp.Range(1, sp.S.Infinity)
         assert d.duration == sp.S.Infinity
+
+        N = sp.Symbol('N', integer=True, positive=True)
+        assert d.energy(2) == 5
+        assert d.energy(N) == N**3/3 + N**2/2 + N/6
+        assert d.energy() == sp.S.Infinity
+        assert d.is_energy == False
+        assert d.mean_power(2) == sp.S.One
+        assert d.mean_power(N) == (N**3/3 + N**2/2 + N/6) / (2 * N + 1)
+        assert d.mean_power() == sp.S.Infinity
+        assert d.is_power == False
 
         f = sp.lambdify(d.iv, d.amplitude)
         assert f(0) == 0
@@ -1635,3 +1665,14 @@ class Test_Exponential(object):
         assert s.phasor == 2 * sp.exp(-9 * sp.I * sp.S.Pi / 10)
         assert s.carrier == sp.exp(sp.I * sp.S.Pi * ds.n / 4)
 
+        omega, A = sp.symbols('omega A', real=True, positive=True)
+        N = sp.Symbol('N', integer=True, positive=True)
+        s = ds.Exponential(A, sp.exp(sp.I * omega))
+        assert s.energy(2) == 5 * A ** 2
+        assert s.energy(N) == (2 * N + 1) * A ** 2
+        assert s.energy() == sp.S.Infinity
+        assert s.is_energy == False
+        assert s.mean_power(2) == A ** 2
+        assert s.mean_power(N) == A ** 2
+        assert s.mean_power() == A ** 2
+        assert s.is_power == True
