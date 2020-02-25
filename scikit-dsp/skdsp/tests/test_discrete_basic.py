@@ -98,8 +98,10 @@ class Test_Constant(object):
 
         d = ds.Constant(3 + 5 * sp.I)
         assert d.amplitude == 3 + 5 * sp.I
-        assert d.real == 3
-        assert d.imag == 5
+        assert d.real_part == 3
+        assert d.real == ds.Constant(3)
+        assert d.imag_part == 5
+        assert d.imag == ds.Constant(5)
         assert d.is_periodic == True
         assert d.period == 1
         assert d.support == sp.S.Integers
@@ -233,14 +235,16 @@ class Test_Delta(object):
     def test_Delta_misc(self):
         d = ds.Delta()
         assert d.amplitude == UnitDelta(ds.n)
-        assert d.real == UnitDelta(ds.n)
-        assert d.imag == 0
+        assert d.real_part == UnitDelta(ds.n)
+        assert d.real == ds.Delta(ds.n)
+        assert d.imag_part == 0
+        assert d.imag == ds.Constant(0)
         assert d.is_periodic == False
         assert d.period == None
         assert d.support == sp.Range(0, 0)
         assert d.duration == 1
 
-        N = sp.Symbol('N', integer=True, positive=True)
+        N = sp.Symbol("N", integer=True, positive=True)
         assert d.energy(2) == 1
         assert d.energy(N) == 1
         assert d.energy() == 1
@@ -389,14 +393,16 @@ class Test_Step(object):
     def test_Step_misc(self):
         d = ds.Step()
         assert d.amplitude == UnitStep(ds.n)
-        assert d.real == UnitStep(ds.n)
-        assert d.imag == 0
+        assert d.real_part == UnitStep(ds.n)
+        assert d.imag_part == 0
+        assert d.real == ds.Step()
+        assert d.imag == ds.Constant(0)
         assert d.is_periodic == False
         assert d.period == None
         assert d.support == sp.Range(0, sp.S.Infinity)
         assert d.duration == sp.S.Infinity
 
-        N = sp.Symbol('N', integer=True, positive=True)
+        N = sp.Symbol("N", integer=True, positive=True)
         assert d.energy(2) == 3
         assert d.energy(N) == N + 1
         assert d.energy() == sp.S.Infinity
@@ -547,20 +553,22 @@ class Test_Ramp(object):
     def test_Ramp_misc(self):
         d = ds.Ramp()
         assert d.amplitude == UnitRamp(ds.n)
-        assert d.real == UnitRamp(ds.n)
-        assert d.imag == 0
+        assert d.real_part == UnitRamp(ds.n)
+        assert d.imag_part == 0
+        assert d.real == ds.Ramp(ds.n)
+        assert d.imag == ds.Constant(0)
         assert d.is_periodic == False
         assert d.period == None
         assert d.support == sp.Range(1, sp.S.Infinity)
         assert d.duration == sp.S.Infinity
 
-        N = sp.Symbol('N', integer=True, positive=True)
+        N = sp.Symbol("N", integer=True, positive=True)
         assert d.energy(2) == 5
-        assert d.energy(N) == N**3/3 + N**2/2 + N/6
+        assert d.energy(N) == N ** 3 / 3 + N ** 2 / 2 + N / 6
         assert d.energy() == sp.S.Infinity
         assert d.is_energy == False
         assert d.mean_power(2) == sp.S.One
-        assert d.mean_power(N) == (N**3/3 + N**2/2 + N/6) / (2 * N + 1)
+        assert d.mean_power(N) == (N ** 3 / 3 + N ** 2 / 2 + N / 6) / (2 * N + 1)
         assert d.mean_power() == sp.S.Infinity
         assert d.is_power == False
 
@@ -728,8 +736,10 @@ class Test_DeltaTrain(object):
         N = 5
         d = ds.DeltaTrain(N=N)
         assert d.amplitude == UnitDeltaTrain(ds.n, N)
-        assert d.real == UnitDeltaTrain(ds.n, N)
-        assert d.imag == 0
+        assert d.real_part == UnitDeltaTrain(ds.n, N)
+        assert d.imag_part == 0
+        assert d.real == ds.DeltaTrain(N=N)
+        assert d.imag == ds.Constant(0)
         assert d.is_periodic == True
         assert d.period == N
         assert d.support == sp.S.Integers
@@ -1247,8 +1257,10 @@ class Test_Sinusoid(object):
 
         d = ds.Sinusoid(2, sp.S.Pi / 6, 3 * sp.S.Pi / 5)
         assert d.amplitude == 2 * sp.cos(sp.S.Pi * ds.n / 6 + 3 * sp.S.Pi / 5)
-        assert d.real == 2 * sp.cos(sp.S.Pi * ds.n / 6 + 3 * sp.S.Pi / 5)
-        assert d.imag == 0
+        assert d.real_part == 2 * sp.cos(sp.S.Pi * ds.n / 6 + 3 * sp.S.Pi / 5)
+        assert d.imag_part == 0
+        assert d.real == ds.Sinusoid(2, sp.S.Pi / 6, 3 * sp.S.Pi / 5)
+        assert d.imag == ds.Constant(0)
         assert d.support == sp.S.Integers
         assert d.duration == None
         assert d.gain == 2
@@ -1279,8 +1291,10 @@ class Test_Sinusoid(object):
         x = sp.Symbol("x", real=True)
         d = ds.Sinusoid(x, sp.S.Pi / 4, sp.S.Pi / 12)
         assert d.amplitude == x * sp.cos(sp.S.Pi * ds.n / 4 + sp.S.Pi / 12)
-        assert d.real == x * sp.cos(sp.S.Pi * ds.n / 4 + sp.S.Pi / 12)
-        assert d.imag == 0
+        assert d.real_part == x * sp.cos(sp.S.Pi * ds.n / 4 + sp.S.Pi / 12)
+        assert d.imag_part == 0
+        assert d.real == ds.DiscreteSignal.from_formula(x * sp.cos(sp.S.Pi * ds.n / 4 + sp.S.Pi / 12), ds.n)
+        assert d.imag == ds.Constant(0)
         assert d.support == sp.S.Integers
         assert d.duration == None
         assert d.gain == x
@@ -1293,8 +1307,10 @@ class Test_Sinusoid(object):
 
         d = ds.Sinusoid(omega=3 * sp.S.Pi)
         assert d.amplitude == (-1) ** ds.n
-        assert d.real == (-1) ** ds.n
-        assert d.imag == 0
+        assert d.real_part == (-1) ** ds.n
+        assert d.imag_part == 0
+        assert d.real == ds.Exponential(alpha=-1)
+        assert d.imag == ds.Constant(0)
         assert d.support == sp.S.Integers
         assert d.duration == None
         assert d.gain == 1
@@ -1322,6 +1338,24 @@ class Test_Sinusoid(object):
             )
             == 0
         )
+
+        A = sp.Symbol("A", real=True, positive=True)
+        N = sp.Symbol("N", integer=True, positive=True)
+        s = ds.Sinusoid(A, sp.S.Pi / 4)
+        assert s.energy(2) == 2 * A ** 2
+        assert s.energy(N) == sp.Sum(
+            A ** 2 * sp.cos(ds.n * sp.S.Pi / 4) ** 2, (ds.n, -N, N)
+        )
+        assert s.energy() == None
+        assert s.energy(s.period / 2) == 5 * A ** 2
+        assert s.is_energy == False
+        assert s.mean_power(2) == 2 * A ** 2 / 5
+        assert s.mean_power(N) == sp.Sum(
+            A ** 2 * sp.cos(ds.n * sp.S.Pi / 4) ** 2, (ds.n, -N, N)
+        ) / (2 * N + 1)
+        assert s.mean_power() == None
+        assert s.mean_power(s.period / 2) == 5 * A ** 2 / 9
+        assert s.is_power == False
 
 
 class Test_Exponential(object):
@@ -1665,8 +1699,8 @@ class Test_Exponential(object):
         assert s.phasor == 2 * sp.exp(-9 * sp.I * sp.S.Pi / 10)
         assert s.carrier == sp.exp(sp.I * sp.S.Pi * ds.n / 4)
 
-        omega, A = sp.symbols('omega A', real=True, positive=True)
-        N = sp.Symbol('N', integer=True, positive=True)
+        omega, A = sp.symbols("omega A", real=True, positive=True)
+        N = sp.Symbol("N", integer=True, positive=True)
         s = ds.Exponential(A, sp.exp(sp.I * omega))
         assert s.energy(2) == 5 * A ** 2
         assert s.energy(N) == (2 * N + 1) * A ** 2

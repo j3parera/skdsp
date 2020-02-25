@@ -723,36 +723,48 @@ class Test_Signal(object):
         t = sp.Symbol("t", real=True)
 
         s = Signal(3, n)
-        assert s.real == 3
-        assert s.imag == 0
+        assert s.real_part == 3
+        assert s.imag_part == 0
+        assert s.real == Signal(3, n)
+        assert s.imag == Signal(0, n)
         assert s.conjugate == s
 
         s = Signal(3, t)
-        assert s.real == 3
-        assert s.imag == 0
+        assert s.real_part == 3
+        assert s.imag_part == 0
+        assert s.real == Signal(3, t)
+        assert s.imag == Signal(0, t)
         assert s.conjugate == s
 
         s = Signal(sp.exp(sp.I * sp.S.Pi * n / 4), codomain=sp.S.Complexes)
-        assert s.real == sp.cos(sp.S.Pi * n / 4)
-        assert s.imag == sp.sin(sp.S.Pi * n / 4)
+        assert s.real_part == sp.cos(sp.S.Pi * n / 4)
+        assert s.imag_part == sp.sin(sp.S.Pi * n / 4)
+        assert s.real == Signal(sp.cos(sp.S.Pi * n / 4), n)
+        assert s.imag == Signal(sp.sin(sp.S.Pi * n / 4), n)
         assert s.conjugate == Signal(
             sp.exp(-sp.I * sp.S.Pi * n / 4), codomain=sp.S.Complexes
         )
 
         s = Signal((1 / 3) ** n)
-        assert s.real == (1 / 3) ** n
-        assert s.imag == 0
+        assert s.real_part == (1 / 3) ** n
+        assert s.imag_part == 0
+        assert s.real == Signal((1 / 3) ** n)
+        assert s.imag == Signal(0, n)
         assert s.conjugate == s
 
         s = Signal(z ** n, n)
-        assert s.real == sp.re(z ** n)
-        assert s.imag == sp.im(z ** n)
+        assert s.real_part == sp.re(z ** n)
+        assert s.imag_part == sp.im(z ** n)
+        assert s.real == Signal(sp.re(z ** n), n)
+        assert s.imag == Signal(sp.im(z ** n), n)
         assert s.conjugate == Signal(sp.conjugate(z) ** n, n)
 
         # pylint: disable-msg=not-callable
         s = Signal(sp.Function("X")(k))
-        assert s.real == sp.re(s.amplitude)
-        assert s.imag == sp.im(s.amplitude)
+        assert s.real_part == sp.re(s.amplitude)
+        assert s.imag_part == sp.im(s.amplitude)
+        assert s.real == Signal(sp.re(s.amplitude), k)
+        assert s.imag == Signal(sp.im(s.amplitude), k)
         assert s.conjugate == Signal(sp.conjugate(sp.Function("X")(k)))
         # pylint: enable-msg=not-callable
  

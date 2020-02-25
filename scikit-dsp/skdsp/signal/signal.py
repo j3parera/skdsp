@@ -58,7 +58,7 @@ class Signal(sp.Basic):
         # period
         if period is None:
             try:
-                period = Signal._periodicity(amplitude, iv, domain)
+                period = cls._periodicity(amplitude, iv, domain)
             except:
                 period = None
         else:
@@ -108,6 +108,7 @@ class Signal(sp.Basic):
 
     @staticmethod
     def _periodicity(amp, iv, domain):
+        amp = sp.expand_mul(amp)
         # 1.- Undef explicitly set
         if isinstance(amp, AppliedUndef):
             if hasattr(amp, "period"):
@@ -126,14 +127,25 @@ class Signal(sp.Basic):
         period = periodicity(amp, iv)
         if period is not None:
             return Signal._domain_periodicity(amp, period, domain)
-        # 4.- But fails for exp(I*pi*(x-3)*Rational(3,4)) because of pi!!
-        if amp.args[0].has(sp.S.Pi):
-            a, b = amp.args[0].as_independent(sp.S.Pi)
-            if b != 0:
-                period = periodicity(amp.func(a), iv)
-                if period is not None:
-                    period /= sp.S.Pi
-                    return Signal._domain_periodicity(amp, period, domain)
+        # 4.- But fails for A*exp(I*pi*(x-3)*Rational(3,4)) because of pi!!
+        om = sp.Wild("om")
+        A = sp.Wild("A")
+        phi = sp.Wild("phi")
+        k = sp.Wild('k')
+        patterns = [
+            (A * sp.exp(om * (iv - k) + phi), sp.exp),
+            (A * sp.sin(om * (iv - k) + phi), sp.sin),
+            (A * sp.cos(om * (iv - k) + phi), sp.cos),
+        ]
+        for pattern in patterns:
+            d = amp.match(pattern[0])
+            if d is not None:
+                a, b = d[om].as_independent(sp.S.Pi)
+                if b != 0:
+                    period = periodicity(pattern[1](a * iv), iv)
+                    if period is not None:
+                        period /= sp.S.Pi
+                        return Signal._domain_periodicity(amp, period, domain)
         # 5.- sympy also fails with (-1)**n (n = integer)
         if domain == sp.S.Integers and sp.simplify(amp - (-1) ** iv) == 0:
             return sp.S(2)
@@ -167,7 +179,7 @@ class Signal(sp.Basic):
         # obj.sys_transform = self.sys_transform
         # obj.fourier_transform = self.fourier_transform
         # pylint: disable-msg=no-member
-        if hasattr(cls, '_transmute'):
+        if hasattr(cls, "_transmute"):
             cls._transmute(obj)
         if hasattr(self, "_clone_extra"):
             self._clone_extra(obj)
@@ -277,18 +289,32 @@ class Signal(sp.Basic):
         return duration
 
     @property
-    def real(self):
-        r, _ = self.amplitude.as_real_imag()
+    def as_real_imag(self):
+        return self.amplitude.as_real_imag()
+
+    @property
+    def real_part(self):
+        r, _ = self.as_real_imag
         if r is None:
             return sp.S.Zero
         return r
 
     @property
-    def imag(self):
-        _, i = self.amplitude.as_real_imag()
+    def real(self):
+        cls = self._upclass()
+        return self.clone(cls, self.real_part, period=None, codomain=sp.S.Reals)
+
+    @property
+    def imag_part(self):
+        _, i = self.as_real_imag
         if i is None:
             return sp.S.Zero
         return i
+
+    @property
+    def imag(self):
+        cls = self._upclass()
+        return self.clone(cls, self.imag_part, period=None, codomain=sp.S.Reals)
 
     @property
     def is_even(self):
@@ -299,21 +325,19 @@ class Signal(sp.Basic):
         return (self.amplitude - self.amplitude.subs({self.iv: -self.iv})) == 0
 
     @property
-    def even(self):
+    def even_part(self):
         if self.is_even:
             return self
         if self.is_odd:
             return sp.S.Zero
-        # expr * signal lo captura sympy como expr * expr -> mal
         return (self + self.flip().conjugate) * sp.S.Half
 
     @property
-    def odd(self):
+    def odd_part(self):
         if self.is_odd:
             return self
         if self.is_even:
             return sp.S.Zero
-        # expr * signal lo captura sympy como expr * expr -> mal
         return (self - self.flip().conjugate) * sp.S.Half
 
     @property
@@ -581,7 +605,7 @@ class Signal(sp.Basic):
             amp = sp.powsimp(amp)
         cls = (
             self.__class__
-            if other.amplitude.is_constant() and not other.amplitude.is_zero
+            if other.amplitude.is_constant(self.iv) and not other.amplitude.is_zero
             else self._upclass()
         )
         obj = self.clone(cls, amp, period=period, codomain=codomain)

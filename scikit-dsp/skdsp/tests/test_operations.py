@@ -250,15 +250,15 @@ class Test_Discrete_Arithmetic(object):
 
     def test_Discrete_abs(self):
         s = ds.Sinusoid(2, sp.S.Pi / 4)
-        assert s.odd == s
-        assert s.even == 0
+        assert s.odd_part == s
+        assert s.even_part == 0
         assert s.abs == ds.DiscreteSignal.from_formula(
             sp.Abs(2 * sp.cos(sp.S.Pi * ds.n / 4))
         )
 
         s = ds.Sinusoid(2, sp.S.Pi / 4, -sp.S.Pi / 2)
-        assert s.odd == 0
-        assert s.even == s
+        assert s.odd_part == 0
+        assert s.even_part == s
         assert s.abs == ds.DiscreteSignal.from_formula(
             sp.Abs(2 * sp.sin(sp.S.Pi * ds.n / 4))
         )

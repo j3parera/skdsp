@@ -77,6 +77,13 @@ class DiscreteSignal(Signal):
         return done, obj
 
     @classmethod
+    def _periodicity(cls, amp, iv, domain):
+        if amp.has(UnitDeltaTrain):
+            a, b = amp.as_independent(UnitDeltaTrain)
+            return b.args[1]
+        return super()._periodicity(amp, iv, domain)
+
+    @classmethod
     def from_period(cls, amp, iv, period, codomain=sp.S.Reals):
         amp = sp.S(amp)
         amp = amp.subs({iv: sp.Mod(iv, period)})
@@ -121,7 +128,7 @@ class DiscreteSignal(Signal):
         if obj.amplitude.has(UnitDelta, UnitDeltaTrain, sp.KroneckerDelta):
             patterns = [
                 (A * UnitDelta(obj.iv - k), Delta.__mro__[0]),
-                (A * UnitDeltaTrain((obj.iv - k), N), Ramp.__mro__[0]),
+                (A * UnitDeltaTrain((obj.iv - k), N), DeltaTrain.__mro__[0]),
             ]
         elif obj.amplitude.has(UnitStep):
             patterns = [(A * UnitStep(obj.iv - k), Step.__mro__[0])]
@@ -181,7 +188,7 @@ class DiscreteSignal(Signal):
         return sp.sstr(self.amplitude)
 
     def _latex(self, printer=None):
-        return printer.doprint(self.amplitude, imaginary_unit="rj")
+        return printer.doprint(self.amplitude)
 
     def latex(self):
         ltx = sp.latex(self.amplitude, imaginary_unit="rj")
@@ -304,7 +311,6 @@ class DiscreteSignal(Signal):
         return S
 
     def energy(self, Nmax=sp.S.Infinity):
-        # TODO tests
         ie = self.square_abs
         if Nmax == sp.S.Infinity:
             try:
@@ -317,7 +323,6 @@ class DiscreteSignal(Signal):
         return E
 
     def mean_power(self, Nmax=sp.S.Infinity):
-        # TODO tests
         if Nmax == sp.S.Infinity:
             try:
                 N = sp.Dummy("N", integer=True, positive=True)
