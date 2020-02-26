@@ -248,6 +248,45 @@ class Test_Discrete_Arithmetic(object):
         with pytest.raises(TypeError):
             s = complex(2, 2) / ds.Delta()
 
+    def test_Discrete_pow(self):
+        N = sp.Symbol('N', integer=True, nonnegative=True)
+        M = sp.Symbol('M', integer=True)
+        r = sp.Symbol('r')
+
+        s = ds.Delta() ** 2
+        assert s == ds.Delta()
+
+        s = ds.Delta() ** 3
+        assert s == ds.Delta()
+
+        s = ds.Step() ** 3
+        assert s == ds.Step()
+
+        s = ds.Delta() ** 0
+        assert s == ds.Constant(1)
+
+        s = ds.Ramp() ** 2
+        assert s.amplitude == ds.n ** 2 * UnitStep(ds.n)
+
+        s = ds.Ramp() ** N
+        assert s.amplitude == ds.n ** N * UnitStep(ds.n)
+
+        with pytest.raises(ValueError):
+            s = ds.Ramp() ** M
+
+        with pytest.raises(ValueError):
+            s = ds.Ramp() ** r
+
+        with pytest.raises(ValueError):
+            s = ds.Delta() ** (-2)
+
+        with pytest.raises(ValueError):
+            ds.Delta() ** (1 / 2)
+
+        with pytest.raises(ValueError):
+            ds.Delta() ** sp.sqrt(2)
+
+
     def test_Discrete_abs(self):
         s = ds.Sinusoid(2, sp.S.Pi / 4)
         assert s.odd_part == s

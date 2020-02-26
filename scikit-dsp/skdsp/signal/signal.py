@@ -347,13 +347,11 @@ class Signal(sp.Basic):
 
     @property
     def is_energy(self):
-        # TODO tests
         E = self.energy()
         return E is not None and E.is_finite
 
     @property
     def is_power(self):
-        # TODO tests
         P = self.mean_power()
         return P is not None and P.is_finite and not P.is_zero
 
@@ -641,5 +639,10 @@ class Signal(sp.Basic):
         return obj
 
     def __pow__(self, b):
-        # TODO solo si b es entero (positivo o negativo); si zero -> Constant(0)
-        return NotImplemented
+        b = sp.S(b)
+        if not b.is_integer or not b.is_nonnegative:
+            raise ValueError('Undefinded operation.')
+        cls = self._upclass()
+        amp = sp.S.One if b.is_zero else self.amplitude ** b
+        obj = self.clone(cls, amp, period=None, codomain=sp.S.Reals)
+        return obj
