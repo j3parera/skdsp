@@ -225,7 +225,7 @@ class DiscreteSignal(Signal):
         xlabel=None,
         title=None,
         axis=None,
-        color="k",
+        color="C0",
         marker="o",
         markersize=8,
         **kwargs

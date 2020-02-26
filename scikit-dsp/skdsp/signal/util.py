@@ -83,7 +83,7 @@ def stem(*args, **kwargs):
 
 
 def ipystem(
-    nx, x, xlabel=None, title=None, axis=None, color="k", marker="o", markersize=8, **kwargs
+    nx, x, xlabel=None, title=None, axis=None, color="C0", marker="o", markersize=8, **kwargs
 ):
     # TODO
     # comprobar que no existan símbolos libres sin asignar
