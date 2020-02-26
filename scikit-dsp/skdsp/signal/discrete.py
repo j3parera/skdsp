@@ -192,21 +192,16 @@ class DiscreteSignal(Signal):
 
     def latex(self):
         ltx = sp.latex(self.amplitude, imaginary_unit="rj")
-        fr = re.compile(r"(.+)(\\frac{.+)(.+)(})({.+})(.+)")
-        s = fr.split(ltx)
-        ivs = "{0}".format(self.iv.name)
-        if ivs in s:
-            sr = ""
-            k0 = -100
-            for k, x in enumerate(s):
-                if k == k0:
-                    continue
-                elif k == k0 + 3:
-                    sr += ivs
-                if x.startswith(r"\frac{"):
-                    k0 = k + 1
-                sr += x
-            return sr
+        pat = r'(.*?)?(\\frac{)(.*)(' + '{0}'.format(self.iv.name) + ')(}{.+?})(.*)?'
+        fr = re.compile(pat)
+        m = fr.match(ltx)
+        if m is not None:
+            s = (
+                "".join(m.group(1, 2))
+                + ("1" if m.group(3) == "" else m.group(3))
+                + "".join(m.group(5, 4, 6))
+            )
+            return s
         return ltx
 
     def display(self, span=None):
