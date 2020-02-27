@@ -728,5 +728,9 @@ class Exponential(_TrigonometricDiscreteSignal):
     def carrier(self):
         return sp.exp(sp.I * self.frequency * self.iv)
 
+    @property
+    def as_phasor_carrier(self):
+        return (self.phasor, self.carrier)
+
     def __repr__(self):
         return "Exponential({0}, {1}, {2})".format(self.C, self.alpha, self.iv)
