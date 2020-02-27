@@ -182,7 +182,7 @@ class Signal(sp.Basic):
         # pylint: disable-msg=no-member
         if hasattr(cls, "_transmute"):
             cls._transmute(obj)
-        if self.__class__ == obj.__class__ and hasattr(self, "_clone_extra"):
+        if hasattr(self, "_clone_extra"):
             self._clone_extra(obj)
         # pylint: enable-msg=no-member
         return obj
