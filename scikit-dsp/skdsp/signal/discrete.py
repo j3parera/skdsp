@@ -188,21 +188,7 @@ class DiscreteSignal(Signal):
         return sp.sstr(self.amplitude)
 
     def _latex(self, printer=None):
-        return printer.doprint(self.amplitude)
-
-    def latex(self):
-        ltx = sp.latex(self.amplitude, imaginary_unit="rj")
-        pat = r'(.*?)?(\\frac{)(.*)(' + '{0}'.format(self.iv.name) + ')(}{.+?})(.*)?'
-        fr = re.compile(pat)
-        m = fr.match(ltx)
-        if m is not None:
-            s = (
-                "".join(m.group(1, 2))
-                + ("1" if m.group(3) == "" else m.group(3))
-                + "".join(m.group(5, 4, 6))
-            )
-            return s
-        return ltx
+        return printer.doprint(self)
 
     def display(self, span=None):
         if span is None:

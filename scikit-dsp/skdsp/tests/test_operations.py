@@ -332,6 +332,10 @@ class Test_Print(object):
         s = x.latex()
         assert s == "0.9 \\delta\\left[n - 5\\right]"
 
+        x = ds.Exponential(1, 0.9 * sp.exp(sp.I * sp.S.Pi / 11))
+        s = x.latex()
+        assert s is not None
+        
     def test_Display(self):
         x = 0.9 * ds.Delta().shift(5)
         s = x.display()
