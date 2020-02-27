@@ -1,0 +1,66 @@
+class _Signal(sp.Basic):
+
+    # --- utilities -----------------------------------------------------------
+    @property
+    def latex_xexpr(self):
+        if self.xexpr == self.xvar:
+            sn = sp.latex(self._xexpr)
+        else:
+            # just in case it appears '- n' with space
+            s0 = sp.latex(self.xexpr)
+            if s0.startswith("- "):
+                s0 = s0.replace(" ", "", 1)
+            sn = r"\left(" + s0 + r"\right)"
+        return sn
+
+    @property
+    def str_xexpr(self):
+        if self.xexpr == self.xvar:
+            sn = sp.latex(self._xexpr)
+        else:
+            sn = "(" + str(self.xexpr) + ")"
+        return sn
+
+
+class _FunctionSignal(_Signal):
+    def eval(self, x):
+        # Hay que ver si hay 'Pow'
+        to_real = False
+        pows = []
+        for arg in sp.preorder_traversal(self._yexpr):
+            if isinstance(arg, sp.Pow):
+                pows.append(arg)
+        for p in pows:
+            base = p.args[0]
+            if isinstance(base, (Number, sp.Number)):
+                if base <= 0:
+                    # base negativa, los exponentes deben ser complejos
+                    # por si acaso no son enteros
+                    x = x.astype(np.complex_)
+                    self.dtype = np.complex_
+                    to_real = True
+                    # break # ??
+        try:
+            if self._ylambda is None:
+                self._ylambda = sp.lambdify(self._xvar, self._yexpr, "numpy")
+            y = self._ylambda(x)
+            if not hasattr(y, "__len__"):
+                # workaround para issue #5642 de sympy. Cuando yexpr es una
+                # constante, se devuelve un escalar aunque la entrada sea un
+                # array
+                y = np.full(x.shape, y, self.dtype)
+            if not to_real:
+                y = y.astype(self.dtype)
+        except (NameError, ValueError):
+            # sympy no ha podido hacer una función lambda
+            # (o hay algún problema de cálculo, p.e 2^(-1) enteros)
+            # así que se procesan los valores uno a uno
+            y = np.zeros_like(x, self.dtype)
+            for k, x0 in enumerate(x):
+                try:
+                    y[k] = self._yexpr.xreplace({self._xvar: x0})
+                except TypeError:
+                    y[k] = np.nan
+        if to_real:
+            y = np.real_if_close(y)
+        return y
