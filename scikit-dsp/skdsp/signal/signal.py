@@ -10,6 +10,7 @@ from sympy.core.function import AppliedUndef, UndefinedFunction
 from sympy.utilities.iterables import flatten, is_sequence, iterable
 
 from skdsp.signal.functions import UnitDelta
+from skdsp.signal.printer import SignalLatexPrinter
 
 z = sp.Symbol("z", complex=True)
 omega = sp.Symbol("omega", real=True)
@@ -194,6 +195,10 @@ class Signal(sp.Basic):
 
     def as_coeff_Mul(self, *args, **kwargs):
         return self.amplitude.as_coeff_Mul(*args, **kwargs)
+
+    def latex(self, **settings):
+        printer = SignalLatexPrinter(settings)
+        return 'kk' # printer.doprint(self.amplitude)
 
     @property
     def amplitude(self):
