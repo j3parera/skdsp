@@ -40,7 +40,7 @@ class DiscreteSignal(Signal):
         done = False
         if tcls is not None:
             delay = d.get(k, 0)
-            if tcls == Sinusoid.__mro__[0]:
+            if tcls == Sinusoid:
                 om, pio = d[omg].as_independent(sp.S.Pi)
                 ph, pip = d[phi].as_independent(sp.S.Pi)
                 if d.get(N) is not None:
@@ -54,7 +54,7 @@ class DiscreteSignal(Signal):
                     obj.iv,
                 )
                 done = True
-            elif tcls == Exponential.__mro__[0]:
+            elif tcls == Exponential:
                 if d.get(N) is None:
                     om, pio = d[omg].as_independent(sp.S.Pi)
                     obj = tcls(
@@ -71,6 +71,8 @@ class DiscreteSignal(Signal):
                         obj.iv,
                     )
                 done = True
+            elif tcls == Constant:
+                obj = tcls(d[A], obj.iv)
             # TODO otros casos
             if delay != 0:
                 obj = obj.shift(delay)
@@ -114,12 +116,6 @@ class DiscreteSignal(Signal):
 
     @staticmethod
     def _transmute(obj, apply=True):
-        try:
-            if obj.amplitude.is_constant(obj.iv) and apply:
-                obj.__class__ = Constant.__mro__[0]
-                return
-        except:
-            pass
         A = sp.Wild("A")
         k = sp.Wild("k")
         omg = sp.Wild("omega")
@@ -127,33 +123,34 @@ class DiscreteSignal(Signal):
         N = sp.Wild("N")
         if obj.amplitude.has(UnitDelta, UnitDeltaTrain, sp.KroneckerDelta):
             patterns = [
-                (A * UnitDelta(obj.iv - k), Delta.__mro__[0]),
-                (A * UnitDeltaTrain((obj.iv - k), N), DeltaTrain.__mro__[0]),
+                (A * UnitDelta(obj.iv - k), Delta),
+                (A * UnitDeltaTrain((obj.iv - k), N), DeltaTrain),
             ]
         elif obj.amplitude.has(UnitStep):
-            patterns = [(A * UnitStep(obj.iv - k), Step.__mro__[0])]
+            patterns = [(A * UnitStep(obj.iv - k), Step)]
         elif obj.amplitude.has(UnitRamp):
-            patterns = [(A * UnitRamp(obj.iv - k), Ramp.__mro__[0])]
+            patterns = [(A * UnitRamp(obj.iv - k), Ramp)]
         elif obj.amplitude.has(sp.cos, sp.sin):
             patterns = [
-                (A * sp.cos(omg * (obj.iv - k) + phi), Sinusoid.__mro__[0]),
-                (A * sp.sin(omg * (obj.iv - N) + phi), Sinusoid.__mro__[0]),
+                (A * sp.cos(omg * (obj.iv - k) + phi), Sinusoid),
+                (A * sp.sin(omg * (obj.iv - N) + phi), Sinusoid),
             ]
         elif obj.amplitude.has(sp.exp, sp.Pow):
             patterns = [
-                (A * N ** (obj.iv - k), Exponential.__mro__[0]),
-                (A * sp.exp(sp.I * (omg * (obj.iv - k))), Exponential.__mro__[0]),
+                (A * N ** (obj.iv - k), Exponential),
+                (A * sp.exp(sp.I * (omg * (obj.iv - k))), Exponential),
                 (
                     A * N ** (obj.iv - k) * sp.exp(sp.I * (omg * (obj.iv - k) + phi)),
-                    Exponential.__mro__[0],
+                    Exponential,
                 ),
             ]
+        else:
+            patterns = [(A, Constant)]
         for pattern in patterns:
             d = obj.amplitude.match(pattern[0])
             if d is not None:
                 try:
-                    # if d[A] in obj.free_symbols or d[A].is_constant():
-                    if d[A].is_constant():
+                    if d[A].is_constant(obj.iv):
                         if apply:
                             obj.__class__ = pattern[1]
                             break
@@ -315,6 +312,9 @@ class DiscreteSignal(Signal):
             P = (sp.S.One / (2 * Nmax + 1)) * self.energy(Nmax)
         return P
 
+class Generic(DiscreteSignal):
+    # TODO
+    pass
 
 class Constant(DiscreteSignal):
     """
@@ -593,7 +593,7 @@ class _TrigonometricDiscreteSignal(DiscreteSignal):
         romega = self.reduced_frequency() + 2 * sp.S.Pi * interval
         rphi = self.reduced_phase()
         # pylint: disable-msg=no-value-for-parameter
-        return self.__class__.__mro__[0](self.A, romega, rphi, self.iv)
+        return self.__class__(self.A, romega, rphi, self.iv)
         # pylint: enable-msg=no-value-for-parameter
 
 

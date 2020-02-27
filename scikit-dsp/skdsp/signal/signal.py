@@ -153,8 +153,11 @@ class Signal(sp.Basic):
         return period
 
     def _upclass(self):
+        if self.__class__ == Signal:
+            return self.__class__
         mro = self.__class__.__mro__
-        return mro[-4] if len(mro) >= 4 else mro[0]
+        idx = mro.index(Signal)
+        return mro[idx - 1]
 
     def copy(self):
         obj = copy.copy(self)

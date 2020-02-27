@@ -335,7 +335,7 @@ class Test_Print(object):
         x = ds.Exponential(1, 0.9 * sp.exp(sp.I * sp.S.Pi / 11))
         s = x.latex()
         assert s is not None
-        
+
     def test_Display(self):
         x = 0.9 * ds.Delta().shift(5)
         s = x.display()
@@ -506,7 +506,11 @@ class Test_KK(object):
         assert isinstance(ya, ds.Exponential)
 
     def test_KK_3(self):
-        import re
-        x = ds.Sinusoid(omega=sp.S.Pi * sp.Rational(1, 17), phi=-sp.S.Pi * sp.S.Half)
-        ltx = x.latex()
-        assert ltx != ''
+        y3 = ds.Exponential(sp.exp(sp.I*sp.S.Pi/4), 1.1*sp.exp(sp.I*sp.S.Pi/11))
+        G = y3.phasor
+        z0 = y3.alpha
+        x = G * ds.Delta()
+        span = range(0, 51)
+        B = [1, 0]
+        A = [1, -z0]
+        y3f = ds.Data(ds.filter(B, A, x(span)), iv=ds.n)
