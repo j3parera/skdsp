@@ -131,7 +131,7 @@ class Signal(sp.Basic):
         om = sp.Wild("om")
         A = sp.Wild("A")
         phi = sp.Wild("phi")
-        k = sp.Wild('k')
+        k = sp.Wild("k")
         patterns = [
             (A * sp.exp(om * (iv - k) + phi), sp.exp),
             (A * sp.sin(om * (iv - k) + phi), sp.sin),
@@ -181,7 +181,7 @@ class Signal(sp.Basic):
         # pylint: disable-msg=no-member
         if hasattr(cls, "_transmute"):
             cls._transmute(obj)
-        if hasattr(self, "_clone_extra"):
+        if self.__class__ == obj.__class__ and hasattr(self, "_clone_extra"):
             self._clone_extra(obj)
         # pylint: enable-msg=no-member
         return obj
@@ -641,7 +641,7 @@ class Signal(sp.Basic):
     def __pow__(self, b):
         b = sp.S(b)
         if not b.is_integer or not b.is_nonnegative:
-            raise ValueError('Undefinded operation.')
+            raise ValueError("Undefinded operation.")
         cls = self._upclass()
         amp = sp.S.One if b.is_zero else self.amplitude ** b
         obj = self.clone(cls, amp, period=None, codomain=sp.S.Reals)
