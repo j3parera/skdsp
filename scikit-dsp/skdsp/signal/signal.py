@@ -270,6 +270,8 @@ class Signal(sp.Basic):
                     supp = sp.Range(0, expr.duration - 1)
                 else:
                     supp = sp.Interval(0, expr.duration)
+            else:
+                supp = self.domain
         # 2.- delta's
         elif expr.has(sp.KroneckerDelta):
             if expr.is_Add:

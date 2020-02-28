@@ -312,9 +312,16 @@ class DiscreteSignal(Signal):
             P = (sp.S.One / (2 * Nmax + 1)) * self.energy(Nmax)
         return P
 
-class Generic(DiscreteSignal):
-    # TODO
-    pass
+class Undefined(DiscreteSignal):
+
+    def __new__(cls, name, iv=None, codomain=sp.S.Reals):
+        iv = sp.sympify(iv) if iv is not None else n
+        if not isinstance(name, str):
+            raise ValueError("Name must be a string.")
+        # pylint: disable-msg=too-many-function-args
+        return Signal.__new__(cls, sp.Function(name)(iv), iv, None, sp.S.Integers, codomain)
+        # pylint: enable-msg=too-many-function-args
+
 
 class Constant(DiscreteSignal):
     """
@@ -327,7 +334,7 @@ class Constant(DiscreteSignal):
     def __new__(cls, const, iv=None):
         const = sp.sympify(const)
         iv = sp.sympify(iv) if iv is not None else n
-        if not const.is_constant():
+        if not const.is_constant(iv):
             raise ValueError("const value is not constant")
         codomain = sp.S.Reals if const in sp.S.Reals else sp.S.Complexes
         # pylint: disable-msg=too-many-function-args
@@ -596,6 +603,7 @@ class _TrigonometricDiscreteSignal(DiscreteSignal):
         romega = self.reduced_frequency() + 2 * sp.S.Pi * interval
         rphi = self.reduced_phase()
         # pylint: disable-msg=no-value-for-parameter
+        return self.__class__(self.A, romega, rphi, self.iv)
         # pylint: enable-msg=no-value-for-parameter
 
 
