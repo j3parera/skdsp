@@ -509,8 +509,11 @@ class Data(DiscreteSignal):
             while start < 0 and data[0] == 0:
                 start += 1
                 data = data[1:]
-            while data[-1] == 0:
+            while len(data) > 0 and data[-1] == 0:
                 data = data[:-1]
+            if len(data) == 0:
+                # this is a constant 0
+                return Constant(0, iv)
         # codomain
         if codomain is None:
             codomain = (
@@ -593,7 +596,6 @@ class _TrigonometricDiscreteSignal(DiscreteSignal):
         romega = self.reduced_frequency() + 2 * sp.S.Pi * interval
         rphi = self.reduced_phase()
         # pylint: disable-msg=no-value-for-parameter
-        return self.__class__(self.A, romega, rphi, self.iv)
         # pylint: enable-msg=no-value-for-parameter
 
 
