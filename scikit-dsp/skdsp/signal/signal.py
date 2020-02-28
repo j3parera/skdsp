@@ -115,7 +115,7 @@ class Signal(sp.Basic):
                 return amp.period
         # 2.- amplitude has its own method (trig functions...)
         # ... but it doesn't work with cos(x-pi) because it evaluates to -cos(x)
-        # ... and then amp becomes Add
+        # ... and then amp becomes Mul
         try:
             period = amp.period(iv)
             if period is not None:
