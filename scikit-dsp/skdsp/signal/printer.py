@@ -22,16 +22,17 @@ class SignalLatexPrinter(LatexPrinter):
 
     def rule_iv_in_frac(self, ltx, iv):
         # extract iv from frac
-        pat = r"(.*?)?(\\frac{)(.*)(" + "{0}".format(iv.name) + ")(}{.+?})(.*)?"
-        fr = re.compile(pat)
-        m = fr.match(ltx)
-        if m is not None:
-            s = (
-                "".join(m.group(1, 2))
-                + ("1" if m.group(3) == "" else m.group(3))
-                + "".join(m.group(5, 4, 6))
-            )
-            return s
+        if iv is not None:
+            pat = r"(.*?)?(\\frac{)(.*)(" + "{0}".format(iv.name) + ")(}{.+?})(.*)?"
+            fr = re.compile(pat)
+            m = fr.match(ltx)
+            if m is not None:
+                s = (
+                    "".join(m.group(1, 2))
+                    + ("1" if m.group(3) == "" else m.group(3))
+                    + "".join(m.group(5, 4, 6))
+                )
+                return s
         return ltx
 
     def rule_j_in_frac(self, ltx, iv):
@@ -52,7 +53,7 @@ class SignalLatexPrinter(LatexPrinter):
         return ltx
 
 
-def latex(expr, iv):
+def latex(expr, iv=None):
     printer = SignalLatexPrinter(
         settings={
             'imaginary_unit': 'rj',
