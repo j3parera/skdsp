@@ -2,7 +2,7 @@ import sympy as sp
 from skdsp.signal.util import as_coeff_polar
 
 
-class Test_Complex2Polar(object):
+class Test_AsCoeffPolar(object):
     def test_rectangular(self):
         z = 3 + 3*sp.I
         (rr, oo) = as_coeff_polar(z)
