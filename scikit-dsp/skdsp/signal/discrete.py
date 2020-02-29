@@ -19,7 +19,7 @@ def filter(B, A, x, ci=None):
     B = B + [0] * (mm - len(B))
     B = sp.S(B)
     A = A + [0] * (mm - len(A))
-    A = sp.S([a / A[0] for a in A])
+    A = [sp.S(a) / sp.S(A[0]) for a in A]
     M = sp.S(ci) if ci is not None else sp.S([0] * (mm - 1))
     Y = sp.S([0] * len(x))
     x = sp.S(x)
@@ -214,7 +214,7 @@ class DiscreteSignal(Signal):
         **kwargs
     ):
         n = np.array(span)
-        v = [float(x.evalf(2)) for x in self[span]]
+        v = [float(x) for x in self[span]]
         pre = kwargs.get("pretitle", None)
         if pre is not None:
             title = pre + " " + r"${0}$".format(self.latex())

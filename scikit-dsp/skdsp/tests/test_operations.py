@@ -249,9 +249,9 @@ class Test_Discrete_Arithmetic(object):
             s = complex(2, 2) / ds.Delta()
 
     def test_Discrete_pow(self):
-        N = sp.Symbol('N', integer=True, nonnegative=True)
-        M = sp.Symbol('M', integer=True)
-        r = sp.Symbol('r')
+        N = sp.Symbol("N", integer=True, nonnegative=True)
+        M = sp.Symbol("M", integer=True)
+        r = sp.Symbol("r")
 
         s = ds.Delta() ** 2
         assert s == ds.Delta()
@@ -285,7 +285,6 @@ class Test_Discrete_Arithmetic(object):
 
         with pytest.raises(ValueError):
             ds.Delta() ** sp.sqrt(2)
-
 
     def test_Discrete_abs(self):
         s = ds.Sinusoid(2, sp.S.Pi / 4)
@@ -506,7 +505,9 @@ class Test_KK(object):
         assert isinstance(ya, ds.Exponential)
 
     def test_KK_3(self):
-        y3 = ds.Exponential(sp.exp(sp.I*sp.S.Pi/4), 1.1*sp.exp(sp.I*sp.S.Pi/11))
+        y3 = ds.Exponential(
+            sp.exp(sp.I * sp.S.Pi / 4), 1.1 * sp.exp(sp.I * sp.S.Pi / 11)
+        )
         G = y3.phasor
         z0 = y3.alpha
         x = G * ds.Delta()
@@ -514,3 +515,34 @@ class Test_KK(object):
         B = [1, 0]
         A = [1, -z0]
         y3f = ds.Data(ds.filter(B, A, x(span)), iv=ds.n)
+
+    def test_KK_4(self):
+        from sympy import Function, dsolve, pprint, exp, cos, KroneckerDelta
+        from sympy.abc import x
+
+        f = Function("f")
+        ode = f(x).diff(x, 2) + 2 * f(x).diff(x) + f(x)
+        sol = dsolve(ode, f(x), hint='nth_linear_constant_coeff_homogeneous')
+        assert sol is not None
+
+    def test_KK_5(self):
+        x = sp.S(3)/10*ds.Delta() + sp.S(6)/10*ds.Delta().shift(1) + sp.S(3)/10*ds.Delta().shift(2)
+        y = [0, 0]
+        for k in range(0, 128):
+            y.append(-sp.S(9)/10*y[k-2+2] + x(k))
+        assert y is not None
+
+        B = [sp.S(3) / 10, sp.S(6) / 10, sp.S(3) / 10]
+        A = [1, 0, sp.S(9) / 10]
+        Y = ds.filter(B, A, ds.Delta()(range(0, 129)))
+        assert Y is not None
+
+        x = ds.Delta()
+        xv = x[-2:51]
+        yv = [0, 0]
+        span = range(0, 50)
+        for m in span:
+            v = -A[2]*yv[m] + B[0]*xv[m+2] + B[1]*xv[m+1] + B[2]*xv[m]
+            yv.append(v)
+        from skdsp.signal.util import ipystem
+        ipystem(span, np.array([float(y) for y in yv[2:]]), title=r'$h[n]$');
