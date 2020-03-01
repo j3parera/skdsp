@@ -1,5 +1,5 @@
 import sympy as sp
-from skdsp.signal.util import as_coeff_polar
+from skdsp.util.util import as_coeff_polar
 
 
 class Test_AsCoeffPolar(object):

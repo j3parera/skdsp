@@ -4,7 +4,7 @@ import sympy as sp
 
 import skdsp.signal.discrete as ds
 from skdsp.signal.functions import UnitDelta, UnitStep, UnitRamp, UnitDeltaTrain
-from skdsp.signal.util import stem
+from skdsp.util.util import stem
 
 
 class Test_Discrete_Arithmetic(object):
@@ -544,5 +544,14 @@ class Test_KK(object):
         for m in span:
             v = -A[2]*yv[m] + B[0]*xv[m+2] + B[1]*xv[m+1] + B[2]*xv[m]
             yv.append(v)
-        from skdsp.signal.util import ipystem
+        from skdsp.util.util import ipystem
         ipystem(span, np.array([float(y) for y in yv[2:]]), title=r'$h[n]$');
+
+    def test_KK_6(self):
+        y = sp.Function('y')
+        f = y(ds.n) - sp.S(1)/8 * sp.cos(sp.S.Pi/16) * y(ds.n-1) + sp.S(81)/100 * y(ds.n-2)
+        try:
+            sol = sp.rsolve(f, y(ds.n))
+        except ValueError as e:
+            sol = e
+        assert sol is not None

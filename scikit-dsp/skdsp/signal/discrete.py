@@ -5,7 +5,7 @@ import sympy as sp
 
 from skdsp.signal.functions import UnitDelta, UnitDeltaTrain, UnitRamp, UnitStep
 from skdsp.signal.signal import Signal
-from skdsp.signal.util import as_coeff_polar, ipystem
+from skdsp.util.util import as_coeff_polar, ipystem
 
 __all__ = [s for s in dir() if not s.startswith("_")]
 
@@ -666,7 +666,7 @@ class Sinusoid(_TrigonometricDiscreteSignal):
 
 class Exponential(_TrigonometricDiscreteSignal):
 
-    is_real = True
+    # TODO Trigonometric? Quizás derivar ComplexExponential que sí
 
     def __new__(cls, C=1, alpha=None, iv=None):
         if alpha is None:

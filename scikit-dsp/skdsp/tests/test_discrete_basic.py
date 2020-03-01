@@ -4,7 +4,7 @@ import sympy as sp
 
 import skdsp.signal.discrete as ds
 from skdsp.signal.functions import UnitDelta, UnitStep, UnitRamp, UnitDeltaTrain
-from skdsp.signal.util import stem
+from skdsp.util.util import stem
 
 
 class Test_Constant(object):
