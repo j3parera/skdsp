@@ -113,6 +113,7 @@ class Signal(sp.Basic):
         if isinstance(amp, AppliedUndef):
             if hasattr(amp, "period"):
                 return amp.period
+            return None
         # 2.- amplitude has its own method (trig functions...)
         # ... but it doesn't work with cos(x-pi) because it evaluates to -cos(x)
         # ... and then amp becomes Mul
