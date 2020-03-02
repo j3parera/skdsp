@@ -555,3 +555,12 @@ class Test_KK(object):
         except ValueError as e:
             sol = e
         assert sol is not None
+
+    def test_KK_7(self):
+        N, M = sp.symbols('N M', integer=True, nonnegative=True)
+        k, n = sp.symbols('k n', integer=True)
+        x = sp.Function('x')
+        y = sp.Function('y')
+        e = y(n) - sp.Sum(x(n - k), (k, 0, M)).doit() + sp.Sum(y(n - k), (k, 1, N)).doit()
+        sol = sp.solve(e, y(n))
+        assert sol is not None
