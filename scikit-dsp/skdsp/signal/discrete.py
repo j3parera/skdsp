@@ -314,12 +314,21 @@ class DiscreteSignal(Signal):
 
 class Undefined(DiscreteSignal):
 
-    def __new__(cls, name, iv=None, codomain=sp.S.Reals):
+    def __new__(cls, name, iv=None, period=None, duration=None, codomain=sp.S.Reals):
         iv = sp.sympify(iv) if iv is not None else n
         if not isinstance(name, str):
             raise ValueError("Name must be a string.")
+        undef = sp.Function(name, nargs=1)(iv)
+        if period is not None:
+            undef.period = period
+        elif hasattr(undef, 'period'):
+            del undef.period
+        if duration is not None:
+            undef.duration = duration
+        elif hasattr(undef, 'duration'):
+            del undef.duration
         # pylint: disable-msg=too-many-function-args
-        return Signal.__new__(cls, sp.Function(name)(iv), iv, None, sp.S.Integers, codomain)
+        return Signal.__new__(cls, undef, iv, None, sp.S.Integers, codomain)
         # pylint: enable-msg=too-many-function-args
 
 

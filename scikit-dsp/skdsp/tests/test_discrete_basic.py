@@ -1760,78 +1760,70 @@ class Test_Undefined(object):
         d = ds.Undefined("x", codomain=sp.S.Complexes)
         assert d is not None
 
+        d = ds.Undefined("x", period=10)
+        assert d is not None
+
+        d = ds.Undefined("y", ds.m, period=10)
+        assert d is not None
+
+        d = ds.Undefined("z", sp.Symbol("r", integer=True), period=10)
+        assert d is not None
+
+        d = ds.Undefined("x", duration=10, codomain=sp.S.Complexes)
+        assert d is not None
+
+        d = ds.Undefined("x", duration=10)
+        assert d is not None
+
+        d = ds.Undefined("y", ds.m, duration=10)
+        assert d is not None
+
+        d = ds.Undefined("z", sp.Symbol("r", integer=True), duration=10)
+        assert d is not None
+
+        d = ds.Undefined("x", duration=10, codomain=sp.S.Complexes)
+        assert d is not None
+
         with pytest.raises(ValueError):
             ds.Undefined(ds.n)
 
+        with pytest.raises(ValueError):
+            ds.Undefined("x", ds.n, period=10, duration=100)
+
     def test_Undefined_eval(self):
-        x = sp.Symbol("x")
+        x = sp.Function("x", nargs=1)
         d = ds.Undefined("x")
 
-        assert d[0] == sp.Function("x")(0)
-        assert d[1] == sp.Function("x")(1)
-        assert d[-1] == sp.Function("x")(-1)
+        assert d[0] == x(0)
+        assert d[1] == x(1)
+        assert d[-1] == x(-1)
         with pytest.raises(ValueError):
             d[0.5]
         with pytest.raises(ValueError):
             d.eval(0.5)
 
-        assert d[0:2] == [sp.Function("x")(0), sp.Function("x")(1)]
-        assert d[-1:2] == [
-            sp.Function("x")(-1),
-            sp.Function("x")(0),
-            sp.Function("x")(1),
-        ]
-        assert d[-4:1:2] == [
-            sp.Function("x")(-4),
-            sp.Function("x")(-2),
-            sp.Function("x")(0),
-        ]
-        assert d[3:-2:-2] == [
-            sp.Function("x")(3),
-            sp.Function("x")(1),
-            sp.Function("x")(-1),
-        ]
+        assert d[0:2] == [x(0), x(1)]
+        assert d[-1:2] == [x(-1), x(0), x(1)]
+        assert d[-4:1:2] == [x(-4), x(-2), x(0)]
+        assert d[3:-2:-2] == [x(3), x(1), x(-1)]
         with pytest.raises(ValueError):
             d[0:2:0.5]
 
-        assert d.eval(range(0, 2)) == [sp.Function("x")(0), sp.Function("x")(1)]
-        assert d.eval(sp.Range(0, 2)) == [sp.Function("x")(0), sp.Function("x")(1)]
-        assert d.eval(range(-1, 2)) == [
-            sp.Function("x")(-1),
-            sp.Function("x")(0),
-            sp.Function("x")(1),
-        ]
-        assert d.eval(sp.Range(-1, 2)) == [
-            sp.Function("x")(-1),
-            sp.Function("x")(0),
-            sp.Function("x")(1),
-        ]
-        assert d.eval(range(-4, 1, 2)) == [
-            sp.Function("x")(-4),
-            sp.Function("x")(-2),
-            sp.Function("x")(0),
-        ]
-        assert d.eval(sp.Range(-4, 1, 2)) == [
-            sp.Function("x")(-4),
-            sp.Function("x")(-2),
-            sp.Function("x")(0),
-        ]
-        assert d.eval(range(3, -2, -2)) == [
-            sp.Function("x")(3),
-            sp.Function("x")(1),
-            sp.Function("x")(-1),
-        ]
-        assert d.eval(sp.Range(3, -2, -2)) == [
-            sp.Function("x")(3),
-            sp.Function("x")(1),
-            sp.Function("x")(-1),
-        ]
+        assert d.eval(range(0, 2)) == [x(0), x(1)]
+        assert d.eval(sp.Range(0, 2)) == [x(0), x(1)]
+        assert d.eval(range(-1, 2)) == [x(-1), x(0), x(1)]
+        assert d.eval(sp.Range(-1, 2)) == [x(-1), x(0), x(1)]
+        assert d.eval(range(-4, 1, 2)) == [x(-4), x(-2), x(0)]
+        assert d.eval(sp.Range(-4, 1, 2)) == [x(-4), x(-2), x(0)]
+        assert d.eval(range(3, -2, -2)) == [x(3), x(1), x(-1)]
+        assert d.eval(sp.Range(3, -2, -2)) == [x(3), x(1), x(-1)]
 
         with pytest.raises(ValueError):
             d.eval(np.arange(0, 2, 0.5))
 
     def test_Undefined_iv(self):
         d = ds.Undefined("x")
+        x = sp.Function("x", nargs=1)
         assert d.is_discrete == True
         assert d.is_continuous == False
         assert d.iv == ds.n
@@ -1839,67 +1831,50 @@ class Test_Undefined(object):
         shift = 5
         d = ds.Undefined("x").shift(shift)
         assert d.iv == ds.n
-        assert d[0] == sp.Function("x")(-5)
-        assert d[shift] == sp.Function("x")(0)
+        assert d[0] == x(-5)
+        assert d[shift] == x(0)
         d = ds.Undefined("x", ds.n).shift(ds.k)
         assert d.iv == ds.n
-        assert d([0, 1, 2], 1) == [
-            sp.Function("x")(-1),
-            sp.Function("x")(0),
-            sp.Function("x")(1),
-        ]
+        assert d([0, 1, 2], 1) == [x(-1), x(0), x(1)]
         # flip
         d = ds.Undefined("x").flip()
         assert d.iv == ds.n
-        assert d[0] == sp.Function("x")(0)
+        assert d[0] == x(0)
         # shift and flip
         shift = 5
         d = ds.Undefined("x").shift(shift).flip()
-        assert d[-shift] == sp.Function("x")(0)
-        assert d[shift] == sp.Function("x")(-10)
+        assert d[-shift] == x(0)
+        assert d[shift] == x(-10)
         # flip and shift
         shift = 5
         d = ds.Undefined("x").flip().shift(shift)
-        assert d[-shift] == sp.Function("x")(10)
-        assert d[shift] == sp.Function("x")(0)
+        assert d[-shift] == x(10)
+        assert d[shift] == x(0)
 
     def test_Undefined_generator(self):
         d = ds.Undefined("x")
+        x = sp.Function("x", nargs=1)
         with pytest.raises(ValueError):
             dg = d.generate(0, step=0.1)
             next(dg)
 
         dg = d.generate(start=-3, size=5, overlap=3)
-        assert next(dg) == [
-            sp.Function("x")(-3),
-            sp.Function("x")(-2),
-            sp.Function("x")(-1),
-            sp.Function("x")(0),
-            sp.Function("x")(1),
-        ]
-        assert next(dg) == [
-            sp.Function("x")(-1),
-            sp.Function("x")(0),
-            sp.Function("x")(1),
-            sp.Function("x")(2),
-            sp.Function("x")(3),
-        ]
-        assert next(dg) == [
-            sp.Function("x")(1),
-            sp.Function("x")(2),
-            sp.Function("x")(3),
-            sp.Function("x")(4),
-            sp.Function("x")(5),
-        ]
+        assert next(dg) == [x(-3), x(-2), x(-1), x(0), x(1)]
+        assert next(dg) == [x(-1), x(0), x(1), x(2), x(3)]
+        assert next(dg) == [x(1), x(2), x(3), x(4), x(5)]
 
     def test_Undefined_misc(self):
-
-        d = ds.Undefined('x')
-        assert d.amplitude == sp.Function("x")(ds.n)
-        assert d.real_part == sp.re(sp.Function("x")(ds.n))
-        assert d.real == ds.DiscreteSignal(sp.re(sp.Function("x")(ds.n)), ds.n, None, sp.S.Integers, sp.S.Reals)
-        assert d.imag_part == sp.im(sp.Function("x")(ds.n))
-        assert d.imag == ds.DiscreteSignal(sp.im(sp.Function("x")(ds.n)), ds.n, None, sp.S.Integers, sp.S.Reals)
+        d = ds.Undefined("x")
+        x = sp.Function("x", nargs=1)
+        assert d.amplitude == x(ds.n)
+        assert d.real_part == sp.re(x(ds.n))
+        assert d.real == ds.DiscreteSignal(
+            sp.re(x(ds.n)), ds.n, None, sp.S.Integers, sp.S.Reals
+        )
+        assert d.imag_part == sp.im(x(ds.n))
+        assert d.imag == ds.DiscreteSignal(
+            sp.im(x(ds.n)), ds.n, None, sp.S.Integers, sp.S.Reals
+        )
         assert d.is_periodic == False
         assert d.period == None
         assert d.support == sp.S.Integers
