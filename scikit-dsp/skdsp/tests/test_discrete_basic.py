@@ -273,7 +273,7 @@ class Test_Delta(object):
         assert d.imag == ds.Constant(0)
         assert d.is_periodic == False
         assert d.period == None
-        assert d.support == sp.Range(0, 0)
+        assert d.support == sp.Range(0, 1)
         assert d.duration == 1
 
         N = sp.Symbol("N", integer=True, positive=True)
@@ -1048,7 +1048,7 @@ class Test_Data(object):
         assert s.duration == None
 
         s = ds.Data([1, 2, 3], start=10, periodic=False, iv=ds.n)
-        assert s.support == sp.Range(10, 12)
+        assert s.support == sp.Range(10, 13)
         assert s.duration == 13
 
         s = ds.Data([1, 2, 3], periodic=True, iv=ds.n)
@@ -1879,6 +1879,36 @@ class Test_Undefined(object):
         assert d.period == None
         assert d.support == sp.S.Integers
         assert d.duration == None
+
+        d = ds.Undefined("x", period=10)
+        assert d.amplitude == x(ds.n)
+        assert d.real_part == sp.re(x(ds.n))
+        assert d.real == ds.DiscreteSignal(
+            sp.re(x(ds.n)), ds.n, None, sp.S.Integers, sp.S.Reals
+        )
+        assert d.imag_part == sp.im(x(ds.n))
+        assert d.imag == ds.DiscreteSignal(
+            sp.im(x(ds.n)), ds.n, None, sp.S.Integers, sp.S.Reals
+        )
+        assert d.is_periodic == True
+        assert d.period == 10
+        assert d.support == sp.S.Integers
+        assert d.duration == None
+
+        d = ds.Undefined("x", duration=10)
+        assert d.amplitude == x(ds.n)
+        assert d.real_part == sp.re(x(ds.n))
+        assert d.real == ds.DiscreteSignal(
+            sp.re(x(ds.n)), ds.n, None, sp.S.Integers, sp.S.Reals
+        )
+        assert d.imag_part == sp.im(x(ds.n))
+        assert d.imag == ds.DiscreteSignal(
+            sp.im(x(ds.n)), ds.n, None, sp.S.Integers, sp.S.Reals
+        )
+        assert d.is_periodic == False
+        assert d.period == None
+        assert d.support == sp.Range(0, 10)
+        assert d.duration == 10
 
         f = sp.lambdify(d.iv, d.amplitude)
         with pytest.raises(NameError):

@@ -390,7 +390,7 @@ class Delta(DiscreteSignal):
 
     @property
     def support(self):
-        return sp.Range(0, 0)
+        return sp.Range(0, 1)
 
     def __repr__(self):
         return "Delta({0})".format(str(self))

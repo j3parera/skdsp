@@ -267,7 +267,7 @@ class Signal(sp.Basic):
         if isinstance(expr, AppliedUndef):
             if hasattr(expr, "duration"):
                 if self.is_discrete:
-                    supp = sp.Range(0, expr.duration - 1)
+                    supp = sp.Range(0, expr.duration)
                 else:
                     supp = sp.Interval(0, expr.duration)
             else:
@@ -282,7 +282,7 @@ class Signal(sp.Basic):
             else:
                 supp = sp.solveset(expr, self.iv, sp.S.Reals).complement(sp.S.Reals)
             # always discrete
-            supp = sp.Range(supp.inf, supp.sup)
+            supp = sp.Range(supp.inf, supp.sup + 1)
         # 3.- otherwise
         else:
             supp = continuous_domain(expr, self.iv, sp.S.Reals)
@@ -290,7 +290,7 @@ class Signal(sp.Basic):
                 supp = self.domain
             else:
                 if self.is_discrete:
-                    supp = sp.Range(supp.inf, supp.sup)
+                    supp = sp.Range(supp.inf, supp.sup + 1)
         return supp
 
     @property
@@ -299,7 +299,7 @@ class Signal(sp.Basic):
         duration = None
         if isinstance(supp, sp.Range):
             if supp.start >= 0:
-                duration = supp.stop + 1
+                duration = supp.stop
         elif isinstance(supp, sp.Interval):
             if supp.inf == 0:
                 duration = supp.sup

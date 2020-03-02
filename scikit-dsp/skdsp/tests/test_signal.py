@@ -935,7 +935,7 @@ class Test_Signal(object):
         assert s.duration == T
 
         s = Signal(sp.Function("r", duration=N)(n))
-        assert s.support == sp.Range(0, N - 1)
+        assert s.support == sp.Range(0, N)
         assert s.duration == N
 
         s = Signal(sp.Function("w", period=T)(t))
