@@ -504,6 +504,10 @@ class Test_KK(object):
         ya = y1.subs({a: 0.9})
         assert isinstance(ya, ds.Exponential)
 
+        y1 = a * y0.shift(1)
+        ya = y1.subs({ds.n: sp.Symbol('m')})
+        assert isinstance(ya, ds.Exponential)
+
     def test_KK_3(self):
         y3 = ds.Exponential(
             sp.exp(sp.I * sp.S.Pi / 4), 1.1 * sp.exp(sp.I * sp.S.Pi / 11)

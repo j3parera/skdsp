@@ -11,9 +11,6 @@ from sympy.utilities.iterables import flatten, is_sequence, iterable
 
 from skdsp.signal.functions import UnitDelta
 
-z = sp.Symbol("z", complex=True)
-omega = sp.Symbol("omega", real=True)
-
 
 class Signal(sp.Basic):
 
@@ -201,12 +198,13 @@ class Signal(sp.Basic):
 
     def latex(self, **settings):
         from skdsp.signal.printer import SignalLatexPrinter
+
         printer = SignalLatexPrinter(
             settings={
-                'imaginary_unit': 'rj',
-                'fold_frac_powers': True,
-                'order': 'lex',
-                'gothic_re_im': True,
+                "imaginary_unit": "rj",
+                "fold_frac_powers": True,
+                "order": "lex",
+                "gothic_re_im": True,
             }
         )
         return printer.print_signal(self)
@@ -396,8 +394,18 @@ class Signal(sp.Basic):
 
     def subs(self, *args, **kwargs):
         # TODO tests
+        if self.iv in args or isinstance(args[0], dict) and self.iv in args[0].keys():
+            raise ValueError("Use 'subs_iv' to change the independent variable.")
         amp = self.amplitude.subs(*args, **kwargs)
         return self.clone(self.__class__, amp)
+
+    def subs_iv(self, newiv):
+        if (self.is_discrete and not newiv.is_integer) or (
+            self.is_continuous and newiv.is_integer
+        ):
+            raise ValueError("The new iv is not compatible.")
+        amp = self.amplitude.subs({self.iv: newiv})
+        return self.clone(self.__class__, amp, iv=newiv)
 
     def eval(self, xvals, params={}):
         if not isinstance(params, dict):

@@ -222,6 +222,30 @@ class Test_Signal(object):
         s = Signal(5 * n * t, n)
         assert s.iv == n
 
+        x = sp.Function('x', integer=True)
+        s = Signal(x(n))
+        m = sp.Symbol('m', integer=True)
+        s = s.subs_iv(m)
+        assert s.iv == m
+
+        x = sp.Function('x', real=True)
+        s = Signal(x(t))
+        r = sp.Symbol('r', real=True)
+        s = s.subs_iv(r)
+        assert s.iv == r
+
+        x = sp.Function('x', real=True)
+        s = Signal(x(t))
+        m = sp.Symbol('m', integer=True)
+        with pytest.raises(ValueError):
+            s.subs_iv(m)
+
+        x = sp.Function('x', integer=True)
+        s = Signal(x(n))
+        r = sp.Symbol('r', real=True)
+        with pytest.raises(ValueError):
+            s.subs_iv(r)
+
     def test_Signal_domain(self):
         n = sp.Symbol("n", integer=True)
         t = sp.Symbol("t", real=True)
