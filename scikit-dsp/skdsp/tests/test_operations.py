@@ -549,7 +549,8 @@ class Test_KK(object):
 
     def test_KK_6(self):
         y = sp.Function('y')
-        f = y(ds.n) - sp.S(1)/8 * sp.cos(sp.S.Pi/16) * y(ds.n-1) + sp.S(81)/100 * y(ds.n-2)
+        x = sp.Function('x')
+        f = y(ds.n) - sp.S(1)/8 * sp.cos(sp.S.Pi/4) * y(ds.n-1) + sp.S(81)/100 * y(ds.n-2)
         try:
             sol = sp.rsolve(f, y(ds.n))
         except ValueError as e:
@@ -561,6 +562,11 @@ class Test_KK(object):
         k, n = sp.symbols('k n', integer=True)
         x = sp.Function('x')
         y = sp.Function('y')
+        
+        sol = sp.solve(y(n) - x(n - 1), y(n))
+        sol = sp.solve(sol, x(n))
+        
         e = y(n) - sp.Sum(x(n - k), (k, 0, M)).doit() + sp.Sum(y(n - k), (k, 1, N)).doit()
         sol = sp.solve(e, y(n))
         assert sol is not None
+        
