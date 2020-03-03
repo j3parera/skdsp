@@ -328,4 +328,59 @@ class Test_System(object):
         assert S.is_shift_variant
 
     def test_System_linearity(self):
-        pass
+        n = sp.Symbol("n", integer=True)
+        t = sp.Symbol("t", real=True)
+        k = sp.Symbol("k", integer=True)
+        tau = sp.Symbol("tau", real=True)
+        x = sp.Function("x", real=True)
+        y = sp.Function("y", real=True)
+        h = sp.Function("h", real=True)
+        g = sp.Function("g", real=True)
+
+        T = sp.Eq(y(n), x(n-1))
+        S = System(T, x(n), y(n))
+        assert S.is_linear
+
+        T = y(n) - g(n)*x(n)
+        S = System(T, x(n), y(n))
+        assert S.is_linear
+
+        T = y(n) - x(n)**2
+        S = System(T, x(n), y(n))
+        assert not S.is_linear
+
+        T = y(n) - n*x(n)
+        S = System(T, x(n), y(n))
+        assert S.is_linear
+
+        T = y(n) - x(-n)
+        S = System(T, x(n), y(n))
+        assert S.is_linear
+
+        T = y(n) - sp.sqrt(x(n))
+        S = System(T, x(n), y(n))
+        assert not S.is_linear
+
+        T = sp.Eq(y(t), x(t-1))
+        S = System(T, x(t), y(t))
+        assert S.is_linear
+
+        T = y(t) - g(t)*x(t)
+        S = System(T, x(t), y(t))
+        assert S.is_linear
+
+        T = y(t) - x(t)**2
+        S = System(T, x(t), y(t))
+        assert not S.is_linear
+
+        T = y(t) - t*x(t)
+        S = System(T, x(t), y(t))
+        assert S.is_linear
+
+        T = y(t) - x(-t)
+        S = System(T, x(t), y(t))
+        assert S.is_linear
+
+        T = y(t) - sp.sqrt(x(t))
+        S = System(T, x(t), y(t))
+        assert not S.is_linear

@@ -64,10 +64,10 @@ class System(sp.Basic):
     @property
     def is_time_invariant(self):
         k = sp.Symbol('k', integer=True, nonnegative=True)
-        sx = Signal(self.input_)
-        sy1 = self.apply(sx).shift(k)
-        sy2 = self.apply(sx.shift(k))
-        d = sp.simplify((sy1 - sy2).amplitude)
+        x = Signal(self.input_)
+        y1 = self.apply(x).shift(k)
+        y2 = self.apply(x.shift(k))
+        d = sp.simplify((y1 - y2).amplitude)
         return d == sp.S.Zero
 
     is_shift_invariant = is_time_invariant
@@ -80,7 +80,13 @@ class System(sp.Basic):
 
     @property
     def is_linear(self):
-        raise NotImplementedError
+        a, b = sp.symbols('a, b')
+        x1 = Signal(sp.Function('x1')(self.input_.args[0]))
+        x2 = Signal(sp.Function('x2')(self.input_.args[0]))
+        y1 = self.apply(a * x1 + b * x2)
+        y2 = a * self.apply(x1) + b * self.apply(x2)
+        d = sp.simplify((y1 - y2).amplitude)
+        return d == sp.S.Zero
     
     @property
     def is_lti(self):
