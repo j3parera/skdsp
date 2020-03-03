@@ -45,9 +45,10 @@ class System(sp.Basic):
         syms = [self.input.args[0]]
         if self.is_hybrid:
             syms.append(self.output.args[0])
-        for arg in sp.preorder_traversal(self.mapping):
+        fcns = self.atoms(sp.Function)
+        for fcn in fcns:
             for sym in syms:
-                m = arg.match(sym - delay)
+                m = fcn.args[0].match(sym - delay)
                 if m is not None:
                     d = m.get(delay)
                     if d != sp.S.Zero and d.is_constant(sym):

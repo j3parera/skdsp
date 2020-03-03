@@ -150,7 +150,7 @@ class Test_System(object):
         x = sp.Function('x', real=True)
         y = sp.Function('y', real=True)
 
-        T = sp.Eq(y(n), x(n))
+        T = sp.Eq(y(n), 3*x(n))
         S = System(T, x(n), y(n))
         assert S.is_memoryless
         assert S.is_static
