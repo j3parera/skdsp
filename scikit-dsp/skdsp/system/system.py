@@ -20,11 +20,11 @@ class System(sp.Basic):
         return obj
 
     @property
-    def input(self):
+    def input_(self):
         return self.args[0]
 
     @property
-    def output(self):
+    def output_(self):
         return self.args[1]
 
     @property
@@ -42,9 +42,9 @@ class System(sp.Basic):
     @property
     def is_memoryless(self):
         delay = sp.Wild('delay', integer=True)
-        syms = [self.input.args[0]]
+        syms = [self.input_.args[0]]
         if self.is_hybrid:
-            syms.append(self.output.args[0])
+            syms.append(self.output_.args[0])
         fcns = self.atoms(sp.Function)
         for fcn in fcns:
             for sym in syms:
@@ -63,13 +63,18 @@ class System(sp.Basic):
 
     @property
     def is_time_invariant(self):
-        raise NotImplementedError
+        k = sp.Symbol('k', integer=True, nonnegative=True)
+        sx = Signal(self.input_)
+        sy1 = self.apply(sx).shift(k)
+        sy2 = self.apply(sx.shift(k))
+        d = sp.simplify((sy1 - sy2).amplitude)
+        return d == sp.S.Zero
 
     is_shift_invariant = is_time_invariant
 
     @property
     def is_time_variant(self):
-        raise NotImplementedError
+        return not self.is_time_invariant
 
     is_shift_variant = is_time_variant
 
@@ -140,8 +145,8 @@ class System(sp.Basic):
             elif isinstance(expr, sp.Pow):
                 return _apply(expr.base, ins) ** expr.exp
             elif isinstance(expr, sp.Function):
-                if expr.func == self.input.func:
-                    newarg = expr.args[0].subs({self.input.args[0]: ins.iv})
+                if expr.func == self.input_.func:
+                    newarg = expr.args[0].subs({self.input_.args[0]: ins.iv})
                     e = ins.amplitude.subs({ins.iv: newarg})
                     return e
                 return expr
@@ -149,9 +154,8 @@ class System(sp.Basic):
                 return expr
 
         res = _apply(T, ins)
-        result = ins.clone(None, res)
-        return result
-        
+        result = ins.clone(None, res, period=None)
+        return result       
 
     eval = apply
 
