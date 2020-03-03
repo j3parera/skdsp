@@ -55,7 +55,7 @@ class Test_System(object):
         S = System(y(n) - x(t - tau) + x(t - 2) - y(n - 1) ** 2, x(t), y(n))
         assert S is not None
 
-    def test_System_classify_discrete_or_continuous(self):
+    def test_System_discreteness(self):
         n = sp.Symbol("n", integer=True)
         k = sp.Symbol("k", integer=True)
         t = sp.Symbol("t", real=True)
@@ -141,7 +141,65 @@ class Test_System(object):
         assert S.is_output_discrete
         assert not S.is_output_continuous
 
-    def test_System_classify_memory(self):
+    def test_System_apply(self):
+        n = sp.Symbol("n", integer=True)
+        k = sp.Symbol("k", integer=True)
+        t = sp.Symbol("t", real=True)
+        tau = sp.Symbol("tau", real=True)
+        omega = sp.Symbol("omega", real=True)
+        phi = sp.Symbol("phi", real=True)
+
+        x = sp.Function("x", real=True)
+        y = sp.Function("y", real=True)
+        sx = Signal(sp.cos(omega * n + phi), n, codomain=sp.S.Reals)
+
+        T = sp.Eq(y(n), 3 * x(n))
+        S = System(T, x(n), y(n))
+        sy = S.apply(sx)
+        assert isinstance(sy, Signal)
+        assert sy.amplitude == 3 * sp.cos(omega * n + phi)
+        sy2 = S.eval(sx)
+        assert sy == sy2
+        sy2 = S(sx)
+        assert sy == sy2
+
+        T = sp.Eq(y(n), x(n - 1))
+        S = System(T, x(n), y(n))
+        sy = S.apply(sx)
+        assert isinstance(sy, Signal)
+        assert sy.amplitude == sp.cos(omega * (n - 1) + phi)
+        sy2 = S.eval(sx)
+        assert sy == sy2
+        sy2 = S(sx)
+        assert sy == sy2
+
+        T = sp.Eq(y(k), 2 * x(k - 1) ** 3 + 3 * x(k - 2))
+        S = System(T, x(k), y(k))
+        sy = S.apply(sx)
+        assert isinstance(sy, Signal)
+        assert sy.amplitude == 2 * sp.cos(omega * (n - 1) + phi) ** 3 + 3 * sp.cos(
+            omega * (n - 2) + phi
+        )
+        sy2 = S.eval(sx)
+        assert sy == sy2
+        sy2 = S(sx)
+        assert sy == sy2
+
+        T = sp.Eq(y(t), x(t - tau) + x(t - 2) - y(t - 1) ** 2)
+        S = System(T, x(t), y(t))
+        sx = Signal(2 ** t)
+        sy = S.apply(sx)
+        assert isinstance(sy, Signal)
+        assert (
+            sp.simplify(sy.amplitude - (2 ** (t - tau) + 2 ** (t - 2) - y(t - 1) ** 2))
+            == sp.S.Zero
+        )
+        sy2 = S.eval(sx)
+        assert sy == sy2
+        sy2 = S(sx)
+        assert sy == sy2
+
+    def test_System_memory(self):
         n = sp.Symbol("n", integer=True)
         k = sp.Symbol("k", integer=True)
         t = sp.Symbol("t", real=True)
@@ -194,58 +252,17 @@ class Test_System(object):
         assert not S.is_static
         assert S.is_dynamic
 
-    def test_System_apply(self):
-        n = sp.Symbol("n", integer=True)
-        k = sp.Symbol("k", integer=True)
-        t = sp.Symbol("t", real=True)
-        tau = sp.Symbol("tau", real=True)
-        omega = sp.Symbol("omega", real=True)
-        phi = sp.Symbol("phi", real=True)
-
-        x = sp.Function("x", real=True)
-        y = sp.Function("y", real=True)
-        sx = Signal(sp.cos(omega * n + phi), n, codomain=sp.S.Reals)
-
-        T = sp.Eq(y(n), 3 * x(n))
+        T = sp.Eq(y(n), sp.Sum(x(k), (k, sp.S.NegativeInfinity, n)))
         S = System(T, x(n), y(n))
-        sy = S.apply(sx)
-        assert isinstance(sy, Signal)
-        assert sy.amplitude == 3 * sp.cos(omega * n + phi)
-        sy2 = S.eval(sx)
-        assert sy == sy2
-        sy2 = S(sx)
-        assert sy == sy2
+        assert not S.is_memoryless
+        assert not S.is_static
+        assert S.is_dynamic
 
-        T = sp.Eq(y(n), x(n - 1))
+        T = sp.Eq(y(n), sp.Sum(x(k), (k, n, n)))
         S = System(T, x(n), y(n))
-        sy = S.apply(sx)
-        assert isinstance(sy, Signal)
-        assert sy.amplitude == sp.cos(omega * (n - 1) + phi)
-        sy2 = S.eval(sx)
-        assert sy == sy2
-        sy2 = S(sx)
-        assert sy == sy2
-
-        T = sp.Eq(y(k), 2 * x(k - 1)**3 + 3 * x(k - 2))
-        S = System(T, x(k), y(k))
-        sy = S.apply(sx)
-        assert isinstance(sy, Signal)
-        assert sy.amplitude == 2 * sp.cos(omega * (n - 1) + phi)**3 + 3 * sp.cos(omega * (n - 2) + phi)
-        sy2 = S.eval(sx)
-        assert sy == sy2
-        sy2 = S(sx)
-        assert sy == sy2
-
-        T = sp.Eq(y(t), x(t - tau) + x(t - 2) - y(t - 1) ** 2)
-        S = System(T, x(t), y(t))
-        sx = Signal(2**t)
-        sy = S.apply(sx)
-        assert isinstance(sy, Signal)
-        assert sp.simplify(sy.amplitude - (2**(t - tau) + 2**(t - 2) - y(t - 1)**2)) == sp.S.Zero
-        sy2 = S.eval(sx)
-        assert sy == sy2
-        sy2 = S(sx)
-        assert sy == sy2
+        assert S.is_memoryless
+        assert S.is_static
+        assert not S.is_dynamic
 
     def test_System_invariance(self):
         n = sp.Symbol("n", integer=True)
@@ -257,28 +274,28 @@ class Test_System(object):
         h = sp.Function("h", real=True)
         g = sp.Function("g", real=True)
 
-        T = sp.Eq(y(n), x(n-1))
+        T = sp.Eq(y(n), x(n - 1))
         S = System(T, x(n), y(n))
         assert S.is_time_invariant
         assert not S.is_time_variant
         assert S.is_shift_invariant
         assert not S.is_shift_variant
 
-        T = y(n) - g(n)*x(n)
+        T = y(n) - g(n) * x(n)
         S = System(T, x(n), y(n))
         assert not S.is_time_invariant
         assert S.is_time_variant
         assert not S.is_shift_invariant
         assert S.is_shift_variant
 
-        T = y(n) - x(n)**2
+        T = y(n) - x(n) ** 2
         S = System(T, x(n), y(n))
         assert S.is_time_invariant
         assert not S.is_time_variant
         assert S.is_shift_invariant
         assert not S.is_shift_variant
 
-        T = y(n) - n*x(n)
+        T = y(n) - n * x(n)
         S = System(T, x(n), y(n))
         assert not S.is_time_invariant
         assert S.is_time_variant
@@ -292,28 +309,28 @@ class Test_System(object):
         assert not S.is_shift_invariant
         assert S.is_shift_variant
 
-        T = sp.Eq(y(t), x(t-1))
+        T = sp.Eq(y(t), x(t - 1))
         S = System(T, x(t), y(t))
         assert S.is_time_invariant
         assert not S.is_time_variant
         assert S.is_shift_invariant
         assert not S.is_shift_variant
 
-        T = y(t) - g(t)*x(t)
+        T = y(t) - g(t) * x(t)
         S = System(T, x(t), y(t))
         assert not S.is_time_invariant
         assert S.is_time_variant
         assert not S.is_shift_invariant
         assert S.is_shift_variant
 
-        T = y(t) - x(t)**2
+        T = y(t) - x(t) ** 2
         S = System(T, x(t), y(t))
         assert S.is_time_invariant
         assert not S.is_time_variant
         assert S.is_shift_invariant
         assert not S.is_shift_variant
 
-        T = y(t) - t*x(t)
+        T = y(t) - t * x(t)
         S = System(T, x(t), y(t))
         assert not S.is_time_invariant
         assert S.is_time_variant
@@ -326,6 +343,14 @@ class Test_System(object):
         assert S.is_time_variant
         assert not S.is_shift_invariant
         assert S.is_shift_variant
+
+        # TODO Arreglar
+        # T = sp.Eq(y(n), sp.Sum(x(k), (k, sp.S.NegativeInfinity, n)))
+        # S = System(T, x(n), y(n))
+        # assert S.is_time_invariant
+        # assert not S.is_time_variant
+        # assert S.is_shift_invariant
+        # assert not S.is_shift_variant
 
     def test_System_linearity(self):
         n = sp.Symbol("n", integer=True)
@@ -337,19 +362,19 @@ class Test_System(object):
         h = sp.Function("h", real=True)
         g = sp.Function("g", real=True)
 
-        T = sp.Eq(y(n), x(n-1))
+        T = sp.Eq(y(n), x(n - 1))
         S = System(T, x(n), y(n))
         assert S.is_linear
 
-        T = y(n) - g(n)*x(n)
+        T = y(n) - g(n) * x(n)
         S = System(T, x(n), y(n))
         assert S.is_linear
 
-        T = y(n) - x(n)**2
+        T = y(n) - x(n) ** 2
         S = System(T, x(n), y(n))
         assert not S.is_linear
 
-        T = y(n) - n*x(n)
+        T = y(n) - n * x(n)
         S = System(T, x(n), y(n))
         assert S.is_linear
 
@@ -361,19 +386,19 @@ class Test_System(object):
         S = System(T, x(n), y(n))
         assert not S.is_linear
 
-        T = sp.Eq(y(t), x(t-1))
+        T = sp.Eq(y(t), x(t - 1))
         S = System(T, x(t), y(t))
         assert S.is_linear
 
-        T = y(t) - g(t)*x(t)
+        T = y(t) - g(t) * x(t)
         S = System(T, x(t), y(t))
         assert S.is_linear
 
-        T = y(t) - x(t)**2
+        T = y(t) - x(t) ** 2
         S = System(T, x(t), y(t))
         assert not S.is_linear
 
-        T = y(t) - t*x(t)
+        T = y(t) - t * x(t)
         S = System(T, x(t), y(t))
         assert S.is_linear
 
@@ -384,3 +409,58 @@ class Test_System(object):
         T = y(t) - sp.sqrt(x(t))
         S = System(T, x(t), y(t))
         assert not S.is_linear
+
+    def test_System_causality(self):
+        n = sp.Symbol("n", integer=True)
+        t = sp.Symbol("t", real=True)
+        k = sp.Symbol("k", integer=True)
+        tau = sp.Symbol("tau", real=True)
+        x = sp.Function("x", real=True)
+        y = sp.Function("y", real=True)
+        h = sp.Function("h", real=True)
+        g = sp.Function("g", real=True)
+
+        T = sp.Eq(y(n), x(n) - x(n - 1))
+        S = System(T, x(n), y(n))
+        assert S.is_causal
+        assert not S.is_anticausal
+
+        T = sp.Eq(y(n), -10 * x(n))
+        S = System(T, x(n), y(n))
+        assert S.is_causal
+        assert S.is_anticausal
+
+        T = sp.Eq(y(n), y(n - 1) + sp.Sum(x(k), (k, sp.S.NegativeInfinity, n)))
+        S = System(T, x(n), y(n))
+        assert S.is_causal
+        assert not S.is_anticausal
+
+        T = sp.Eq(y(n), y(n + 1) + sp.Sum(x(k), (k, sp.S.NegativeInfinity, n)))
+        S = System(T, x(n), y(n))
+        assert not S.is_causal
+        assert not S.is_anticausal
+
+        T = sp.Eq(y(n), y(n + 1) + sp.Sum(x(k), (k, sp.S.NegativeInfinity, n + 1)))
+        S = System(T, x(n), y(n))
+        assert not S.is_causal
+        assert not S.is_anticausal
+
+        T = sp.Eq(y(n), x(n) + 3 * x(n + 4))
+        S = System(T, x(n), y(n))
+        assert not S.is_causal
+        assert S.is_anticausal
+
+        T = sp.Eq(y(n), x(n ** 2))
+        S = System(T, x(n), y(n))
+        assert not S.is_causal
+        assert not S.is_anticausal
+
+        T = sp.Eq(y(n), x(2 * n))
+        S = System(T, x(n), y(n))
+        assert not S.is_causal
+        assert not S.is_anticausal
+
+        T = sp.Eq(y(n), x(-n))
+        S = System(T, x(n), y(n))
+        assert not S.is_causal
+        assert not S.is_anticausal

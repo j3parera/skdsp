@@ -39,21 +39,61 @@ class System(sp.Basic):
     def codomain(self):
         return self.args[4]
 
+    def _traverse_compare(self, cmpfnc):
+        fnci = self.input_
+        argi = fnci.args[0]
+        fnco = self.output_
+        argo = fnco.args[0]
+        insum = False
+        inlim = False
+        for expr in sp.preorder_traversal(self.mapping):
+            if isinstance(expr, sp.Sum):
+                fcn = expr.function
+                if fcn.func == fnci.func:
+                    arg = argi
+                elif fcn.func == fnco.func:
+                    arg = argo
+                else:
+                    continue
+                limits = expr.limits[0]
+                try:
+                    term = fcn.subs({limits[0]: limits[1]})
+                    cmp = cmpfnc(term.args[0], arg)
+                    if cmp:
+                        return False
+                    term = fcn.subs({limits[0]: limits[2]})
+                    cmp = cmpfnc(term.args[0], arg)
+                    if cmp:
+                        return False
+                except:
+                    return False
+                insum = True
+            elif not insum and isinstance(expr, sp.Function):
+                if expr.func == fnci.func:
+                    arg = argi
+                elif expr.func == fnco.func:
+                    arg = argo
+                else:
+                    continue
+                try:
+                    cmp = cmpfnc(expr.args[0], arg)
+                    if cmp:
+                        return False
+                except:
+                    return False
+            elif insum and not inlim:
+                if expr == limits:
+                    inlim = True
+            elif insum and inlim:
+                if expr == limits[2]:
+                    inlim = False
+                    insum = False
+        return True
+
+    
     @property
     def is_memoryless(self):
-        delay = sp.Wild('delay', integer=True)
-        syms = [self.input_.args[0]]
-        if self.is_hybrid:
-            syms.append(self.output_.args[0])
-        fcns = self.atoms(sp.Function)
-        for fcn in fcns:
-            for sym in syms:
-                m = fcn.args[0].match(sym - delay)
-                if m is not None:
-                    d = m.get(delay)
-                    if d != sp.S.Zero and d.is_constant(sym):
-                        return False
-        return True
+        return self._traverse_compare(sp.Ne)
     
     is_static = is_memoryless
 
@@ -96,7 +136,11 @@ class System(sp.Basic):
 
     @property
     def is_causal(self):
-        raise NotImplementedError
+        return self._traverse_compare(sp.Gt)
+    
+    @property
+    def is_anticausal(self):
+        return self._traverse_compare(sp.Lt)
     
     @property
     def is_stable(self):
