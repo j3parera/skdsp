@@ -1,15 +1,6 @@
 import sympy as sp
 from skdsp.signal.signal import Signal
 
-x = sp.Function('x', real=True)
-y = sp.Function('y', real=True)
-n = sp.Symbol("n", integer=True)
-t = sp.Symbol("t", real=True)
-xd = Signal(x(n))
-yd = Signal(y(n))
-xc = Signal(x(t))
-yc = Signal(y(t))
-
 class System(sp.Basic):
 
     def __new__(cls, T, x, y, domain=sp.S.Integers, codomain=sp.S.Integers):
@@ -50,7 +41,18 @@ class System(sp.Basic):
 
     @property
     def is_memoryless(self):
-        raise NotImplementedError
+        delay = sp.Wild('delay', integer=True)
+        syms = [self.input.args[0]]
+        if self.is_hybrid:
+            syms.append(self.output.args[0])
+        for arg in sp.preorder_traversal(self.mapping):
+            for sym in syms:
+                m = arg.match(sym - delay)
+                if m is not None:
+                    d = m.get(delay)
+                    if d != sp.S.Zero and d.is_constant(sym):
+                        return False
+        return True
     
     is_static = is_memoryless
 
