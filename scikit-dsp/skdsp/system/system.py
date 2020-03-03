@@ -103,10 +103,10 @@ class System(sp.Basic):
 
     @property
     def is_time_invariant(self):
-        k = sp.Symbol('k', integer=True, nonnegative=True)
-        x = Signal(self.input_)
-        y1 = self.apply(x).shift(k)
-        y2 = self.apply(x.shift(k))
+        dummy = sp.Dummy(integer=True, nonnegative=True)
+        x1 = Signal(sp.Function('x1')(self.input_.args[0]))
+        y1 = self.apply(x1).shift(dummy)
+        y2 = self.apply(x1.shift(dummy))
         d = sp.simplify((y1 - y2).amplitude)
         return d == sp.S.Zero
 
@@ -179,7 +179,9 @@ class System(sp.Basic):
             raise ValueError("Parameter values must be in a dictionary.")
         if not isinstance(ins, Signal):
             raise ValueError("Input must be a signal.")
-        T = self.mapping.subs(params)
+        T = self.mapping
+        if params:
+            T = T.subs(params)
 
         def _apply(expr, ins):
             if isinstance(expr, sp.Add):
@@ -200,6 +202,8 @@ class System(sp.Basic):
                     e = ins.amplitude.subs({ins.iv: newarg})
                     return e
                 return expr
+            elif isinstance(expr, sp.Sum):
+                return sp.Sum(_apply(expr.function, ins), expr.limits)
             else:
                 return expr
 

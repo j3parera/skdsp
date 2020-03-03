@@ -106,6 +106,9 @@ class Signal(sp.Basic):
     @staticmethod
     def _periodicity(amp, iv, domain):
         amp = sp.expand_mul(amp)
+        # 0.- Let's suppose that a summation is not periodic
+        if amp.has(sp.Sum):
+            return None
         # 1.- Undef explicitly set
         if isinstance(amp, AppliedUndef):
             if hasattr(amp, "period"):

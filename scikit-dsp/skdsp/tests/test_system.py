@@ -274,6 +274,20 @@ class Test_System(object):
         h = sp.Function("h", real=True)
         g = sp.Function("g", real=True)
 
+        T = sp.Eq(y(n), sp.Sum(x(n - k), (k, 2, 4)))
+        S = System(T, x(n), y(n))
+        assert S.is_time_invariant
+        assert not S.is_time_variant
+        assert S.is_shift_invariant
+        assert not S.is_shift_variant
+
+        T = sp.Eq(y(n), sp.Sum(x(k), (k, sp.S.NegativeInfinity, n)))
+        S = System(T, x(n), y(n))
+        assert not S.is_time_invariant
+        assert S.is_time_variant
+        assert not S.is_shift_invariant
+        assert S.is_shift_variant
+
         T = sp.Eq(y(n), x(n - 1))
         S = System(T, x(n), y(n))
         assert S.is_time_invariant
@@ -343,14 +357,6 @@ class Test_System(object):
         assert S.is_time_variant
         assert not S.is_shift_invariant
         assert S.is_shift_variant
-
-        # TODO Arreglar
-        # T = sp.Eq(y(n), sp.Sum(x(k), (k, sp.S.NegativeInfinity, n)))
-        # S = System(T, x(n), y(n))
-        # assert S.is_time_invariant
-        # assert not S.is_time_variant
-        # assert S.is_shift_invariant
-        # assert not S.is_shift_variant
 
     def test_System_linearity(self):
         n = sp.Symbol("n", integer=True)
