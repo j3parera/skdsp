@@ -164,6 +164,8 @@ class Signal(sp.Basic):
         return obj
 
     def clone(self, cls, amplitude, **kwargs):
+        if cls == None:
+            cls = self._upclass()
         args = {
             "iv": self.iv,
             "period": self.period,
@@ -317,8 +319,7 @@ class Signal(sp.Basic):
 
     @property
     def real(self):
-        cls = self._upclass()
-        return self.clone(cls, self.real_part, period=None, codomain=sp.S.Reals)
+        return self.clone(None, self.real_part, period=None, codomain=sp.S.Reals)
 
     @property
     def imag_part(self):
@@ -329,8 +330,7 @@ class Signal(sp.Basic):
 
     @property
     def imag(self):
-        cls = self._upclass()
-        return self.clone(cls, self.imag_part, period=None, codomain=sp.S.Reals)
+        return self.clone(None, self.imag_part, period=None, codomain=sp.S.Reals)
 
     @property
     def is_even(self):
@@ -373,17 +373,15 @@ class Signal(sp.Basic):
 
     @property
     def abs(self):
-        cls = self._upclass()
-        return self.clone(cls, sp.Abs(self.amplitude), period=None)
+        return self.clone(None, sp.Abs(self.amplitude), period=None)
 
     @property
     def square_abs(self):
-        cls = self._upclass()
-        return self.clone(cls, sp.Abs(self.amplitude) ** 2, period=None)
+        return self.clone(None, sp.Abs(self.amplitude) ** 2, period=None)
 
     @property
     def conjugate(self):
-        cls = self.__class__ if self.imag == 0 else self._upclass()
+        cls = self.__class__ if self.imag == 0 else None
         return self.clone(cls, sp.conjugate(self.amplitude))
 
     def magnitude(self, dB=False):
@@ -591,8 +589,7 @@ class Signal(sp.Basic):
         if other is NotImplemented:
             return other
         amp = self.amplitude + other.amplitude
-        cls = self._upclass()
-        obj = self.clone(cls, amp, period=period, codomain=codomain)
+        obj = self.clone(None, amp, period=period, codomain=codomain)
         return obj
 
     @call_highest_priority("__add__")
@@ -608,8 +605,7 @@ class Signal(sp.Basic):
         if other is NotImplemented:
             return other
         amp = self.amplitude - other.amplitude
-        cls = self._upclass()
-        obj = self.clone(cls, amp, period=period, codomain=codomain)
+        obj = self.clone(None, amp, period=period, codomain=codomain)
         return obj
 
     @call_highest_priority("__sub__")
@@ -630,7 +626,7 @@ class Signal(sp.Basic):
         cls = (
             self.__class__
             if other.amplitude.is_constant(self.iv) and not other.amplitude.is_zero
-            else self._upclass()
+            else None
         )
         obj = self.clone(cls, amp, period=period, codomain=codomain)
         return obj
