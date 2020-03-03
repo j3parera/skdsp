@@ -4,55 +4,55 @@ import pytest
 from skdsp.system.system import System
 from skdsp.signal.signal import Signal
 
-class Test_System(object):
 
+class Test_System(object):
     def test_System_constructor(self):
         n = sp.Symbol("n", integer=True)
         k = sp.Symbol("k", integer=True)
         t = sp.Symbol("t", real=True)
         tau = sp.Symbol("tau", real=True)
 
-        x = sp.Function('x', real=True)
-        y = sp.Function('y', real=True)
+        x = sp.Function("x", real=True)
+        y = sp.Function("y", real=True)
 
-        T = sp.Eq(y(n), x(n-1))
+        T = sp.Eq(y(n), x(n - 1))
         S = System(T, x(n), y(n))
         assert S is not None
 
         with pytest.raises(ValueError):
             System(T, x=y(n), y=x(n))
 
-        S = System(y(n) - x(n-k) + x(n-2) - y(n-1)**2, x(n), y(n))
+        S = System(y(n) - x(n - k) + x(n - 2) - y(n - 1) ** 2, x(n), y(n))
         assert S is not None
 
-        T = sp.Eq(y(t), x(t-1))
+        T = sp.Eq(y(t), x(t - 1))
         S = System(T, x(t), y(t))
         assert S is not None
 
         with pytest.raises(ValueError):
             System(T, x=y(t), y=x(t))
 
-        S = System(y(t) - x(t-tau) + x(t-2) - y(t-1)**2, x(t), y(t))
+        S = System(y(t) - x(t - tau) + x(t - 2) - y(t - 1) ** 2, x(t), y(t))
         assert S is not None
 
-        T = sp.Eq(y(t), x(n-1))
+        T = sp.Eq(y(t), x(n - 1))
         S = System(T, x(n), y(t))
         assert S is not None
 
         with pytest.raises(ValueError):
             System(T, x=y(t), y=x(n))
 
-        S = System(y(t) - x(n-k) + x(n-2) - y(t-1)**2, x(n), y(t))
+        S = System(y(t) - x(n - k) + x(n - 2) - y(t - 1) ** 2, x(n), y(t))
         assert S is not None
 
-        T = sp.Eq(y(n), x(t-1))
+        T = sp.Eq(y(n), x(t - 1))
         S = System(T, x(t), y(n))
         assert S is not None
 
         with pytest.raises(ValueError):
             System(T, x=y(n), y=x(t))
 
-        S = System(y(n) - x(t-tau) + x(t-2) - y(n-1)**2, x(t), y(n))
+        S = System(y(n) - x(t - tau) + x(t - 2) - y(n - 1) ** 2, x(t), y(n))
         assert S is not None
 
     def test_System_classify_discrete_or_continuous(self):
@@ -61,10 +61,10 @@ class Test_System(object):
         t = sp.Symbol("t", real=True)
         tau = sp.Symbol("tau", real=True)
 
-        x = sp.Function('x', real=True)
-        y = sp.Function('y', real=True)
+        x = sp.Function("x", real=True)
+        y = sp.Function("y", real=True)
 
-        T = sp.Eq(y(n), x(n-1))
+        T = sp.Eq(y(n), x(n - 1))
 
         S = System(T, x(n), y(n))
         assert S.is_discrete
@@ -75,7 +75,7 @@ class Test_System(object):
         assert S.is_output_discrete
         assert not S.is_output_continuous
 
-        S = System(y(n) - x(n-k) + x(n-2) - y(n-1)**2, x(n), y(n))
+        S = System(y(n) - x(n - k) + x(n - 2) - y(n - 1) ** 2, x(n), y(n))
         assert S.is_discrete
         assert not S.is_continuous
         assert not S.is_hybrid
@@ -84,7 +84,7 @@ class Test_System(object):
         assert S.is_output_discrete
         assert not S.is_output_continuous
 
-        T = sp.Eq(y(t), x(t-1))
+        T = sp.Eq(y(t), x(t - 1))
         S = System(T, x(t), y(t))
         assert not S.is_discrete
         assert S.is_continuous
@@ -94,7 +94,7 @@ class Test_System(object):
         assert not S.is_output_discrete
         assert S.is_output_continuous
 
-        S = System(y(t) - x(t-tau) + x(t-2) - y(t-1)**2, x(t), y(t))
+        S = System(y(t) - x(t - tau) + x(t - 2) - y(t - 1) ** 2, x(t), y(t))
         assert not S.is_discrete
         assert S.is_continuous
         assert not S.is_hybrid
@@ -103,7 +103,7 @@ class Test_System(object):
         assert not S.is_output_discrete
         assert S.is_output_continuous
 
-        T = sp.Eq(y(t), x(n-1))
+        T = sp.Eq(y(t), x(n - 1))
         S = System(T, x(n), y(t))
         assert not S.is_discrete
         assert not S.is_continuous
@@ -113,7 +113,7 @@ class Test_System(object):
         assert not S.is_output_discrete
         assert S.is_output_continuous
 
-        S = System(y(t) - x(n-k) + x(n-2) - y(t-1)**2, x(n), y(t))
+        S = System(y(t) - x(n - k) + x(n - 2) - y(t - 1) ** 2, x(n), y(t))
         assert not S.is_discrete
         assert not S.is_continuous
         assert S.is_hybrid
@@ -122,7 +122,7 @@ class Test_System(object):
         assert not S.is_output_discrete
         assert S.is_output_continuous
 
-        T = sp.Eq(y(n), x(t-1))
+        T = sp.Eq(y(n), x(t - 1))
         S = System(T, x(t), y(n))
         assert not S.is_discrete
         assert not S.is_continuous
@@ -132,7 +132,7 @@ class Test_System(object):
         assert S.is_output_discrete
         assert not S.is_output_continuous
 
-        S = System(y(n) - x(t-tau) + x(t-2) - y(n-1)**2, x(t), y(n))
+        S = System(y(n) - x(t - tau) + x(t - 2) - y(n - 1) ** 2, x(t), y(n))
         assert not S.is_discrete
         assert not S.is_continuous
         assert S.is_hybrid
@@ -147,16 +147,16 @@ class Test_System(object):
         t = sp.Symbol("t", real=True)
         tau = sp.Symbol("tau", real=True)
 
-        x = sp.Function('x', real=True)
-        y = sp.Function('y', real=True)
+        x = sp.Function("x", real=True)
+        y = sp.Function("y", real=True)
 
-        T = sp.Eq(y(n), 3*x(n))
+        T = sp.Eq(y(n), 3 * x(n))
         S = System(T, x(n), y(n))
         assert S.is_memoryless
         assert S.is_static
         assert not S.is_dynamic
 
-        S = System(y(n) - x(n-k) + x(n-2) - y(n-1)**2, x(n), y(n))
+        S = System(y(n) - x(n - k) + x(n - 2) - y(n - 1) ** 2, x(n), y(n))
         assert not S.is_memoryless
         assert not S.is_static
         assert S.is_dynamic
@@ -167,7 +167,7 @@ class Test_System(object):
         assert S.is_static
         assert not S.is_dynamic
 
-        S = System(y(t) - x(t-tau) + x(t-2) - y(t-1)**2, x(t), y(t))
+        S = System(y(t) - x(t - tau) + x(t - 2) - y(t - 1) ** 2, x(t), y(t))
         assert not S.is_memoryless
         assert not S.is_static
         assert S.is_dynamic
@@ -178,7 +178,7 @@ class Test_System(object):
         assert S.is_static
         assert not S.is_dynamic
 
-        S = System(y(t) - x(n-k) + x(n-2) - y(t-1)**2, x(n), y(t))
+        S = System(y(t) - x(n - k) + x(n - 2) - y(t - 1) ** 2, x(n), y(t))
         assert not S.is_memoryless
         assert not S.is_static
         assert S.is_dynamic
@@ -189,7 +189,49 @@ class Test_System(object):
         assert S.is_static
         assert not S.is_dynamic
 
-        S = System(y(n) - x(t-tau) + x(t-2) - y(n-1)**2, x(t), y(n))
+        S = System(y(n) - x(t - tau) + x(t - 2) - y(n - 1) ** 2, x(t), y(n))
         assert not S.is_memoryless
         assert not S.is_static
         assert S.is_dynamic
+
+    def test_System_apply(self):
+        n = sp.Symbol("n", integer=True)
+        k = sp.Symbol("k", integer=True)
+        t = sp.Symbol("t", real=True)
+        tau = sp.Symbol("tau", real=True)
+        omega = sp.Symbol("omega", real=True)
+        phi = sp.Symbol("phi", real=True)
+
+        x = sp.Function("x", real=True)
+        y = sp.Function("y", real=True)
+        sx = Signal(sp.cos(omega * n + phi), n, codomain=sp.S.Reals)
+
+        T = sp.Eq(y(n), 3 * x(n))
+        S = System(T, x(n), y(n))
+        sy = S.apply(sx)
+        assert isinstance(sy, Signal)
+        assert sy.amplitude == 3 * sp.cos(omega * n + phi)
+        sy2 = S.eval(sx)
+        assert sy == sy2
+        sy2 = S(sx)
+        assert sy == sy2
+
+        T = sp.Eq(y(n), x(n - 1))
+        S = System(T, x(n), y(n))
+        sy = S.apply(sx)
+        assert isinstance(sy, Signal)
+        assert sy.amplitude == sp.cos(omega * (n - 1) + phi)
+        sy2 = S.eval(sx)
+        assert sy == sy2
+        sy2 = S(sx)
+        assert sy == sy2
+
+        T = sp.Eq(y(k), 2 * x(k - 1)**3 + 3 * x(k - 2))
+        S = System(T, x(k), y(k))
+        sy = S.apply(sx)
+        assert isinstance(sy, Signal)
+        assert sy.amplitude == 2 * sp.cos(omega * (n - 1) + phi)**3 + 3 * sp.cos(omega * (n - 2) + phi)
+        sy2 = S.eval(sx)
+        assert sy == sy2
+        sy2 = S(sx)
+        assert sy == sy2

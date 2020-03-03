@@ -119,7 +119,45 @@ class System(sp.Basic):
     def is_output_continuous(self):
         return self.codomain == sp.S.Reals
 
-    def apply(self, input):
-        raise NotImplementedError
+    def apply(self, ins, params={}):
+        if not isinstance(params, dict):
+            raise ValueError("Parameter values must be in a dictionary.")
+        if not isinstance(ins, Signal):
+            raise ValueError("Input must be a signal.")
+        T = self.mapping.subs(params)
+
+        def _apply(expr, ins):
+            if isinstance(expr, sp.Add):
+                result = sp.S.Zero
+                for arg in expr.args:
+                    result += _apply(arg, ins)
+                return result
+            elif isinstance(expr, sp.Mul):
+                result = sp.S.One
+                for arg in expr.args:
+                    result *= _apply(arg, ins)
+                return result
+            elif isinstance(expr, sp.Pow):
+                return _apply(expr.base, ins) ** expr.exp
+            elif isinstance(expr, sp.Function):
+                if expr.func == self.input.func:
+                    newarg = expr.args[0].subs({self.input.args[0]: ins.iv})
+                    e = ins.amplitude.subs({ins.iv: newarg})
+                    return e
+                return expr
+            else:
+                return expr
+
+        res = _apply(T, ins)
+        result = ins.clone(None, res)
+        return result
+        
 
     eval = apply
+
+    def __call__(self, x, *args):
+        p = dict()
+        if len(args) != 0:
+            for s, v in zip(self.free_symbols, args):
+                p[s] = v
+        return self.eval(x, p)
