@@ -53,6 +53,8 @@ class Signal(sp.Basic):
             if codomain not in [sp.S.Reals, sp.S.Complexes]:
                 raise ValueError("The codomain is not valid")
         # period
+        # TODO defer computation of period. Then it will lose arg status and
+        # will become just a property 
         if period is None:
             try:
                 period = cls._periodicity(amplitude, iv, domain)
