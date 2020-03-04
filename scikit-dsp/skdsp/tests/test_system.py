@@ -358,6 +358,13 @@ class Test_System(object):
         assert not S.is_shift_invariant
         assert S.is_shift_variant
 
+        T = y(n) - x(n) + y(n-1)
+        S = System(T, x(n), y(n))
+        assert not S.is_time_invariant
+        assert S.is_time_variant
+        assert not S.is_shift_invariant
+        assert S.is_shift_variant
+
     def test_System_linearity(self):
         n = sp.Symbol("n", integer=True)
         t = sp.Symbol("t", real=True)
@@ -416,6 +423,10 @@ class Test_System(object):
         S = System(T, x(t), y(t))
         assert not S.is_linear
 
+        T = y(n) - x(n) + y(n-1)
+        S = System(T, x(n), y(n))
+        assert not S.is_linear
+
     def test_System_causality(self):
         n = sp.Symbol("n", integer=True)
         t = sp.Symbol("t", real=True)
@@ -434,7 +445,7 @@ class Test_System(object):
         T = sp.Eq(y(n), -10 * x(n))
         S = System(T, x(n), y(n))
         assert S.is_causal
-        assert S.is_anticausal
+        assert not S.is_anticausal
 
         T = sp.Eq(y(n), y(n - 1) + sp.Sum(x(k), (k, sp.S.NegativeInfinity, n)))
         S = System(T, x(n), y(n))
@@ -454,7 +465,7 @@ class Test_System(object):
         T = sp.Eq(y(n), x(n) + 3 * x(n + 4))
         S = System(T, x(n), y(n))
         assert not S.is_causal
-        assert S.is_anticausal
+        assert not S.is_anticausal
 
         T = sp.Eq(y(n), x(n ** 2))
         S = System(T, x(n), y(n))

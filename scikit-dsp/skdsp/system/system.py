@@ -1,8 +1,8 @@
 import sympy as sp
 from skdsp.signal.signal import Signal
 
-class System(sp.Basic):
 
+class System(sp.Basic):
     def __new__(cls, T, x, y, domain=sp.S.Integers, codomain=sp.S.Integers):
         if not x.is_Function or not y.is_Function:
             raise ValueError("Input and output must be functions.")
@@ -39,48 +39,36 @@ class System(sp.Basic):
     def codomain(self):
         return self.args[4]
 
-    def _traverse_compare(self, cmpfnc):
-        fnci = self.input_
-        argi = fnci.args[0]
-        fnco = self.output_
-        argo = fnco.args[0]
+    def _traverse_compare_iv(self, cmpfcn, fcn):
         insum = False
         inlim = False
         for expr in sp.preorder_traversal(self.mapping):
             if isinstance(expr, sp.Sum):
-                fcn = expr.function
-                if fcn.func == fnci.func:
-                    arg = argi
-                elif fcn.func == fnco.func:
-                    arg = argo
-                else:
-                    continue
-                limits = expr.limits[0]
-                try:
-                    term = fcn.subs({limits[0]: limits[1]})
-                    cmp = cmpfnc(term.args[0], arg)
-                    if cmp:
-                        return False
-                    term = fcn.subs({limits[0]: limits[2]})
-                    cmp = cmpfnc(term.args[0], arg)
-                    if cmp:
-                        return False
-                except:
-                    return False
-                insum = True
+                efcn = expr.function
+                if fcn.func == efcn.func:
+                    arg = fcn.args[0]
+                    limits = expr.limits[0]
+                    try:
+                        term = efcn.subs({limits[0]: limits[1]})
+                        cmp = cmpfcn(term.args[0], arg)
+                        if cmp:
+                            return True
+                        term = efcn.subs({limits[0]: limits[2]})
+                        cmp = cmpfcn(term.args[0], arg)
+                        if cmp:
+                            return True
+                    except:
+                        return True
+                    insum = True
             elif not insum and isinstance(expr, sp.Function):
-                if expr.func == fnci.func:
-                    arg = argi
-                elif expr.func == fnco.func:
-                    arg = argo
-                else:
-                    continue
-                try:
-                    cmp = cmpfnc(expr.args[0], arg)
-                    if cmp:
-                        return False
-                except:
-                    return False
+                if fcn.func == expr.func:
+                    arg = fcn.args[0]
+                    try:
+                        cmp = cmpfcn(expr.args[0], arg)
+                        if cmp:
+                            return True
+                    except:
+                        return True
             elif insum and not inlim:
                 if expr == limits:
                     inlim = True
@@ -88,13 +76,14 @@ class System(sp.Basic):
                 if expr == limits[2]:
                     inlim = False
                     insum = False
-        return True
+        return None
 
-    
     @property
     def is_memoryless(self):
-        return self._traverse_compare(sp.Ne)
-    
+        i = self._traverse_compare_iv(sp.Ne, self.input_)
+        o = self._traverse_compare_iv(sp.Ne, self.output_)
+        return not i and not o
+
     is_static = is_memoryless
 
     @property
@@ -103,8 +92,11 @@ class System(sp.Basic):
 
     @property
     def is_time_invariant(self):
+        # if past values of output: can't tell
+        if self._traverse_compare_iv(sp.Lt, self.output_):
+            return None
         dummy = sp.Dummy(integer=True, nonnegative=True)
-        x1 = Signal(sp.Function('x1')(self.input_.args[0]))
+        x1 = Signal(sp.Function("x1")(self.input_.args[0]))
         y1 = self.apply(x1).shift(dummy)
         y2 = self.apply(x1.shift(dummy))
         d = sp.simplify((y1 - y2).amplitude)
@@ -120,14 +112,17 @@ class System(sp.Basic):
 
     @property
     def is_linear(self):
-        a, b = sp.symbols('a, b')
-        x1 = Signal(sp.Function('x1')(self.input_.args[0]))
-        x2 = Signal(sp.Function('x2')(self.input_.args[0]))
+        # if past values of output: can't tell
+        if self._traverse_compare_iv(sp.Lt, self.output_):
+            return None
+        a, b = sp.symbols("a, b")
+        x1 = Signal(sp.Function("x1")(self.input_.args[0]))
+        x2 = Signal(sp.Function("x2")(self.input_.args[0]))
         y1 = self.apply(a * x1 + b * x2)
         y2 = a * self.apply(x1) + b * self.apply(x2)
         d = sp.simplify((y1 - y2).amplitude)
         return d == sp.S.Zero
-    
+
     @property
     def is_lti(self):
         return self.is_linear and self.is_time_invariant
@@ -136,16 +131,22 @@ class System(sp.Basic):
 
     @property
     def is_causal(self):
-        return self._traverse_compare(sp.Gt)
-    
+        i = self._traverse_compare_iv(sp.Gt, self.input_)
+        o = self._traverse_compare_iv(sp.Gt, self.output_)
+        return not i and not o
+
     @property
     def is_anticausal(self):
-        return self._traverse_compare(sp.Lt)
-    
+        i = self._traverse_compare_iv(sp.Lt, self.input_)
+        o = self._traverse_compare_iv(sp.Lt, self.output_)
+        if i is None and o is None:
+            return False
+        return not i and not o
+
     @property
     def is_stable(self):
         raise NotImplementedError
-    
+
     @property
     def is_discrete(self):
         return self.is_input_discrete and self.is_output_discrete
@@ -209,7 +210,7 @@ class System(sp.Basic):
 
         res = _apply(T, ins)
         result = ins.clone(None, res, period=None)
-        return result       
+        return result
 
     eval = apply
 
