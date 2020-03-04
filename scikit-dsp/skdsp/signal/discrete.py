@@ -123,6 +123,7 @@ class DiscreteSignal(Signal):
         N = sp.Wild("N")
         if obj.amplitude.has(UnitDelta, UnitDeltaTrain, sp.KroneckerDelta):
             patterns = [
+                (A * sp.KroneckerDelta(0, obj.iv - k), Delta),
                 (A * UnitDelta(obj.iv - k), Delta),
                 (A * UnitDeltaTrain((obj.iv - k), N), DeltaTrain),
             ]
@@ -379,6 +380,8 @@ class Delta(DiscreteSignal):
         return obj
 
     def _clone_extra(self, obj):
+        if isinstance(obj.amplitude, sp.KroneckerDelta):
+            obj.amplitude.__class__ = UnitDelta
         for arg in obj.amplitude.args:
             if isinstance(arg, sp.KroneckerDelta):
                 arg.__class__ = UnitDelta

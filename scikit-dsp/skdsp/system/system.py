@@ -3,7 +3,7 @@ from skdsp.signal.signal import Signal
 
 
 class System(sp.Basic):
-    def __new__(cls, T, x, y, domain=sp.S.Integers, codomain=sp.S.Integers):
+    def __new__(cls, T, x, y):
         if not x.is_Function or not y.is_Function:
             raise ValueError("Input and output must be functions.")
         if isinstance(T, sp.Equality):
