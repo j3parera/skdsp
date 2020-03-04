@@ -79,6 +79,27 @@ class System(sp.Basic):
         return None
 
     @property
+    def _depends_on_outputs(self):
+        fcns = self.mapping.atoms(sp.Function)
+        for fcn in fcns:
+            if fcn.func == self.output_.func:
+                return True
+        return False
+    
+    @property
+    def _depends_on_inputs(self):
+        fcns = self.mapping.atoms(sp.Function)
+        for fcn in fcns:
+            if fcn.func == self.input_.func:
+                return True
+        return False
+    
+    @property
+    def is_recursive(self):
+        o = self._traverse_compare_iv(sp.Lt, self.output_)
+        return o is not None and o
+
+    @property
     def is_memoryless(self):
         i = self._traverse_compare_iv(sp.Ne, self.input_)
         o = self._traverse_compare_iv(sp.Ne, self.output_)
@@ -93,7 +114,7 @@ class System(sp.Basic):
     @property
     def is_time_invariant(self):
         # if past values of output: can't tell
-        if self._traverse_compare_iv(sp.Lt, self.output_):
+        if self._depends_on_outputs:
             return None
         dummy = sp.Dummy(integer=True, nonnegative=True)
         x1 = Signal(sp.Function("x1")(self.input_.args[0]))
@@ -113,7 +134,7 @@ class System(sp.Basic):
     @property
     def is_linear(self):
         # if past values of output: can't tell
-        if self._traverse_compare_iv(sp.Lt, self.output_):
+        if self._depends_on_outputs:
             return None
         a, b = sp.symbols("a, b")
         x1 = Signal(sp.Function("x1")(self.input_.args[0]))
@@ -145,7 +166,13 @@ class System(sp.Basic):
 
     @property
     def is_stable(self):
-        raise NotImplementedError
+        if self._depends_on_outputs:
+            return None
+        M = sp.Symbol('M', finite=True)
+        x1 = Signal(M, iv=self.input_.args[0])
+        y1 = self.apply(x1)
+        lim = sp.limit(sp.Abs(y1.amplitude), y1.iv, sp.S.Infinity)
+        return lim.is_finite
 
     @property
     def is_discrete(self):

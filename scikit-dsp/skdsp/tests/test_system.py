@@ -268,10 +268,8 @@ class Test_System(object):
         n = sp.Symbol("n", integer=True)
         t = sp.Symbol("t", real=True)
         k = sp.Symbol("k", integer=True)
-        tau = sp.Symbol("tau", real=True)
         x = sp.Function("x", real=True)
         y = sp.Function("y", real=True)
-        h = sp.Function("h", real=True)
         g = sp.Function("g", real=True)
 
         T = sp.Eq(y(n), sp.Sum(x(n - k), (k, 2, 4)))
@@ -368,11 +366,8 @@ class Test_System(object):
     def test_System_linearity(self):
         n = sp.Symbol("n", integer=True)
         t = sp.Symbol("t", real=True)
-        k = sp.Symbol("k", integer=True)
-        tau = sp.Symbol("tau", real=True)
         x = sp.Function("x", real=True)
         y = sp.Function("y", real=True)
-        h = sp.Function("h", real=True)
         g = sp.Function("g", real=True)
 
         T = sp.Eq(y(n), x(n - 1))
@@ -429,13 +424,9 @@ class Test_System(object):
 
     def test_System_causality(self):
         n = sp.Symbol("n", integer=True)
-        t = sp.Symbol("t", real=True)
         k = sp.Symbol("k", integer=True)
-        tau = sp.Symbol("tau", real=True)
         x = sp.Function("x", real=True)
         y = sp.Function("y", real=True)
-        h = sp.Function("h", real=True)
-        g = sp.Function("g", real=True)
 
         T = sp.Eq(y(n), x(n) - x(n - 1))
         S = System(T, x(n), y(n))
@@ -481,3 +472,71 @@ class Test_System(object):
         S = System(T, x(n), y(n))
         assert not S.is_causal
         assert not S.is_anticausal
+
+    def test_System_recursivity(self):
+        n = sp.Symbol("n", integer=True)
+        k = sp.Symbol("k", integer=True)
+        x = sp.Function("x", real=True)
+        y = sp.Function("y", real=True)
+
+        T = sp.Eq(y(n), x(n) - x(n - 1))
+        S = System(T, x(n), y(n))
+        assert not S.is_recursive
+
+        T = sp.Eq(y(n), x(n) - y(n - 1))
+        S = System(T, x(n), y(n))
+        assert S.is_recursive
+
+        T = sp.Eq(y(n), -10 * x(n))
+        S = System(T, x(n), y(n))
+        assert not S.is_recursive
+
+        T = sp.Eq(y(n), y(n - 1) + sp.Sum(x(k), (k, sp.S.NegativeInfinity, n)))
+        S = System(T, x(n), y(n))
+        assert S.is_recursive
+
+        T = sp.Eq(y(n), y(n + 1) + sp.Sum(x(k), (k, sp.S.NegativeInfinity, n)))
+        S = System(T, x(n), y(n))
+        assert not S.is_recursive
+
+        T = sp.Eq(y(n), y(n + 1) + sp.Sum(x(k), (k, sp.S.NegativeInfinity, n + 1)))
+        S = System(T, x(n), y(n))
+        assert not S.is_recursive
+
+        T = sp.Eq(y(n), x(n) + 3 * x(n + 4))
+        S = System(T, x(n), y(n))
+        assert not S.is_recursive
+
+        T = sp.Eq(y(n), x(n ** 2))
+        S = System(T, x(n), y(n))
+        assert not S.is_recursive
+
+        T = sp.Eq(y(n), x(2 * n))
+        S = System(T, x(n), y(n))
+        assert not S.is_recursive
+
+        T = sp.Eq(y(n), x(-n))
+        S = System(T, x(n), y(n))
+        assert not S.is_recursive
+
+    def test_System_stability(self):
+        n = sp.Symbol("n", integer=True)
+        k = sp.Symbol("k", integer=True)
+        x = sp.Function("x", real=True)
+        y = sp.Function("y", real=True)
+
+        T = y(n) - n*x(n)
+        S = System(T, x(n), y(n))
+        assert not S.is_stable
+
+        T = y(n) - x(n)
+        S = System(T, x(n), y(n))
+        assert S.is_stable
+
+        T = y(n) - (x(n) + x(n - 1))
+        S = System(T, x(n), y(n))
+        assert S.is_stable
+
+        T = y(n) - (y(n - 1)**2 + x(n))
+        S = System(T, x(n), y(n))
+        assert not S.is_stable
