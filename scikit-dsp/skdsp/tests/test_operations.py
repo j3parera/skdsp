@@ -8,7 +8,7 @@ from skdsp.util.util import stem
 
 
 class Test_Discrete_Arithmetic(object):
-    def test_Arithmetic_neg(self):
+    def test_Discrete_neg(self):
         s = -ds.Delta()
         assert s[-1:3] == [0, -1, 0, 0]
         assert isinstance(s, ds.Delta)
@@ -26,7 +26,7 @@ class Test_Discrete_Arithmetic(object):
         assert isinstance(s, ds.DiscreteSignal)
         assert s.is_discrete == True
 
-    def test_Arithmetic_add(self):
+    def test_Discrete_add(self):
         s = ds.Delta() + ds.Step()
         assert s[-2:3] == [0, 0, 2, 1, 1]
         assert isinstance(s, ds.DiscreteSignal)
@@ -78,7 +78,7 @@ class Test_Discrete_Arithmetic(object):
         assert isinstance(s, ds.DiscreteSignal)
         assert s.is_discrete == True
 
-    def test_Arithmetic_sub(self):
+    def test_Discrete_sub(self):
         s = ds.Delta() - ds.Step()
         assert s[-2:3] == [0, 0, 0, -1, -1]
         assert isinstance(s, ds.DiscreteSignal)
@@ -135,7 +135,7 @@ class Test_Discrete_Arithmetic(object):
         x3 = x1 - x2
         assert isinstance(x3, ds.Delta)
 
-    def test_Arithmetic_mul(self):
+    def test_Discrete_mul(self):
         s = ds.Delta() * ds.Step()
         assert s[-1:2] == [0, 1, 0]
         assert isinstance(s, ds.DiscreteSignal)
@@ -195,8 +195,25 @@ class Test_Discrete_Arithmetic(object):
         assert s.is_discrete == True
 
         # problemas con s = sp.I * ds.Delta() porque sympy lo intenta interpretar como Expr * Expr
+        s = sp.I * ds.Delta()
+        assert s[-1:2] == [0, sp.I, 0]
+        assert isinstance(s, ds.Delta)
+        assert s.is_discrete == True
 
-    def test_Arithmetic_div(self):
+        # TODO productos de u[n]
+        s = 2 * ds.Step().shift(3) * ds.Step().shift(5)
+        assert s == 2 * ds.Step().shift(5)
+
+        s = ds.Step().shift(3).flip() * ds.Step().shift(5).flip()
+        assert s == ds.Step().shift(5).flip()
+
+        s = ds.Step().shift(3) * ds.Step().shift(5).flip()
+        assert s == ds.Constant(0)
+
+        s = ds.Step().shift(3) * ds.Step().shift(-5).flip()
+        assert s == ds.Step().shift(3) - ds.Step().shift(6)
+
+    def test_Discrete_div(self):
         with pytest.raises(TypeError):
             s = ds.Delta() / ds.Step()
 
@@ -300,6 +317,21 @@ class Test_Discrete_Arithmetic(object):
         assert s.abs == ds.DiscreteSignal.from_formula(
             sp.Abs(2 * sp.sin(sp.S.Pi * ds.n / 4))
         )
+
+    def test_Discrete_convolution(self):
+        a = sp.Symbol('a', real=True)
+        s1 = ds.Exponential(1, a) * ds.Step()
+        s2 = ds.Step()
+        s3 = s1 @ s2
+        s3b = sp.Piecewise(((1 - a ** (ds.n + 1)) / (1 - a), sp.Ne(a, 1)), (ds.n + 1, True))
+        expected = sp.Piecewise((s3b, sp.Ge(ds.n, 0)), (0, True))
+        assert s3 == expected
+        s1 @= s2
+        assert s1 == expected
+        s3 = s1.convolve(s2)
+        assert s3 == expected
+        s3 = s2.convolve(s1)
+        assert s3 == expected
 
 
 class Test_Discrete_factories(object):
@@ -477,7 +509,7 @@ class Test_Summations(object):
         S = s.sum(3, 5)
         assert S == 0
 
-
+    
 class Test_KK(object):
     def test_KK_1(self):
         x = ds.Exponential(alpha=0.9)

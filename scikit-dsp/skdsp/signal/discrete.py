@@ -35,7 +35,7 @@ def filter(B, A, x, ci=None):
 class DiscreteSignal(Signal):
     @classmethod
     def _transmute_renew(cls, obj):
-        tcls, d, A, k, omg, phi, N = cls._transmute(obj, False)
+        tcls, d, A, k, omg, phi, N, s = cls._transmute(obj, False)
         delay = 0
         done = False
         if tcls is not None:
@@ -58,7 +58,7 @@ class DiscreteSignal(Signal):
                 if d.get(N) is None:
                     om, pio = d[omg].as_independent(sp.S.Pi)
                     obj = tcls(
-                        d[A], sp.exp(sp.I * sp.Rational(sp.sstr(om))) * pio, obj.iv
+                        d[A], sp.exp(sp.I * sp.Rational(sp.sstr(om))) * pio, d[s] * obj.iv
                     )
                 elif d.get(omg) is None:
                     obj = tcls(d[A], d[N], obj.iv)
@@ -72,7 +72,7 @@ class DiscreteSignal(Signal):
                     )
                 done = True
             elif tcls == Constant:
-                obj = tcls(d[A], obj.iv)
+                obj = tcls(d[A], d[s] * obj.iv)
             # TODO otros casos
             if delay != 0:
                 obj = obj.shift(delay)
@@ -89,7 +89,7 @@ class DiscreteSignal(Signal):
     def from_period(cls, amp, iv, period, codomain=sp.S.Reals):
         amp = sp.S(amp)
         amp = amp.subs({iv: sp.Mod(iv, period)})
-        obj = cls(amp, iv, period, sp.S.Integers, codomain)
+        obj = cls(amp, iv, period, codomain)
         done, obj = cls._transmute_renew(obj)
         if not done:
             Signal.__init__(obj)
@@ -99,7 +99,7 @@ class DiscreteSignal(Signal):
     def from_sampling(cls, camp, civ, div, fs, codomain=sp.S.Reals):
         camp = sp.S(camp)
         amp = camp.subs({civ: div / fs})
-        obj = cls(amp, div, None, sp.S.Integers, codomain)
+        obj = cls(amp, div, None, codomain)
         done, obj = cls._transmute_renew(obj)
         if not done:
             Signal.__init__(obj)
@@ -108,7 +108,7 @@ class DiscreteSignal(Signal):
     @classmethod
     def from_formula(cls, amp, iv=None, codomain=sp.S.Reals):
         amp = sp.S(amp)
-        obj = cls(amp, iv, None, sp.S.Integers, codomain)
+        obj = cls(amp, iv, None, codomain)
         done, obj = cls._transmute_renew(obj)
         if not done:
             Signal.__init__(obj)
@@ -118,6 +118,7 @@ class DiscreteSignal(Signal):
     def _transmute(obj, apply=True):
         A = sp.Wild("A")
         k = sp.Wild("k")
+        s = sp.Wild("s")
         omg = sp.Wild("omega")
         phi = sp.Wild("phi")
         N = sp.Wild("N")
@@ -128,9 +129,9 @@ class DiscreteSignal(Signal):
                 (A * UnitDeltaTrain((obj.iv - k), N), DeltaTrain),
             ]
         elif obj.amplitude.has(UnitStep):
-            patterns = [(A * UnitStep(obj.iv - k), Step)]
+            patterns = [(A * UnitStep(s*obj.iv - k), Step)]
         elif obj.amplitude.has(UnitRamp):
-            patterns = [(A * UnitRamp(obj.iv - k), Ramp)]
+            patterns = [(A * UnitRamp(s*obj.iv - k), Ramp)]
         elif obj.amplitude.has(sp.cos, sp.sin):
             patterns = [
                 (A * sp.cos(omg * (obj.iv - k) + phi), Sinusoid),
@@ -156,10 +157,10 @@ class DiscreteSignal(Signal):
                             obj.__class__ = pattern[1]
                             break
                         else:
-                            return (pattern[1], d, A, k, omg, phi, N)
+                            return (pattern[1], d, A, k, omg, phi, N, s)
                 except:
                     pass
-        return None, None, None, None, None, None, None
+        return None, None, None, None, None, None, None, None
 
     @staticmethod
     def _deltify(data, start, iv, periodic):
@@ -175,11 +176,11 @@ class DiscreteSignal(Signal):
                 expr += d * UnitDelta(iv - start - k)
         return expr
 
-    def __new__(cls, amp, iv, period, domain, codomain):
+    def __new__(cls, amp, iv, period, codomain):
         if iv is not None and (not iv.is_symbol or not iv.is_integer):
             raise ValueError("Invalid independent variable.")
         # pylint: disable-msg=too-many-function-args
-        return Signal.__new__(cls, amp, iv, period, domain, codomain)
+        return Signal.__new__(cls, amp, iv, period, sp.S.Integers, codomain)
         # pylint: enable-msg=too-many-function-args
 
     def __str__(self, *_args, **_kwargs):
@@ -373,7 +374,7 @@ class Delta(DiscreteSignal):
         iv = sp.sympify(iv) if iv is not None else n
         # pylint: disable-msg=too-many-function-args
         obj = DiscreteSignal.__new__(
-            cls, UnitDelta(iv), iv, sp.S.Zero, sp.S.Integers, sp.S.Reals
+            cls, UnitDelta(iv), iv, sp.S.Zero, sp.S.Reals
         )
         # pylint: enable-msg=too-many-function-args
         obj.amplitude.__class__ = UnitDelta
@@ -409,7 +410,7 @@ class Step(DiscreteSignal):
         iv = sp.sympify(iv) if iv is not None else n
         # pylint: disable-msg=too-many-function-args
         obj = DiscreteSignal.__new__(
-            cls, UnitStep(iv), iv, sp.S.Zero, sp.S.Integers, sp.S.Reals
+            cls, UnitStep(iv), iv, sp.S.Zero, sp.S.Reals
         )
         # pylint: enable-msg=too-many-function-args
         return obj
@@ -436,7 +437,7 @@ class Ramp(DiscreteSignal):
         iv = sp.sympify(iv) if iv is not None else n
         # pylint: disable-msg=too-many-function-args
         obj = DiscreteSignal.__new__(
-            cls, UnitRamp(iv), iv, sp.S.Zero, sp.S.Integers, sp.S.Reals
+            cls, UnitRamp(iv), iv, sp.S.Zero, sp.S.Reals
         )
         # pylint: enable-msg=too-many-function-args
         return obj
@@ -469,7 +470,7 @@ class DeltaTrain(DiscreteSignal):
         iv = sp.sympify(iv) if iv is not None else n
         # pylint: disable-msg=too-many-function-args
         obj = DiscreteSignal.__new__(
-            cls, UnitDeltaTrain(iv, N), iv, N, sp.S.Integers, sp.S.Reals
+            cls, UnitDeltaTrain(iv, N), iv, N, sp.S.Reals
         )
         # pylint: enable-msg=too-many-function-args
         return obj
@@ -547,7 +548,7 @@ class Data(DiscreteSignal):
             expr = DiscreteSignal._deltify(data, start, iv, periodic)
             period = len(data) if periodic else sp.S.Zero
             # pylint: disable-msg=too-many-function-args
-            obj = DiscreteSignal.__new__(cls, expr, iv, period, sp.S.Integers, codomain)
+            obj = DiscreteSignal.__new__(cls, expr, iv, period, codomain)
             # pylint: enable-msg=too-many-function-args
         return obj
 
@@ -635,7 +636,7 @@ class Sinusoid(_TrigonometricDiscreteSignal):
         expr = A * sp.cos(omega * iv + phi)
         period = _TrigonometricDiscreteSignal._period(omega)
         # pylint: disable-msg=too-many-function-args
-        obj = DiscreteSignal.__new__(cls, expr, iv, period, sp.S.Integers, sp.S.Reals)
+        obj = DiscreteSignal.__new__(cls, expr, iv, period, sp.S.Reals)
         # pylint: enable-msg=too-many-function-args
         obj.A = A
         obj.omega = omega
@@ -713,7 +714,7 @@ class Exponential(_TrigonometricDiscreteSignal):
             period = 0
         amp = sp.powsimp(amp)
         # pylint: disable-msg=too-many-function-args
-        obj = DiscreteSignal.__new__(cls, amp, iv, period, sp.S.Integers, None)
+        obj = DiscreteSignal.__new__(cls, amp, iv, period, None)
         # pylint: enable-msg=too-many-function-args
         c, phi = as_coeff_polar(C)
         A = c * sp.Pow(r, iv)

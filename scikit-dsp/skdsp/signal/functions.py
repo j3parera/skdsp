@@ -253,3 +253,28 @@ class UnitDeltaTrain(sp.Function):
         return r"{{\rotatebox[origin=c]{{180}}{{$\Pi\kern-0.361em\Pi$}}\left[(({0}))_{{{1}}}\right]".format(
             printer.doprint(self.iv), printer.doprint(self.N)
         )
+
+def stepsimp(expr):
+    if isinstance(expr, sp.Mul):
+        cnt = 0
+        for arg in expr.args:
+            if arg.func == UnitStep:
+                cnt += 1
+        if cnt >= 2:
+            expr = sp.simplify(expr.rewrite(sp.Piecewise))
+            if isinstance(expr, sp.Piecewise):
+                if expr.args[1] == (0, True):
+                    A = sp.Wild('A')
+                    s = sp.Wild('s')
+                    k = sp.Wild('k')
+                    l = sp.Wild('l')
+                    m = expr.args[0].match((A, s >= k))
+                    if m:
+                        return m[A] * UnitStep(m[s] - m[k])
+                    m = expr.args[0].match((A, s <= k))
+                    if m:
+                        return m[A] * UnitStep(-m[s] + m[k])
+                    m = expr.args[0].match((A, (s >= k) & (s <= l)))
+                    if m:
+                        return m[A] * (UnitStep(m[s] - m[k]) - UnitStep(m[s] - (m[l] + 1)))
+    return expr

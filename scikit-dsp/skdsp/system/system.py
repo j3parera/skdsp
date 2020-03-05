@@ -85,7 +85,7 @@ class System(sp.Basic):
             if fcn.func == self.output_.func:
                 return True
         return False
-    
+
     @property
     def _depends_on_inputs(self):
         fcns = self.mapping.atoms(sp.Function)
@@ -93,7 +93,14 @@ class System(sp.Basic):
             if fcn.func == self.input_.func:
                 return True
         return False
-    
+
+    def is_compatible(self, other):
+        if isinstance(other, System):
+            if (self.is_discrete and other.is_discrete) or (
+                self.is_continuous and other.is_continuos
+            ):
+                return True
+
     @property
     def is_recursive(self):
         o = self._traverse_compare_iv(sp.Lt, self.output_)
@@ -168,7 +175,7 @@ class System(sp.Basic):
     def is_stable(self):
         if self._depends_on_outputs:
             return None
-        M = sp.Symbol('M', finite=True)
+        M = sp.Symbol("M", finite=True)
         x1 = Signal(M, iv=self.input_.args[0])
         y1 = self.apply(x1)
         lim = sp.limit(sp.Abs(y1.amplitude), y1.iv, sp.S.Infinity)

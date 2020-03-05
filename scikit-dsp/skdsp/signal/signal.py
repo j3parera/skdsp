@@ -9,7 +9,7 @@ from sympy.core.evaluate import global_evaluate
 from sympy.core.function import AppliedUndef, UndefinedFunction
 from sympy.utilities.iterables import flatten, is_sequence, iterable
 
-from skdsp.signal.functions import UnitDelta
+from skdsp.signal.functions import UnitDelta, stepsimp
 
 
 class Signal(sp.Basic):
@@ -54,7 +54,9 @@ class Signal(sp.Basic):
                 raise ValueError("The codomain is not valid")
         # period
         # TODO defer computation of period. Then it will lose arg status and
-        # will become just a property 
+        # will become just a property
+        # Se podría usar Ellipsis para indicar que no está calculado:
+        # --> period = valor, None si no es periódica o Ellipsis si no se ha calculado aún
         if period is None:
             try:
                 period = cls._periodicity(amplitude, iv, domain)
@@ -628,6 +630,7 @@ class Signal(sp.Basic):
         amp = self.amplitude * other.amplitude
         if amp.has(sp.Pow):
             amp = sp.powsimp(amp)
+        amp = stepsimp(amp)
         cls = (
             self.__class__
             if other.amplitude.is_constant(self.iv) and not other.amplitude.is_zero
@@ -669,7 +672,28 @@ class Signal(sp.Basic):
         b = sp.S(b)
         if not b.is_integer or not b.is_nonnegative:
             raise ValueError("Undefinded operation.")
-        cls = self._upclass()
         amp = sp.S.One if b.is_zero else self.amplitude ** b
-        obj = self.clone(cls, amp, period=None, codomain=sp.S.Reals)
+        obj = self.clone(None, amp, period=None, codomain=sp.S.Reals)
         return obj
+
+    def convolve(self, other):
+        other, period, codomain = self._convert_other(other, sp.S.One)
+        if other is None:
+            return self
+        if other is NotImplemented:
+            return other
+        # TODO convolución de verdad
+        # OJO con la convolución periódica
+        amp = self.amplitude + other.amplitude
+        obj = self.clone(None, amp, period=period, codomain=codomain)
+        return obj
+
+    def __matmul__(self, other):
+        return self.convolve(other)
+
+    @call_highest_priority("__matmul__")
+    def __rmatmul__(self, other):
+        return self @ other
+
+    __imatmul__ = __matmul__
+

@@ -913,10 +913,7 @@ class Test_Data(object):
 
         s = ds.DiscreteSignal(
             UnitDelta(sp.Mod(ds.n, 6) - 1) + UnitDelta(sp.Mod(ds.n, 6) - 2),
-            ds.n,
-            6,
-            sp.S.Integers,
-            sp.S.Reals,
+            ds.n, 6, sp.S.Reals
         )
         assert s.is_periodic == True
         assert s.period == 6
@@ -1869,11 +1866,11 @@ class Test_Undefined(object):
         assert d.amplitude == x(ds.n)
         assert d.real_part == sp.re(x(ds.n))
         assert d.real == ds.DiscreteSignal(
-            sp.re(x(ds.n)), ds.n, None, sp.S.Integers, sp.S.Reals
+            sp.re(x(ds.n)), ds.n, None, sp.S.Reals
         )
         assert d.imag_part == sp.im(x(ds.n))
         assert d.imag == ds.DiscreteSignal(
-            sp.im(x(ds.n)), ds.n, None, sp.S.Integers, sp.S.Reals
+            sp.im(x(ds.n)), ds.n, None, sp.S.Reals
         )
         assert d.is_periodic == False
         assert d.period == None
@@ -1884,11 +1881,11 @@ class Test_Undefined(object):
         assert d.amplitude == x(ds.n)
         assert d.real_part == sp.re(x(ds.n))
         assert d.real == ds.DiscreteSignal(
-            sp.re(x(ds.n)), ds.n, None, sp.S.Integers, sp.S.Reals
+            sp.re(x(ds.n)), ds.n, None, sp.S.Reals
         )
         assert d.imag_part == sp.im(x(ds.n))
         assert d.imag == ds.DiscreteSignal(
-            sp.im(x(ds.n)), ds.n, None, sp.S.Integers, sp.S.Reals
+            sp.im(x(ds.n)), ds.n, None, sp.S.Reals
         )
         assert d.is_periodic == True
         assert d.period == 10
@@ -1899,11 +1896,11 @@ class Test_Undefined(object):
         assert d.amplitude == x(ds.n)
         assert d.real_part == sp.re(x(ds.n))
         assert d.real == ds.DiscreteSignal(
-            sp.re(x(ds.n)), ds.n, None, sp.S.Integers, sp.S.Reals
+            sp.re(x(ds.n)), ds.n, None, sp.S.Reals
         )
         assert d.imag_part == sp.im(x(ds.n))
         assert d.imag == ds.DiscreteSignal(
-            sp.im(x(ds.n)), ds.n, None, sp.S.Integers, sp.S.Reals
+            sp.im(x(ds.n)), ds.n, None, sp.S.Reals
         )
         assert d.is_periodic == False
         assert d.period == None

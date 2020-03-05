@@ -1,5 +1,6 @@
 import sympy as sp
 from skdsp.system.system import System
+from skdsp.signal.signal import Signal
 from skdsp.signal.discrete import n, Delta
 
 __all__ = [s for s in dir() if not s.startswith("_")]
@@ -28,6 +29,14 @@ class DiscreteSystem(System):
             return None
         return self.apply(Delta(n))
 
+    def convolve(self, other):
+        if not self.is_lti:
+            return None
+        if isinstance(other, Signal):
+            return self.impulse_response.convolve(other)
+        if self.is_compatible(other) and other.is_lti:
+            return self.impulse_response.convolve(other.impulse_response)
+        raise TypeError("Cannot convolve.")
 
 class Identity(DiscreteSystem):
 
