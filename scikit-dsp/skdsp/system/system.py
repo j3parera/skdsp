@@ -244,6 +244,6 @@ class System(sp.Basic):
     def __call__(self, x, *args):
         p = dict()
         if len(args) != 0:
-            for s, v in zip(self.free_symbols, args):
+            for s, v in zip(self.mapping.free_symbols, args):
                 p[s] = v
         return self.eval(x, p)
