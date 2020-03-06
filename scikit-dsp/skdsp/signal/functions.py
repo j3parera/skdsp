@@ -43,6 +43,9 @@ class UnitDelta(sp.KroneckerDelta):
     def _eval_rewrite_as_UnitStep(self, *_args, **_kwargs):
         return UnitStep(self.iv) - UnitStep(self.iv - 1)
 
+    def _eval_rewrite_as_Piecewise(self, *_args, **_kwargs):
+        return sp.Piecewise((1, sp.Eq(self.iv, 0)), (0, True))
+
     @property
     def func(self):
         callers = ['lambdify']
@@ -171,7 +174,8 @@ class UnitRamp(sp.Function):
         return self.args[0]
 
     def _eval_rewrite_as_Piecewise(self, *_args, **_kwargs):
-        return sp.Piecewise((self.iv, self.iv >= 0), (0, True))
+        # return sp.Piecewise((self.iv, self.iv >= 0), (0, True))
+        return sp.Piecewise((self.iv, self.iv > 0), (0, True))
 
     def _eval_rewrite_as_UnitStep(self, *_args, **kwargs):
         k = sp.Dummy(integer=True)
