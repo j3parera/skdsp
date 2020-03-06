@@ -276,5 +276,13 @@ def stepsimp(expr):
                         return m[A] * UnitStep(-m[s] + m[k])
                     m = expr.args[0].match((A, (s >= k) & (s <= l)))
                     if m:
-                        return m[A] * (UnitStep(m[s] - m[k]) - UnitStep(m[s] - (m[l] + 1)))
+                        e = m[A] * (UnitStep(m[s] - m[k]) - UnitStep(m[s] - (m[l] + 1)))
+                        return sp.Piecewise((e, m[l] >= 0), (0, True))
+    else:
+        e = sp.Wild('e')
+        iv = sp.Wild('iv')
+        k = sp.Wild('k')
+        m = expr.match(sp.Piecewise((e, iv >= k), (0, True)))
+        if m:
+            expr = m[e] * UnitStep(m[iv] - m[k])
     return expr

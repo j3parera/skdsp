@@ -121,7 +121,7 @@ class DiscreteSignal(Signal):
         s = sp.Wild("s")
         omg = sp.Wild("omega")
         phi = sp.Wild("phi")
-        N = sp.Wild("N")
+        N = sp.Wild("N", exclude=(sp.Piecewise,))
         if obj.amplitude.has(UnitDelta, UnitDeltaTrain, sp.KroneckerDelta):
             patterns = [
                 (A * sp.KroneckerDelta(0, obj.iv - k), Delta),
@@ -260,15 +260,20 @@ class DiscreteSignal(Signal):
                             if d[n0] == d[n1]:
                                 if d[n0] == sp.S.One:
                                     amp = c * d[a0]
-                                    if d[k1] >= d[k0]:
-                                        # u[n-k0] - u[n-k1]
-                                        low = sp.Max(low, d[k0])
-                                        high = sp.Min(high, d[k1] - 1)
-                                    else:
-                                        # -(u[n-k0] - u[n-k1]) = u[n-k1] - u[n-k0]
-                                        low = sp.Max(low, d[k1])
-                                        high = sp.Min(high, d[k0] - 1)
-                                        amp *= -sp.S.One
+                                    try:
+                                        if d[k1] >= d[k0]:
+                                            # u[n-k0] - u[n-k1]
+                                            low = sp.Max(low, d[k0])
+                                            high = sp.Min(high, d[k1] - 1)
+                                        else:
+                                            # -(u[n-k0] - u[n-k1]) = u[n-k1] - u[n-k0]
+                                            low = sp.Max(low, d[k1])
+                                            high = sp.Min(high, d[k0] - 1)
+                                            amp *= -sp.S.One
+                                    except TypeError:
+                                        # cannot compare, assume k1 > k0 ?
+                                            low = sp.Max(low, d[k0])
+                                            high = sp.Min(high, d[k1] - 1)
                                 elif d[n0] == -sp.S.One:
                                     amp = c * d[a0]
                                     if d[k0] <= d[k1]:
@@ -280,8 +285,11 @@ class DiscreteSignal(Signal):
                                         low = sp.Max(low, -d[k0] + 1)
                                         high = sp.Min(high, -d[k1])
                                         amp *= -sp.S.One
-                if high < low:
-                    return sp.S.Zero
+                try:
+                    if high < low:
+                        return sp.S.Zero
+                except:
+                    pass
         if term is not None:
             term = sp.S(term)
             amp *= term ** var

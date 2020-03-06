@@ -303,6 +303,7 @@ class Test_Discrete_Arithmetic(object):
         with pytest.raises(ValueError):
             ds.Delta() ** sp.sqrt(2)
 
+class Test_Discrete_Other(object):
     def test_Discrete_abs(self):
         s = ds.Sinusoid(2, sp.S.Pi / 4)
         assert s.odd_part == s
@@ -323,15 +324,16 @@ class Test_Discrete_Arithmetic(object):
         s1 = ds.Exponential(1, a) * ds.Step()
         s2 = ds.Step()
         s3 = s1 @ s2
-        s3b = sp.Piecewise(((1 - a ** (ds.n + 1)) / (1 - a), sp.Ne(a, 1)), (ds.n + 1, True))
-        expected = sp.Piecewise((s3b, sp.Ge(ds.n, 0)), (0, True))
-        assert s3 == expected
+        s3 = s3.subs({sp.Eq(a, 1): False})
+        expected = (1 - a ** (ds.n + 1)) / (1 - a)*ds.Step()
+        assert sp.simplify((s3 - expected).amplitude) == sp.S.Zero
+        s3 = s1.convolve(s2).subs({sp.Eq(a, 1): False})
+        assert sp.simplify((s3 - expected).amplitude) == sp.S.Zero
+        s3 = s2.convolve(s1).subs({sp.Eq(1/a, 1): False})
+        assert sp.simplify((s3 - expected).amplitude) == sp.S.Zero
         s1 @= s2
-        assert s1 == expected
-        s3 = s1.convolve(s2)
-        assert s3 == expected
-        s3 = s2.convolve(s1)
-        assert s3 == expected
+        s1 = s1.subs({sp.Eq(a, 1): False})
+        assert sp.simplify((s1 - expected).amplitude) == sp.S.Zero
 
 
 class Test_Discrete_factories(object):
@@ -511,7 +513,7 @@ class Test_Summations(object):
 
     
 class Test_KK(object):
-    def test_KK_1(self):
+    def test_transmute_exponential(self):
         x = ds.Exponential(alpha=0.9)
         y = 3 * x
         assert isinstance(y, ds.Exponential)
@@ -526,7 +528,7 @@ class Test_KK(object):
         assert isinstance(y, ds.Exponential)
         assert y.amplitude == a ** ds.n
 
-    def test_KK_2(self):
+    def test_subs_exponential(self):
         a = sp.Symbol("a", real=True)
         y0 = ds.Exponential(alpha=a)
         ya = y0.subs({a: 0.9})
@@ -539,7 +541,7 @@ class Test_KK(object):
         with pytest.raises(ValueError):
             y1.subs({ds.n: sp.Symbol('m')})
 
-    def test_KK_3(self):
+    def test_filter(self):
         y3 = ds.Exponential(
             sp.exp(sp.I * sp.S.Pi / 4), 1.1 * sp.exp(sp.I * sp.S.Pi / 11)
         )
@@ -551,7 +553,7 @@ class Test_KK(object):
         A = [1, -z0]
         y3f = ds.Data(ds.filter(B, A, x(span)), iv=ds.n)
 
-    def test_KK_4(self):
+    def test_dsolve(self):
         from sympy import Function, dsolve, pprint, exp, cos, KroneckerDelta
         from sympy.abc import x
 
@@ -560,7 +562,7 @@ class Test_KK(object):
         sol = dsolve(ode, f(x), hint='nth_linear_constant_coeff_homogeneous')
         assert sol is not None
 
-    def test_KK_5(self):
+    def test_recursion(self):
         x = sp.S(3)/10*ds.Delta() + sp.S(6)/10*ds.Delta().shift(1) + sp.S(3)/10*ds.Delta().shift(2)
         y = [0, 0]
         for k in range(0, 128):
@@ -582,7 +584,7 @@ class Test_KK(object):
         from skdsp.util.util import ipystem
         ipystem(span, np.array([float(y) for y in yv[2:]]), title=r'$h[n]$');
 
-    def test_KK_6(self):
+    def test_rsolve(self):
         y = sp.Function('y')
         x = sp.Function('x')
         f = y(ds.n) - sp.S(1)/8 * sp.cos(sp.S.Pi/4) * y(ds.n-1) + sp.S(81)/100 * y(ds.n-2)
@@ -592,7 +594,7 @@ class Test_KK(object):
             sol = e
         assert sol is not None
 
-    def test_KK_7(self):
+    def test_solve(self):
         N, M = sp.symbols('N M', integer=True, nonnegative=True)
         k, n = sp.symbols('k n', integer=True)
         x = sp.Function('x')

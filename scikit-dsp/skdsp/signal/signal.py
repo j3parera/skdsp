@@ -682,10 +682,23 @@ class Signal(sp.Basic):
             return self
         if other is NotImplemented:
             return other
-        # TODO convolución de verdad
-        # OJO con la convolución periódica
-        amp = self.amplitude + other.amplitude
-        obj = self.clone(None, amp, period=period, codomain=codomain)
+        if self.is_discrete:
+            k = sp.Symbol('k', integer=True)
+            s = self.amplitude.subs({self.iv: k}) * other.amplitude.subs({other.iv: self.iv - k})
+            if period is not None:
+                # TODO periodic convolution
+                raise NotImplementedError
+            amp = stepsimp(s)
+            if isinstance(amp, sp.Piecewise):
+                cond = amp.args[0].cond
+                expr = amp.args[0].expr
+                sy = self.clone(None, expr, iv=k, period=None, codomain=codomain)
+                amp = sp.Piecewise((sy.sum(), cond), *amp.args[1:])
+                amp = stepsimp(amp)
+        else:
+            # TODO continuous
+            raise NotImplementedError
+        obj = self.clone(None, amp, period=None, codomain=codomain)
         return obj
 
     def __matmul__(self, other):
