@@ -293,7 +293,11 @@ class DiscreteSignal(Signal):
         if term is not None:
             term = sp.S(term)
             amp *= term ** var
-        S = sp.Sum(amp, (var, low, high))
+        # due to a sympy bug, but cannot be done in all cases
+        if amp.has(UnitRamp):
+            S = sp.Sum(amp.rewrite(sp.Piecewise), (var, low, high))
+        else:
+            S = sp.Sum(amp, (var, low, high))
         if doit:
             S = S.doit(deep=True)
         return S
@@ -322,6 +326,15 @@ class DiscreteSignal(Signal):
             P = (sp.S.One / (2 * Nmax + 1)) * self.energy(Nmax)
         return P
 
+    @property
+    def is_causal(self):
+        if self.is_periodic:
+            return False
+        if self[-10:0] != [sp.S.Zero]*10:
+            return False
+        s = self.sum(high=-1)
+        return s == sp.S.Zero
+
 class Undefined(DiscreteSignal):
 
     def __new__(cls, name, iv=None, period=None, duration=None, codomain=sp.S.Reals):
@@ -340,6 +353,10 @@ class Undefined(DiscreteSignal):
         # pylint: disable-msg=too-many-function-args
         return Signal.__new__(cls, undef, iv, None, sp.S.Integers, codomain)
         # pylint: enable-msg=too-many-function-args
+
+    @property
+    def is_causal(self):
+        return self.duration is not None
 
 
 class Constant(DiscreteSignal):

@@ -379,6 +379,10 @@ class Signal(sp.Basic):
         return P is not None and P.is_finite and not P.is_zero
 
     @property
+    def is_causal(self):
+        raise NotImplementedError
+    
+    @property
     def abs(self):
         return self.clone(None, sp.Abs(self.amplitude), period=None)
 

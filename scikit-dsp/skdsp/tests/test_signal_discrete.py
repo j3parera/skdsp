@@ -134,10 +134,11 @@ class Test_Constant(object):
         assert d.real == ds.Constant(3)
         assert d.imag_part == 5
         assert d.imag == ds.Constant(5)
-        assert d.is_periodic == True
+        assert d.is_periodic
         assert d.period == 1
         assert d.support == sp.S.Integers
         assert d.duration == None
+        assert not d.is_causal
 
         f = sp.lambdify(d.iv, d.amplitude)
         assert f(0) == complex(3, 5)
@@ -165,7 +166,7 @@ class Test_Delta(object):
         assert g == UnitStep(ds.n) - UnitStep(ds.n - 1)
 
         g = f(ds.n).rewrite(sp.Piecewise)
-        assert g == sp.Piecewise((0, sp.Ne(ds.n, 0)), (1, True))
+        assert g == sp.Piecewise((1, sp.Eq(ds.n, 0)), (0, True))
 
         f = UnitDelta(ds.k)
         assert str(f) == "UnitDelta(k)"
@@ -275,6 +276,7 @@ class Test_Delta(object):
         assert d.period == None
         assert d.support == sp.Range(0, 1)
         assert d.duration == 1
+        assert d.is_causal
 
         N = sp.Symbol("N", integer=True, positive=True)
         assert d.energy(2) == 1
@@ -292,6 +294,10 @@ class Test_Delta(object):
         x = f(np.array([-1, 0, 1]))
         np.testing.assert_array_equal(x, [0, 1, 0])
 
+        d = ds.Delta().shift(1)
+        assert d.is_causal
+        d = ds.Delta().shift(-1)
+        assert not d.is_causal
 
 class Test_Step(object):
     def test_Step_function(self):
@@ -433,6 +439,7 @@ class Test_Step(object):
         assert d.period == None
         assert d.support == sp.Range(0, sp.S.Infinity)
         assert d.duration == sp.S.Infinity
+        assert d.is_causal
 
         N = sp.Symbol("N", integer=True, positive=True)
         assert d.energy(2) == 3
@@ -450,6 +457,10 @@ class Test_Step(object):
         x = f([-1, 0, 1])
         np.testing.assert_array_equal(x, [0, 1, 1])
 
+        d = ds.Step().shift(1)
+        assert d.is_causal
+        d = ds.Step().shift(-1)
+        assert not d.is_causal
 
 class Test_Ramp(object):
     def test_Ramp_function(self):
@@ -479,7 +490,8 @@ class Test_Ramp(object):
         assert g.dummy_eq(sp.Sum(UnitStep(k - 1), (k, sp.S.NegativeInfinity, ds.n)))
 
         g = f(ds.n).rewrite(sp.Piecewise)
-        assert g == sp.Piecewise((ds.n, ds.n >= 0), (0, True))
+        # assert g == sp.Piecewise((ds.n, ds.n >= 0), (0, True))
+        assert g == sp.Piecewise((ds.n, ds.n > 0), (0, True))
 
         g = f(ds.n).rewrite(sp.Max)
         assert g == sp.Max(0, ds.n)
@@ -593,6 +605,7 @@ class Test_Ramp(object):
         assert d.period == None
         assert d.support == sp.Range(1, sp.S.Infinity)
         assert d.duration == sp.S.Infinity
+        assert d.is_causal
 
         N = sp.Symbol("N", integer=True, positive=True)
         assert d.energy(2) == 5
@@ -610,6 +623,13 @@ class Test_Ramp(object):
         assert f(2) == 2
         x = f(np.array([-1, 0, 1, 2]))
         np.testing.assert_array_equal(x, [0, 0, 1, 2])
+
+        d = ds.Ramp().shift(1)
+        assert d.is_causal
+        d = ds.Ramp().shift(-1)
+        assert d.is_causal
+        d = ds.Ramp().shift(-2)
+        assert not d.is_causal
 
 
 class Test_DeltaTrain(object):
@@ -776,6 +796,8 @@ class Test_DeltaTrain(object):
         assert d.period == N
         assert d.support == sp.S.Integers
         assert d.duration == None
+        assert not d.is_causal
+
 
         f = sp.lambdify(d.iv, d.amplitude)
         assert f(0) == 1
@@ -1039,14 +1061,17 @@ class Test_Data(object):
         s = ds.Data([1, 2, 3], periodic=True, iv=ds.n)
         assert s.support == sp.S.Integers
         assert s.duration == None
+        assert not s.is_causal
 
         s = ds.Data([1, 2, 3, 4], start=10, periodic=True, iv=ds.n)
         assert s.support == sp.S.Integers
         assert s.duration == None
+        assert not s.is_causal
 
         s = ds.Data([1, 2, 3], start=10, periodic=False, iv=ds.n)
         assert s.support == sp.Range(10, 13)
         assert s.duration == 13
+        assert s.is_causal
 
         s = ds.Data([1, 2, 3], periodic=True, iv=ds.n)
         f = sp.lambdify(s.iv, s.amplitude)
@@ -1316,6 +1341,7 @@ class Test_Sinusoid(object):
             )
             == sp.S.Zero
         )
+        assert not d.is_causal
 
         x = sp.Symbol("x", real=True)
         d = ds.Sinusoid(x, sp.S.Pi / 4, sp.S.Pi / 12)
@@ -1705,16 +1731,19 @@ class Test_Exponential(object):
         assert s.amplitude == sp.Pow(0.5, ds.n)
         assert s.phasor == 1
         assert s.carrier == 1
+        assert not s.is_causal
 
         s = ds.Exponential(alpha=-1)
         assert s.amplitude == sp.Pow(-1, ds.n)
         assert s.phasor == 1
         assert s.carrier == sp.exp(sp.I * sp.S.Pi * ds.n)
+        assert not s.is_causal
 
         s = ds.Exponential(2, sp.Rational(1, 2))
         assert sp.simplify(s.amplitude - 2 * sp.Pow(sp.Rational(1, 2), ds.n)) == 0
         assert s.phasor == 2
         assert s.carrier == 1
+        assert not s.is_causal
 
         s = ds.Exponential(
             -2 * sp.exp(sp.I * sp.S.Pi / 10), 3 * sp.exp(sp.I * sp.S.Pi / 4)
@@ -1729,6 +1758,7 @@ class Test_Exponential(object):
         )
         assert s.phasor == 2 * sp.exp(-9 * sp.I * sp.S.Pi / 10)
         assert s.carrier == sp.exp(sp.I * sp.S.Pi * ds.n / 4)
+        assert not s.is_causal
 
         omega, A = sp.symbols("omega A", real=True, positive=True)
         N = sp.Symbol("N", integer=True, positive=True)
@@ -1741,6 +1771,7 @@ class Test_Exponential(object):
         assert s.mean_power(N) == A ** 2
         assert s.mean_power() == A ** 2
         assert s.is_power == True
+        assert not s.is_causal
 
 
 class Test_Undefined(object):
@@ -1876,6 +1907,7 @@ class Test_Undefined(object):
         assert d.period == None
         assert d.support == sp.S.Integers
         assert d.duration == None
+        assert not d.is_causal
 
         d = ds.Undefined("x", period=10)
         assert d.amplitude == x(ds.n)
@@ -1906,6 +1938,7 @@ class Test_Undefined(object):
         assert d.period == None
         assert d.support == sp.Range(0, 10)
         assert d.duration == 10
+        assert d.is_causal
 
         f = sp.lambdify(d.iv, d.amplitude)
         with pytest.raises(NameError):
