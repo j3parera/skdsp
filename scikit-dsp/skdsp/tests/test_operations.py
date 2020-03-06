@@ -380,15 +380,10 @@ class Test_Print(object):
         s = x.display(range(-1, 7))
         assert s == "{ \u22ef 0, _0_, 0, 0, 0, 0, 0.9, 0 \u22ef }"
 
-    # def test_Stem(self):
-    #     x = 0.9 * ds.Delta().shift(5)
-    #     x.stem(range(-1, 7))
-
     def test_Plot(self):
         x = ds.DeltaTrain(N=4)
         ax = x.ipystem(range(-3, 16))
         assert ax is not None
-        # stem(x.amplitude, (ds.n, -3, 15))
 
 
 class Test_Summations(object):
