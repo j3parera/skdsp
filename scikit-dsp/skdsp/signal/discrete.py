@@ -180,7 +180,7 @@ class DiscreteSignal(Signal):
         if iv is not None and (not iv.is_symbol or not iv.is_integer):
             raise ValueError("Invalid independent variable.")
         # pylint: disable-msg=too-many-function-args
-        return Signal.__new__(cls, amp, iv, period, sp.S.Integers, codomain)
+        return Signal.__new__(cls, amp, iv, sp.S.Integers, codomain, period)
         # pylint: enable-msg=too-many-function-args
 
     def __str__(self, *_args, **_kwargs):
@@ -351,7 +351,7 @@ class Undefined(DiscreteSignal):
         elif hasattr(undef, 'duration'):
             del undef.duration
         # pylint: disable-msg=too-many-function-args
-        return Signal.__new__(cls, undef, iv, None, sp.S.Integers, codomain)
+        return Signal.__new__(cls, undef, iv, sp.S.Integers, codomain, None)
         # pylint: enable-msg=too-many-function-args
 
     @property
@@ -374,7 +374,7 @@ class Constant(DiscreteSignal):
             raise ValueError("const value is not constant")
         codomain = sp.S.Reals if const in sp.S.Reals else sp.S.Complexes
         # pylint: disable-msg=too-many-function-args
-        return Signal.__new__(cls, const, iv, sp.S.One, sp.S.Integers, codomain)
+        return Signal.__new__(cls, const, iv, sp.S.Integers, codomain, sp.S.One)
         # pylint: enable-msg=too-many-function-args
 
     @property

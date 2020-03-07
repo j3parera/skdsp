@@ -18,7 +18,7 @@ class Signal(sp.Basic):
     is_conmutative = True
 
     def __new__(
-        cls, amplitude, iv=None, period=None, domain=None, codomain=None,
+        cls, amplitude, iv=None, domain=None, codomain=None, period=None
     ):
         # amplitude
         amplitude = sp.sympify(amplitude)
@@ -52,27 +52,20 @@ class Signal(sp.Basic):
             codomain = sp.sympify(codomain)
             if codomain not in [sp.S.Reals, sp.S.Complexes]:
                 raise ValueError("The codomain is not valid")
-        # period
-        # TODO defer computation of period. Then it will lose arg status and
-        # will become just a property
-        # Se podría usar Ellipsis para indicar que no está calculado:
-        # --> period = valor, None si no es periódica o Ellipsis si no se ha calculado aún
-        if period is None:
-            try:
-                period = cls._periodicity(amplitude, iv, domain)
-            except:
-                period = None
-        else:
-            period = sp.sympify(period)
-            # known to be non periodic
-            if period == sp.S.Zero:
-                period = None
         # undefs
         if isinstance(amplitude, AppliedUndef):
             if hasattr(amplitude, "period") and hasattr(amplitude, "duration"):
                 raise ValueError("Period and Duration are incompatible fetures.")
         # objeto
-        obj = sp.Basic.__new__(cls, amplitude, iv, period, domain, codomain)
+        obj = sp.Basic.__new__(cls, amplitude, iv, domain, codomain)
+        if period is not None:
+            period = sp.sympify(period)
+            # known to be non periodic
+            if period == sp.S.Zero:
+                period = None
+        else:
+            period = Ellipsis
+        obj._period = period
         return obj
 
     def __init__(self, *args, **kwargs):
@@ -175,9 +168,9 @@ class Signal(sp.Basic):
             cls = self._upclass()
         args = {
             "iv": self.iv,
-            "period": self.period,
             "domain": self.domain,
             "codomain": self.codomain,
+            "period": self._period,
         }
         for key, value in kwargs.items():
             args[key] = value
@@ -197,7 +190,7 @@ class Signal(sp.Basic):
         return obj
 
     def __getnewargs__(self):
-        return (*self.args,)
+        return (*self.args, self._period)
 
     def _hashable_content(self):
         return sp.Basic._hashable_content(self)
@@ -228,15 +221,20 @@ class Signal(sp.Basic):
 
     @property
     def period(self):
-        return self.args[2]
+        if self._period == Ellipsis:
+            try:
+                self._period = self._periodicity(self.amplitude, self.iv, self.domain)
+            except:
+                self._period = None
+        return self._period
 
     @property
     def domain(self):
-        return self.args[3]
+        return self.args[2]
 
     @property
     def codomain(self):
-        return self.args[4]
+        return self.args[3]
 
     @property
     def is_periodic(self):
@@ -482,7 +480,6 @@ class Signal(sp.Basic):
         equal = (
             (other.domain == self.domain)
             and (other.codomain == self.codomain)
-            and (other.period == self.period)
         )
         if not equal:
             return False
@@ -587,7 +584,7 @@ class Signal(sp.Basic):
             # pylint: disable-msg=too-many-function-args
             cls = self._upclass()
             other = Signal.__new__(
-                cls, other, self.iv, None, self.domain, self.codomain
+                cls, other, self.iv, self.domain, self.codomain, None
             )
             return (other, self._join_period(other), self._join_codomain(other))
             # pylint: enable-msg=too-many-function-args
