@@ -194,13 +194,11 @@ class Test_Discrete_Arithmetic(object):
         assert isinstance(s, ds.Delta)
         assert s.is_discrete == True
 
-        # problemas con s = sp.I * ds.Delta() porque sympy lo intenta interpretar como Expr * Expr
         s = sp.I * ds.Delta()
         assert s[-1:2] == [0, sp.I, 0]
         assert isinstance(s, ds.Delta)
         assert s.is_discrete == True
 
-        # TODO productos de u[n]
         s = 2 * ds.Step().shift(3) * ds.Step().shift(5)
         assert s == 2 * ds.Step().shift(5)
 
