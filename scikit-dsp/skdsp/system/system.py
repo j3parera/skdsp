@@ -1,4 +1,5 @@
 import sympy as sp
+from sympy.core.decorators import call_highest_priority
 from sympy.core.logic import fuzzy_not
 
 from skdsp.signal.signal import Signal
@@ -316,5 +317,3 @@ class System(sp.Basic):
         return self * other
 
     __imul__ = __mul__
-
-

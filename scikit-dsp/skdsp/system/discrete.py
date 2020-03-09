@@ -67,6 +67,8 @@ class Zero(DiscreteSystem):
     def apply(self, _ins):
         return Constant(0)
 
+Null = Zero
+
 class Identity(DiscreteSystem):
 
     _depends_on_inputs = True
@@ -86,6 +88,8 @@ class Identity(DiscreteSystem):
 
     def apply(self, ins):
         return ins
+
+One = Identity
 
 class Delay(DiscreteSystem):
 
