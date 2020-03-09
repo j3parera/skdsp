@@ -1,8 +1,14 @@
 import sympy as sp
+from sympy.core.logic import fuzzy_not
+
 from skdsp.signal.signal import Signal
 
 
 class System(sp.Basic):
+
+    _op_priority = 16
+    is_conmutative = True
+
     def __new__(cls, T, x, y):
         if not x.is_Function or not y.is_Function:
             raise ValueError("Input and output must be functions.")
@@ -12,7 +18,7 @@ class System(sp.Basic):
         if not sol:
             raise ValueError("Mapping doesn't solve for output signal.")
         T = sol[0]
-        if not T.has(x.func):
+        if not T.has(x.func) and not T.is_constant(x.args[0]):
             raise ValueError("Mapping doesn't depends on input signal.")
         domain = sp.S.Integers if x.args[0].is_integer else sp.S.Reals
         codomain = sp.S.Integers if y.args[0].is_integer else sp.S.Reals
@@ -94,12 +100,12 @@ class System(sp.Basic):
                 return True
         return False
 
-    def is_compatible(self, other):
+    def is_compatible(self, other, lti=False):
         if isinstance(other, System):
-            if (self.is_discrete and other.is_discrete) or (
-                self.is_continuous and other.is_continuos
-            ):
-                return True
+            domain_ok = (self.is_discrete and other.is_discrete) or (self.is_continuous and other.is_continuos)
+            lti_ok = True if not lti else self.is_lti and other.is_lti
+            return domain_ok and lti_ok
+        return False
 
     @property
     def is_recursive(self):
@@ -254,3 +260,61 @@ class System(sp.Basic):
             for s, v in zip(self.mapping.free_symbols, args):
                 p[s] = v
         return self.eval(x, p)
+
+    def clone(self, cls, T):
+        # TODO
+        raise NotImplementedError
+
+    def h2T(self, h):
+        # TODO
+        raise NotImplementedError
+
+    def _check_other(self, other):
+        if isinstance(other, System):
+            if self.is_compatible(other, lti=True):
+                return other
+        return NotImplemented
+
+    def __add__(self, other):
+        other = self._check_other(other)
+        if other is NotImplemented:
+            return other
+        h = self.impulse_response + other.impulse_response
+        obj = self.clone(None, self._h2T)
+        return obj
+
+    @call_highest_priority("__add__")
+    def __radd__(self, other):
+        return self + other
+
+    __iadd__ = __add__
+
+    def __sub__(self, other):
+        other = self._check_other(other)
+        if other is NotImplemented:
+            return other
+        h = self.impulse_response - other.impulse_response
+        obj = self.clone(None, self._h2T)
+        return obj
+
+    @call_highest_priority("__sub__")
+    def __rsub__(self, other):
+        return (-self) + other
+
+    __isub__ = __sub__
+
+    def __mul__(self, other):
+        other = self._check_other(other)
+        if other is NotImplemented:
+            return other
+        h = self.impulse_response.convolve(other.impulse_response)
+        obj = self.clone(None, self._h2T)
+        return obj
+
+    @call_highest_priority("__mul__")
+    def __rmul__(self, other):
+        return self * other
+
+    __imul__ = __mul__
+
+

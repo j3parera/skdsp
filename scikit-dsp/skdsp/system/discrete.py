@@ -1,7 +1,7 @@
 import sympy as sp
 from skdsp.system.system import System
 from skdsp.signal.signal import Signal
-from skdsp.signal.discrete import n, Delta
+from skdsp.signal.discrete import n, Delta, Constant
 
 __all__ = [s for s in dir() if not s.startswith("_")]
 
@@ -46,6 +46,26 @@ class DiscreteSystem(System):
     def is_iir(self):
         # TODO
         raise NotImplementedError
+
+class Zero(DiscreteSystem):
+
+    _depends_on_inputs = False
+    _depends_on_outputs = False
+    is_memoryless = True
+    is_time_invariant = True
+    is_linear = True
+    is_causal = True
+    is_anticausal = False
+    is_recursive = False
+    is_stable = True
+    is_lti = True
+
+    def __new__(cls):
+        T = sp.Eq(_y(n), sp.S.Zero)
+        return DiscreteSystem.__new__(cls, T)
+
+    def apply(self, _ins):
+        return Constant(0)
 
 class Identity(DiscreteSystem):
 
