@@ -30,6 +30,7 @@ class DiscreteSystem(System):
         return self.apply(Delta(n))
 
     def convolve(self, other):
+        # TODO ¿es todo? ¿separar aquí la convolución periódica?
         if not self.is_lti:
             return None
         if isinstance(other, Signal):
@@ -37,6 +38,14 @@ class DiscreteSystem(System):
         if self.is_compatible(other) and other.is_lti:
             return self.impulse_response.convolve(other.impulse_response)
         raise TypeError("Cannot convolve.")
+
+    def is_fir(self):
+        # TODO
+        raise NotImplementedError
+
+    def is_iir(self):
+        # TODO
+        raise NotImplementedError
 
 class Identity(DiscreteSystem):
 

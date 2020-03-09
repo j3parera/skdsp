@@ -547,12 +547,13 @@ class Test_KK(object):
         y3f = ds.Data(ds.filter(B, A, x(span)), iv=ds.n)
 
     def test_dsolve(self):
-        from sympy import Function, dsolve, pprint, exp, cos, KroneckerDelta
-        from sympy.abc import x
+        f = sp.Function("f")
+        ode = f(ds.n).diff(ds.n, 2) + 2 * f(ds.n).diff(ds.n) + f(ds.n)
+        sol = sp.dsolve(ode, f(ds.n), hint='nth_linear_constant_coeff_homogeneous')
+        assert sol is not None
 
-        f = Function("f")
-        ode = f(x).diff(x, 2) + 2 * f(x).diff(x) + f(x)
-        sol = dsolve(ode, f(x), hint='nth_linear_constant_coeff_homogeneous')
+        ode = sp.Eq(f(ds.n).diff(ds.n, 2) + 2 * f(ds.n).diff(ds.n) + f(ds.n), 4 * sp.exp(-ds.n) * ds.n ** 2 + sp.cos(2 * ds.n))
+        sol = sp.dsolve(ode, f(ds.n), hint='nth_linear_constant_coeff_undetermined_coefficients')
         assert sol is not None
 
     def test_recursion(self):
@@ -580,10 +581,19 @@ class Test_KK(object):
     def test_rsolve(self):
         y = sp.Function('y')
         x = sp.Function('x')
-        f = y(ds.n) - sp.S(1)/8 * sp.cos(sp.S.Pi/4) * y(ds.n-1) + sp.S(81)/100 * y(ds.n-2)
+        rr = y(ds.n) - sp.S(1)/9 * sp.cos(sp.S.Pi/16) * y(ds.n-1) + sp.S(81)/100 * y(ds.n-2)
         try:
-            sol = sp.rsolve(f, y(ds.n))
+            sol = sp.rsolve(rr, y(ds.n))
         except ValueError as e:
+            # sympy issue #18751
+            sol = e
+        assert sol is not None
+
+        coeffs = [sp.S(81) / 100, -sp.S(1) / 9 * sp.cos(sp.S.Pi / 16), 1]
+        try:
+            sol = sp.rsolve_hyper(coeffs, f=0, n=ds.n, symbols=True)
+        except ValueError as e:
+            # sympy issue #18751
             sol = e
         assert sol is not None
 
