@@ -12,26 +12,6 @@ __all__ = [s for s in dir() if not s.startswith("_")]
 n, m, k = sp.symbols("n, m, k", integer=True)
 
 
-def filter(B, A, x, ci=None):
-    # muy preliminar
-    # transposed DFII
-    mm = max(len(B), len(A))
-    B = B + [0] * (mm - len(B))
-    B = sp.S(B)
-    A = A + [0] * (mm - len(A))
-    A = [sp.S(a) / sp.S(A[0]) for a in A]
-    M = sp.S(ci) if ci is not None else sp.S([0] * (mm - 1))
-    Y = sp.S([0] * len(x))
-    x = sp.S(x)
-    for k, v in enumerate(x):
-        y = B[0] * v + M[0]
-        Y[k] = y
-        for m in range(0, len(M) - 1):
-            M[m] = B[m + 1] * v - A[m + 1] * y + M[m + 1]
-        M[-1] = B[-1] * v - A[-1] * y
-    return Y
-
-
 class DiscreteSignal(Signal):
     @classmethod
     def _transmute_renew(cls, obj):

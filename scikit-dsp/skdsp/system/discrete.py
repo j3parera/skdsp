@@ -9,6 +9,26 @@ _x = sp.Function("x", real=True)
 _y = sp.Function("y", real=True)
 
 
+def filter(B, A, x, ci=None):
+    # muy preliminar
+    # transposed DFII
+    mm = max(len(B), len(A))
+    B = B + [0] * (mm - len(B))
+    B = [sp.S(b) / sp.S(A[0]) for b in B]
+    A = A + [0] * (mm - len(A))
+    A = [sp.S(a) / sp.S(A[0]) for a in A]
+    M = sp.S(ci) if ci is not None else sp.S([0] * (mm - 1))
+    Y = sp.S([0] * len(x))
+    x = sp.S(x)
+    for k, v in enumerate(x):
+        y = B[0] * v + M[0]
+        Y[k] = y
+        for m in range(0, len(M) - 1):
+            M[m] = B[m + 1] * v - A[m + 1] * y + M[m + 1]
+        M[-1] = B[-1] * v - A[-1] * y
+    return Y
+
+
 class DiscreteSystem(System):
     
     is_discrete = True
@@ -23,11 +43,13 @@ class DiscreteSystem(System):
         T = sp.sympify(T)
         return System.__new__(cls, T, _x(n), _y(n))
 
-    @property
-    def impulse_response(self):
-        if not self.is_lti:
+    def impulse_response(self, force_lti=False, select='causal'):
+        if self.is_lti:
+            return self.apply(Delta(n))
+        if self.is_recursive and force_lti:
+            # TODO
             return None
-        return self.apply(Delta(n))
+        return None
 
     def convolve(self, other):
         # TODO ¿es todo? ¿separar aquí la convolución periódica?
