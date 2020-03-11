@@ -289,4 +289,9 @@ def stepsimp(expr):
         m = expr.match(sp.Piecewise((e, iv >= k), (0, True)))
         if m:
             expr = m[e] * UnitStep(m[iv] - m[k])
+            return expr
+        m = expr.match(sp.Piecewise((0, iv < k), (e, True)))
+        if m:
+            expr = m[e] * UnitStep(m[iv] - m[k])
+            return expr
     return expr
