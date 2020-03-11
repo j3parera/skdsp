@@ -5,14 +5,67 @@ from sympy.solvers.ode import get_numbered_constants
 
 class LCCDE(sp.Basic):
     
+    @classmethod
+    def from_expression(cls, f, x, y):
+        if isinstance(f, sp.Equality):
+            f = f.lhs - f.rhs
+        n = y.args[0]
+        k = sp.Wild('k', exclude=(n,))
+        # Preprocess user input to allow things like
+        # y(n) + a*(y(n + 1) + y(n - 1))/2
+        f = f.expand().collect(y.func(sp.Wild('m', integer=True)))
+        h_part = defaultdict(lambda: sp.S.Zero)
+        i_part = defaultdict(lambda: sp.S.Zero)
+        for g in sp.Add.make_args(f):
+            coeff = sp.S.One
+            kspec = None
+            for h in sp.Mul.make_args(g):
+                if h.is_Function:
+                    if h.func == y.func:
+                        result = h.args[0].match(n + k)
+                        if result is not None:
+                            kspec = int(result[k])
+                            if kspec is not None:
+                                h_part[kspec] += coeff
+                        else:
+                            raise ValueError("'%s(%s + k)' expected, got '%s'" % (y.func, n, h))
+                    elif h.func == x.func:
+                        result = h.args[0].match(n + k)
+                        if result is not None:
+                            kspec = int(result[k])
+                            if kspec is not None:
+                                i_part[kspec] += -coeff
+                        else:
+                            raise ValueError("'%s(%s + k)' expected, got '%s'" % (x.func, n, h))
+                    else:
+                        if not h.is_constant(n):
+                            raise ValueError("Non constant coefficient found: {0}".format(h))
+                else:
+                    if not h.is_constant(n):
+                        raise ValueError("Non constant coefficient found: {0}".format(h))
+                    coeff *= h
+        if h_part:
+            if max(h_part.keys()) > 0:
+                raise ValueError("Equation is not recursive.")
+            K_min = min(h_part.keys())
+            A = [sp.simplify(h_part[i]) for i in range(0, K_min - 1, -1)]
+        else:
+            A = [sp.S.One]
+        if i_part:
+            if max(i_part.keys()) > 0:
+                raise ValueError("Equation is not recursive.")
+            K_min = min(i_part.keys())
+            B = [sp.simplify(i_part[i]) for i in range(0, K_min - 1, -1)]
+        else:
+            B = [sp.S.One]
+        obj = LCCDE.__new__(cls, B, A)
+        return obj
+    
     def __new__(cls, B=[], A=[]):
         n = sp.Symbol('n', integer=True)
         x = sp.Function('x')(n)
         y = sp.Function('y')(n)
-        mm = max(len(B), len(A))
-        B = B + [0] * (mm - len(B))
         B = [sp.S(b) / sp.S(A[0]) for b in B]
-        A = A + [0] * (mm - len(A))
         A = [sp.S(a) / sp.S(A[0]) for a in A]
         obj = sp.Basic.__new__(cls, x, y, B, A)
         return obj
@@ -40,6 +93,16 @@ class LCCDE(sp.Basic):
     @property
     def order(self):
         return len(self.A) - 1
+
+    @property
+    def as_expression(self):
+        ey = sp.S.Zero
+        for k, c in enumerate(self.A):
+            ey += c * self.y.subs(self.iv, (self.iv - k))
+        ex = sp.S.Zero
+        for k, c in enumerate(self.B):
+            ex += c * self.x.subs(self.iv, (self.iv - k))
+        return sp.Eq(ey, ex)        
 
     def solve_homogeneous(self, ac=None):
         n = self.iv

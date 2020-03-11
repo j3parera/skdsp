@@ -5,6 +5,72 @@ from sympy.solvers.ode import ode_nth_linear_constant_coeff_homogeneous
 
 from skdsp.signal.discrete import Constant, Data, Delta, Exponential, Step, n
 from skdsp.system.discrete import Delay, DiscreteSystem, Identity, Zero, filter
+from skdsp.util.lccde import LCCDE
+
+
+class Test_DiscreteSystem(object):
+
+    def test_DiscreteSystem_as_LCCDE(self):
+        n = sp.Symbol("n", integer=True)
+        k = sp.Symbol("k", integer=True)
+        x = sp.Function("x", real=True)
+        y = sp.Function("y", real=True)
+
+        T = sp.Eq(y(n), x(n) - x(n - 1))
+        S = DiscreteSystem(T)
+        eq = S.as_lccde
+        assert isinstance(eq, LCCDE)
+        assert eq.B == [sp.S.One, -sp.S.One] 
+        assert eq.A == [sp.S.One] 
+
+        T = sp.Eq(y(n), x(n) - y(n - 1))
+        S = DiscreteSystem(T)
+        eq = S.as_lccde
+        assert isinstance(eq, LCCDE)
+        assert eq.B == [sp.S.One] 
+        assert eq.A == [sp.S.One, sp.S.One] 
+
+        T = sp.Eq(y(n), -10 * x(n))
+        S = DiscreteSystem(T)
+        eq = S.as_lccde
+        assert isinstance(eq, LCCDE)
+        assert eq.B == [-10] 
+        assert eq.A == [sp.S.One] 
+
+        T = sp.Eq(y(n), y(n - 1) + sp.Sum(x(k), (k, sp.S.NegativeInfinity, n)))
+        S = DiscreteSystem(T)
+        eq = S.as_lccde
+        assert eq is None
+
+        T = sp.Eq(y(n), y(n + 1) + sp.Sum(x(k), (k, sp.S.NegativeInfinity, n)))
+        S = DiscreteSystem(T)
+        eq = S.as_lccde
+        assert eq is None
+
+        T = sp.Eq(y(n), y(n + 1) + sp.Sum(x(k), (k, sp.S.NegativeInfinity, n + 1)))
+        S = DiscreteSystem(T)
+        eq = S.as_lccde
+        assert eq is None
+
+        T = sp.Eq(y(n), x(n) + 3 * x(n + 4))
+        S = DiscreteSystem(T)
+        eq = S.as_lccde
+        assert eq is None
+
+        T = sp.Eq(y(n), x(n ** 2))
+        S = DiscreteSystem(T)
+        eq = S.as_lccde
+        assert eq is None
+
+        T = sp.Eq(y(n), x(2 * n))
+        S = DiscreteSystem(T)
+        eq = S.as_lccde
+        assert eq is None
+
+        T = sp.Eq(y(n), x(-n))
+        S = DiscreteSystem(T)
+        eq = S.as_lccde
+        assert eq is None
 
 
 class Test_Zero(object):

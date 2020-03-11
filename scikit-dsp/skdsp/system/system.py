@@ -3,6 +3,7 @@ from sympy.core.decorators import call_highest_priority
 from sympy.core.logic import fuzzy_not
 
 from skdsp.signal.signal import Signal
+from skdsp.util.lccde import LCCDE
 
 
 class System(sp.Basic):
@@ -45,6 +46,10 @@ class System(sp.Basic):
     @property
     def codomain(self):
         return self.args[4]
+
+    @property
+    def as_lccde(self):
+        raise NotImplementedError
 
     def _traverse_compare_iv(self, cmpfcn, fcn):
         insum = False

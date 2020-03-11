@@ -2,6 +2,7 @@ import sympy as sp
 from skdsp.system.system import System
 from skdsp.signal.signal import Signal
 from skdsp.signal.discrete import n, Delta, Constant
+from skdsp.util.lccde import LCCDE
 
 __all__ = [s for s in dir() if not s.startswith("_")]
 
@@ -60,6 +61,14 @@ class DiscreteSystem(System):
         if self.is_compatible(other) and other.is_lti:
             return self.impulse_response.convolve(other.impulse_response)
         raise TypeError("Cannot convolve.")
+
+    @property
+    def as_lccde(self):
+        try:
+            eq = sp.Eq(self.output_, self.mapping)
+            return LCCDE.from_expression(eq, self.input_, self.output_)
+        except:
+            return None     
 
     def is_fir(self):
         # TODO
