@@ -14,6 +14,7 @@ class SignalLatexPrinter(LatexPrinter):
         return self.apply_rules(ltx, iv)
 
     def apply_rules(self, ltx, iv):
+        # TODO las reglas no funcionan bien si hay más de una coincidencia
         rules = inspect.getmembers(self, inspect.ismethod)
         for rule in rules:
             if rule[0].startswith("rule"):

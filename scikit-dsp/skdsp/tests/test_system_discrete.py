@@ -13,64 +13,75 @@ class Test_DiscreteSystem(object):
     def test_DiscreteSystem_as_LCCDE(self):
         n = sp.Symbol("n", integer=True)
         k = sp.Symbol("k", integer=True)
-        x = sp.Function("x", real=True)
-        y = sp.Function("y", real=True)
+        x = sp.Function("x")
+        y = sp.Function("y")
 
-        T = sp.Eq(y(n), x(n) - x(n - 1))
-        S = DiscreteSystem(T)
-        eq = S.as_lccde
-        assert isinstance(eq, LCCDE)
-        assert eq.B == [sp.S.One, -sp.S.One] 
-        assert eq.A == [sp.S.One] 
+        # T = sp.Eq(y(n), x(n) - x(n - 1))
+        # S = DiscreteSystem(T)
+        # eq = S.as_lccde
+        # assert isinstance(eq, LCCDE)
+        # assert eq.B == [sp.S.One, -sp.S.One] 
+        # assert eq.A == [sp.S.One] 
 
-        T = sp.Eq(y(n), x(n) - y(n - 1))
-        S = DiscreteSystem(T)
-        eq = S.as_lccde
-        assert isinstance(eq, LCCDE)
-        assert eq.B == [sp.S.One] 
-        assert eq.A == [sp.S.One, sp.S.One] 
+        # T = sp.Eq(y(n), x(n) - y(n - 1))
+        # S = DiscreteSystem(T)
+        # eq = S.as_lccde
+        # assert isinstance(eq, LCCDE)
+        # assert eq.B == [sp.S.One] 
+        # assert eq.A == [sp.S.One, sp.S.One] 
 
-        T = sp.Eq(y(n), -10 * x(n))
-        S = DiscreteSystem(T)
-        eq = S.as_lccde
-        assert isinstance(eq, LCCDE)
-        assert eq.B == [-10] 
-        assert eq.A == [sp.S.One] 
+        # T = sp.Eq(y(n), -10 * x(n))
+        # S = DiscreteSystem(T)
+        # eq = S.as_lccde
+        # assert isinstance(eq, LCCDE)
+        # assert eq.B == [-10] 
+        # assert eq.A == [sp.S.One] 
 
-        T = sp.Eq(y(n), y(n - 1) + sp.Sum(x(k), (k, sp.S.NegativeInfinity, n)))
-        S = DiscreteSystem(T)
-        eq = S.as_lccde
-        assert eq is None
+        # T = sp.Eq(y(n), y(n - 1) + sp.Sum(x(k), (k, sp.S.NegativeInfinity, n)))
+        # S = DiscreteSystem(T)
+        # eq = S.as_lccde
+        # assert eq is None
 
-        T = sp.Eq(y(n), y(n + 1) + sp.Sum(x(k), (k, sp.S.NegativeInfinity, n)))
-        S = DiscreteSystem(T)
-        eq = S.as_lccde
-        assert eq is None
+        # T = sp.Eq(y(n), y(n + 1) + sp.Sum(x(k), (k, sp.S.NegativeInfinity, n)))
+        # S = DiscreteSystem(T)
+        # eq = S.as_lccde
+        # assert eq is None
 
-        T = sp.Eq(y(n), y(n + 1) + sp.Sum(x(k), (k, sp.S.NegativeInfinity, n + 1)))
-        S = DiscreteSystem(T)
-        eq = S.as_lccde
-        assert eq is None
+        # T = sp.Eq(y(n), y(n + 1) + sp.Sum(x(k), (k, sp.S.NegativeInfinity, n + 1)))
+        # S = DiscreteSystem(T)
+        # eq = S.as_lccde
+        # assert eq is None
 
-        T = sp.Eq(y(n), x(n) + 3 * x(n + 4))
-        S = DiscreteSystem(T)
-        eq = S.as_lccde
-        assert eq is None
+        # T = sp.Eq(y(n), x(n) + 3 * x(n + 4))
+        # S = DiscreteSystem(T)
+        # eq = S.as_lccde
+        # assert eq is None
 
-        T = sp.Eq(y(n), x(n ** 2))
-        S = DiscreteSystem(T)
-        eq = S.as_lccde
-        assert eq is None
+        # T = sp.Eq(y(n), x(n ** 2))
+        # S = DiscreteSystem(T)
+        # eq = S.as_lccde
+        # assert eq is None
 
-        T = sp.Eq(y(n), x(2 * n))
-        S = DiscreteSystem(T)
-        eq = S.as_lccde
-        assert eq is None
+        # T = sp.Eq(y(n), x(2 * n))
+        # S = DiscreteSystem(T)
+        # eq = S.as_lccde
+        # assert eq is None
 
-        T = sp.Eq(y(n), x(-n))
-        S = DiscreteSystem(T)
-        eq = S.as_lccde
-        assert eq is None
+        # T = sp.Eq(y(n), x(-n))
+        # S = DiscreteSystem(T)
+        # eq = S.as_lccde
+        # assert eq is None
+
+        y = sp.Function('y')
+        x = sp.Function('x')
+        n = sp.Symbol('n', integer=True)
+        # eq = sp.Eq(y(n) + sp.S(9)/10*y(n-2), sp.S(3)/10*x(n) + sp.S(6)/10*x(n-1) + sp.S(3)/10*x(n-2))
+        # eq = sp.Eq(y(n) + sp.S(9)/10*y(n-2), sp.S(3)/5*x(n-1) + sp.S(3)/100*x(n))
+        eq = sp.Eq(10*y(n) + 9*y(n-2), 3*x(n) + 6*x(n-1) + 3*x(n-2))
+        S = DiscreteSystem(eq)
+        h = S.impulse_response(force_lti=True)
+        s = h.latex()
+        assert h is not None
 
 
 class Test_Zero(object):

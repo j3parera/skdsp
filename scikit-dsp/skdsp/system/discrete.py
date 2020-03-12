@@ -1,13 +1,14 @@
 import sympy as sp
 from skdsp.system.system import System
 from skdsp.signal.signal import Signal
-from skdsp.signal.discrete import n, Delta, Constant
+from skdsp.signal.discrete import n, Delta, Constant, DiscreteSignal
 from skdsp.util.lccde import LCCDE
+from skdsp.signal.functions import stepsimp
 
 __all__ = [s for s in dir() if not s.startswith("_")]
 
-_x = sp.Function("x", real=True)
-_y = sp.Function("y", real=True)
+_x = sp.Function("x")
+_y = sp.Function("y")
 
 
 def filter(B, A, x, ci=None):
@@ -47,9 +48,15 @@ class DiscreteSystem(System):
     def impulse_response(self, force_lti=False, select='causal'):
         if self.is_lti:
             return self.apply(Delta(n))
-        if self.is_recursive and force_lti:
-            # TODO
-            return None
+        lccde = self.as_lccde
+        if lccde is not None and force_lti:
+            if select == 'causal':
+                he = lccde.solve_homogeneous(ac='initial_rest')
+            else:
+                # TODO
+                raise NotImplementedError
+            he = stepsimp(he)
+            return DiscreteSignal.from_formula(he, lccde.iv)
         return None
 
     def convolve(self, other):
