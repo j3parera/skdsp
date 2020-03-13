@@ -52,7 +52,7 @@ class DiscreteSignal(Signal):
                     )
                 done = True
             elif tcls == Constant:
-                obj = tcls(d[A], d[s] * obj.iv)
+                obj = tcls(d[A], obj.iv)
             # TODO otros casos
             if delay != 0:
                 obj = obj.shift(delay)
