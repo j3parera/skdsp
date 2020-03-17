@@ -34,6 +34,10 @@ class UnitDelta(sp.KroneckerDelta):
         # other is not Nan, 0 or 1
         return self
 
+    def _eval_subs(self, old, new):
+        if old == self.iv:
+            return UnitDelta(new)
+
     def __new__(cls, iv):
         obj = super().__new__(sp.KroneckerDelta, sp.S.Zero, iv)
         if isinstance(obj, sp.KroneckerDelta):
@@ -78,6 +82,8 @@ class UnitDelta(sp.KroneckerDelta):
 
 
 class UnitStep(sp.Function):
+
+    # TODO Derivar de sp.Heaviside(n, 1)
 
     nargs = 1
     is_finite = True
