@@ -3,7 +3,7 @@ from skdsp.system.system import System
 from skdsp.signal.signal import Signal
 from skdsp.signal.discrete import n, Delta, Constant, DiscreteSignal
 from skdsp.util.lccde import LCCDE
-from skdsp.signal.functions import stepsimp
+from skdsp.signal.functions import UnitDelta, UnitStep, stepsimp
 
 __all__ = [s for s in dir() if not s.startswith("_")]
 
@@ -51,10 +51,12 @@ class DiscreteSystem(System):
         lccde = self.as_lccde
         if lccde is not None and force_lti:
             if select == 'causal':
-                he = lccde.solve_homogeneous(ac='initial_rest')
-            else:
+                he = lccde.solve_forced(UnitDelta(n), ac='initial_rest')
+                he = he * UnitStep(n)
+            elif select == 'anticausal':
                 # TODO
-                raise NotImplementedError
+                he = lccde.solve_forced(UnitDelta(n), ac='final_rest')
+                he = he * UnitStep(-n-1) 
             he = stepsimp(he)
             return DiscreteSignal.from_formula(he, lccde.iv)
         return None
