@@ -38,7 +38,9 @@ class DiscreteSignal(Signal):
                 if d.get(N) is None:
                     om, pio = d[omg].as_independent(sp.S.Pi)
                     obj = tcls(
-                        d[A], sp.exp(sp.I * sp.Rational(sp.sstr(om))) * pio, d[s] * obj.iv
+                        d[A],
+                        sp.exp(sp.I * sp.Rational(sp.sstr(om))) * pio,
+                        d[s] * obj.iv,
                     )
                 elif d.get(omg) is None:
                     obj = tcls(d[A], d[N], obj.iv)
@@ -53,6 +55,10 @@ class DiscreteSignal(Signal):
                 done = True
             elif tcls == Constant:
                 obj = tcls(d[A], obj.iv)
+                done = True
+            elif tcls == Delta:
+                obj = d[A] * tcls(obj.iv)
+                done = True
             # TODO otros casos
             if delay != 0:
                 obj = obj.shift(delay)
@@ -109,9 +115,9 @@ class DiscreteSignal(Signal):
                 (A * UnitDeltaTrain((obj.iv - k), N), DeltaTrain),
             ]
         elif obj.amplitude.has(UnitStep):
-            patterns = [(A * UnitStep(s*obj.iv - k), Step)]
+            patterns = [(A * UnitStep(s * obj.iv - k), Step)]
         elif obj.amplitude.has(UnitRamp):
-            patterns = [(A * UnitRamp(s*obj.iv - k), Ramp)]
+            patterns = [(A * UnitRamp(s * obj.iv - k), Ramp)]
         elif obj.amplitude.has(sp.cos, sp.sin):
             patterns = [
                 (A * sp.cos(omg * (obj.iv - k) + phi), Sinusoid),
@@ -252,8 +258,8 @@ class DiscreteSignal(Signal):
                                             amp *= -sp.S.One
                                     except TypeError:
                                         # cannot compare, assume k1 > k0 ?
-                                            low = sp.Max(low, d[k0])
-                                            high = sp.Min(high, d[k1] - 1)
+                                        low = sp.Max(low, d[k0])
+                                        high = sp.Min(high, d[k1] - 1)
                                 elif d[n0] == -sp.S.One:
                                     amp = c * d[a0]
                                     if d[k0] <= d[k1]:
@@ -310,13 +316,13 @@ class DiscreteSignal(Signal):
     def is_causal(self):
         if self.is_periodic:
             return False
-        if self[-10:0] != [sp.S.Zero]*10:
+        if self[-10:0] != [sp.S.Zero] * 10:
             return False
         s = self.sum(high=-1)
         return s == sp.S.Zero
 
-class Undefined(DiscreteSignal):
 
+class Undefined(DiscreteSignal):
     def __new__(cls, name, iv=None, period=None, duration=None, codomain=sp.S.Reals):
         iv = sp.sympify(iv) if iv is not None else n
         if not isinstance(name, str):
@@ -324,11 +330,11 @@ class Undefined(DiscreteSignal):
         undef = sp.Function(name, nargs=1)(iv)
         if period is not None:
             undef.period = period
-        elif hasattr(undef, 'period'):
+        elif hasattr(undef, "period"):
             del undef.period
         if duration is not None:
             undef.duration = duration
-        elif hasattr(undef, 'duration'):
+        elif hasattr(undef, "duration"):
             del undef.duration
         # pylint: disable-msg=too-many-function-args
         return Signal.__new__(cls, undef, iv, sp.S.Integers, codomain, None)
@@ -378,9 +384,7 @@ class Delta(DiscreteSignal):
     def __new__(cls, iv=None):
         iv = sp.sympify(iv) if iv is not None else n
         # pylint: disable-msg=too-many-function-args
-        obj = DiscreteSignal.__new__(
-            cls, UnitDelta(iv), iv, sp.S.Zero, sp.S.Reals
-        )
+        obj = DiscreteSignal.__new__(cls, UnitDelta(iv), iv, sp.S.Zero, sp.S.Reals)
         # pylint: enable-msg=too-many-function-args
         obj.amplitude.__class__ = UnitDelta
         return obj
@@ -399,7 +403,8 @@ class Delta(DiscreteSignal):
 
     @property
     def support(self):
-        return sp.Range(0, 1)
+        inf = self._solve_iv(UnitDelta, 0)
+        return sp.Range(inf, inf + 1)
 
     def __repr__(self):
         return "Delta({0})".format(str(self))
@@ -414,9 +419,7 @@ class Step(DiscreteSignal):
     def __new__(cls, iv=None):
         iv = sp.sympify(iv) if iv is not None else n
         # pylint: disable-msg=too-many-function-args
-        obj = DiscreteSignal.__new__(
-            cls, UnitStep(iv), iv, sp.S.Zero, sp.S.Reals
-        )
+        obj = DiscreteSignal.__new__(cls, UnitStep(iv), iv, sp.S.Zero, sp.S.Reals)
         # pylint: enable-msg=too-many-function-args
         return obj
 
@@ -426,7 +429,8 @@ class Step(DiscreteSignal):
 
     @property
     def support(self):
-        return sp.Range(0, sp.S.Infinity)
+        inf = self._solve_iv(UnitStep, 0)
+        return sp.Range(inf, sp.S.Infinity)
 
     def __repr__(self):
         return "Step({0})".format(str(self))
@@ -441,9 +445,7 @@ class Ramp(DiscreteSignal):
     def __new__(cls, iv=None):
         iv = sp.sympify(iv) if iv is not None else n
         # pylint: disable-msg=too-many-function-args
-        obj = DiscreteSignal.__new__(
-            cls, UnitRamp(iv), iv, sp.S.Zero, sp.S.Reals
-        )
+        obj = DiscreteSignal.__new__(cls, UnitRamp(iv), iv, sp.S.Zero, sp.S.Reals)
         # pylint: enable-msg=too-many-function-args
         return obj
 
@@ -453,7 +455,8 @@ class Ramp(DiscreteSignal):
 
     @property
     def support(self):
-        return sp.Range(1, sp.S.Infinity)
+        inf = self._solve_iv(UnitRamp, 0)
+        return sp.Range(inf + 1, sp.S.Infinity)
 
     def __repr__(self):
         return "Ramp({0})".format(str(self))
@@ -474,9 +477,7 @@ class DeltaTrain(DiscreteSignal):
             raise ValueError("N must be an integer greater than 0.")
         iv = sp.sympify(iv) if iv is not None else n
         # pylint: disable-msg=too-many-function-args
-        obj = DiscreteSignal.__new__(
-            cls, UnitDeltaTrain(iv, N), iv, N, sp.S.Reals
-        )
+        obj = DiscreteSignal.__new__(cls, UnitDeltaTrain(iv, N), iv, N, sp.S.Reals)
         # pylint: enable-msg=too-many-function-args
         return obj
 
@@ -596,6 +597,10 @@ class _TrigonometricDiscreteSignal(DiscreteSignal):
     @property
     def phase(self):
         return self.phi
+
+    @property
+    def support(self):
+        return sp.S.Integers
 
     def _hashable_content(self):
         return (self.A, self.omega, self.phi) + super()._hashable_content(self)
