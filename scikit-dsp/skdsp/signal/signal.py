@@ -219,6 +219,12 @@ class Signal(sp.Basic):
     def iv(self):
         return self.args[1]
 
+    def _solve_iv(self, func, value):
+        f = list(self.amplitude.atoms(func))[0]
+        iv = f.iv
+        sols = sp.solve_linear(iv, value, [self.iv])
+        return sols[1]
+
     @property
     def period(self):
         if self._period == Ellipsis:
