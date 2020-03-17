@@ -296,8 +296,10 @@ class Test_Delta(object):
 
         d = ds.Delta().shift(1)
         assert d.is_causal
+        assert d.support == sp.Range(1, 2)
         d = ds.Delta().shift(-1)
         assert not d.is_causal
+        assert d.support == sp.Range(-1, 0)
 
 class Test_Step(object):
     def test_Step_function(self):
@@ -459,8 +461,10 @@ class Test_Step(object):
 
         d = ds.Step().shift(1)
         assert d.is_causal
+        assert d.support == sp.Range(1, sp.S.Infinity)
         d = ds.Step().shift(-1)
         assert not d.is_causal
+        assert d.support == sp.Range(-1, sp.S.Infinity)
 
 class Test_Ramp(object):
     def test_Ramp_function(self):
@@ -797,7 +801,6 @@ class Test_DeltaTrain(object):
         assert d.support == sp.S.Integers
         assert d.duration == None
         assert not d.is_causal
-
 
         f = sp.lambdify(d.iv, d.amplitude)
         assert f(0) == 1

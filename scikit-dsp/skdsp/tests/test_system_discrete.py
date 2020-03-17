@@ -6,6 +6,7 @@ from sympy.solvers.ode import ode_nth_linear_constant_coeff_homogeneous
 from skdsp.signal.discrete import Constant, Data, Delta, Exponential, Step, n
 from skdsp.system.discrete import Delay, DiscreteSystem, Identity, Zero, filter
 from skdsp.util.lccde import LCCDE
+from skdsp.signal.functions import UnitStep, UnitDelta
 
 
 class Test_DiscreteSystem(object):
@@ -16,73 +17,88 @@ class Test_DiscreteSystem(object):
         x = sp.Function("x")
         y = sp.Function("y")
 
-        # T = sp.Eq(y(n), x(n) - x(n - 1))
-        # S = DiscreteSystem(T)
-        # eq = S.as_lccde
-        # assert isinstance(eq, LCCDE)
-        # assert eq.B == [sp.S.One, -sp.S.One] 
-        # assert eq.A == [sp.S.One] 
-
-        # T = sp.Eq(y(n), x(n) - y(n - 1))
-        # S = DiscreteSystem(T)
-        # eq = S.as_lccde
-        # assert isinstance(eq, LCCDE)
-        # assert eq.B == [sp.S.One] 
-        # assert eq.A == [sp.S.One, sp.S.One] 
-
-        # T = sp.Eq(y(n), -10 * x(n))
-        # S = DiscreteSystem(T)
-        # eq = S.as_lccde
-        # assert isinstance(eq, LCCDE)
-        # assert eq.B == [-10] 
-        # assert eq.A == [sp.S.One] 
-
-        # T = sp.Eq(y(n), y(n - 1) + sp.Sum(x(k), (k, sp.S.NegativeInfinity, n)))
-        # S = DiscreteSystem(T)
-        # eq = S.as_lccde
-        # assert eq is None
-
-        # T = sp.Eq(y(n), y(n + 1) + sp.Sum(x(k), (k, sp.S.NegativeInfinity, n)))
-        # S = DiscreteSystem(T)
-        # eq = S.as_lccde
-        # assert eq is None
-
-        # T = sp.Eq(y(n), y(n + 1) + sp.Sum(x(k), (k, sp.S.NegativeInfinity, n + 1)))
-        # S = DiscreteSystem(T)
-        # eq = S.as_lccde
-        # assert eq is None
-
-        # T = sp.Eq(y(n), x(n) + 3 * x(n + 4))
-        # S = DiscreteSystem(T)
-        # eq = S.as_lccde
-        # assert eq is None
-
-        # T = sp.Eq(y(n), x(n ** 2))
-        # S = DiscreteSystem(T)
-        # eq = S.as_lccde
-        # assert eq is None
-
-        # T = sp.Eq(y(n), x(2 * n))
-        # S = DiscreteSystem(T)
-        # eq = S.as_lccde
-        # assert eq is None
-
-        # T = sp.Eq(y(n), x(-n))
-        # S = DiscreteSystem(T)
-        # eq = S.as_lccde
-        # assert eq is None
-
-        y = sp.Function('y')
-        x = sp.Function('x')
-        n = sp.Symbol('n', integer=True)
-        # eq = sp.Eq(y(n) + sp.S(9)/10*y(n-2), sp.S(3)/10*x(n) + sp.S(6)/10*x(n-1) + sp.S(3)/10*x(n-2))
-        # eq = sp.Eq(y(n) + sp.S(9)/10*y(n-2), sp.S(3)/5*x(n-1) + sp.S(3)/100*x(n))
-        eq = sp.Eq(10*y(n) + 9*y(n-2), 3*x(n) + 6*x(n-1) + 3*x(n-2))
+        eq = sp.Eq(y(n) - y(n-1)/4, x(n) - x(n-2))
         S = DiscreteSystem(eq)
         h = S.impulse_response(force_lti=True)
-        s = h.latex()
         assert h is not None
 
+        eq = sp.Eq(y(n) - sp.S(1)*y(n-1)/4, x(n))
+        S = DiscreteSystem(eq)
+        h = S.impulse_response(force_lti=True, select='causal')
+        assert h is not None
+
+        h = S.impulse_response(force_lti=True, select='anticausal')
+        assert h is not None
+
+        T = sp.Eq(y(n), x(n) - x(n - 1))
+        S = DiscreteSystem(T)
+        eq = S.as_lccde
+        assert isinstance(eq, LCCDE)
+        assert eq.B == [sp.S.One, -sp.S.One] 
+        assert eq.A == [sp.S.One] 
+
+        T = sp.Eq(y(n), x(n) - y(n - 1))
+        S = DiscreteSystem(T)
+        eq = S.as_lccde
+        assert isinstance(eq, LCCDE)
+        assert eq.B == [sp.S.One] 
+        assert eq.A == [sp.S.One, sp.S.One] 
+
+        T = sp.Eq(y(n), -10 * x(n))
+        S = DiscreteSystem(T)
+        eq = S.as_lccde
+        assert isinstance(eq, LCCDE)
+        assert eq.B == [-10] 
+        assert eq.A == [sp.S.One] 
+
+        T = sp.Eq(y(n), y(n - 1) + sp.Sum(x(k), (k, sp.S.NegativeInfinity, n)))
+        S = DiscreteSystem(T)
+        eq = S.as_lccde
+        assert eq is None
+
+        T = sp.Eq(y(n), y(n + 1) + sp.Sum(x(k), (k, sp.S.NegativeInfinity, n)))
+        S = DiscreteSystem(T)
+        eq = S.as_lccde
+        assert eq is None
+
+        T = sp.Eq(y(n), y(n + 1) + sp.Sum(x(k), (k, sp.S.NegativeInfinity, n + 1)))
+        S = DiscreteSystem(T)
+        eq = S.as_lccde
+        assert eq is None
+
+        T = sp.Eq(y(n), x(n) + 3 * x(n + 4))
+        S = DiscreteSystem(T)
+        eq = S.as_lccde
+        assert eq is None
+
+        T = sp.Eq(y(n), x(n ** 2))
+        S = DiscreteSystem(T)
+        eq = S.as_lccde
+        assert eq is None
+
+        T = sp.Eq(y(n), x(2 * n))
+        S = DiscreteSystem(T)
+        eq = S.as_lccde
+        assert eq is None
+
+        T = sp.Eq(y(n), x(-n))
+        S = DiscreteSystem(T)
+        eq = S.as_lccde
+        assert eq is None
+
+        eq = sp.Eq(y(n) - 3*y(n-1) - 4*y(n-2), x(n) + 2*x(n-1))
+        S = DiscreteSystem(eq)
+        h = S.impulse_response(force_lti=True)
+        expr = (-sp.S(1)/5*(-1)**n + sp.S(6)/5*(4)**n) * UnitStep(n)
+        assert sp.simplify(h.amplitude - expr) == sp.S.Zero
+
+        # eq = sp.Eq(y(n) + sp.S(9)/10*y(n-2), sp.S(3)/10*x(n) + sp.S(6)/10*x(n-1) + sp.S(3)/10*x(n-2))
+        eq = sp.Eq(y(n) + sp.S(9)/10*y(n-2), sp.S(3)/5*x(n) + sp.S(3)/100*x(n-1))
+        # eq = sp.Eq(10*y(n) + 9*y(n-2), 3*x(n) + 6*x(n-1) + 3*x(n-2))
+        S = DiscreteSystem(eq)
+        h = S.impulse_response(force_lti=True)
+        # s = h.latex()
+        assert h is not None
 
 class Test_Zero(object):
     def test_Zero_misc(self):
