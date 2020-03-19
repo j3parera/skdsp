@@ -440,7 +440,7 @@ class Test_System(object):
 
         T = sp.Eq(y(n), y(n - 1) + sp.Sum(x(k), (k, sp.S.NegativeInfinity, n)))
         S = System(T, x(n), y(n))
-        assert S.is_causal
+        assert not S.is_causal
         assert not S.is_anticausal
 
         T = sp.Eq(y(n), y(n + 1) + sp.Sum(x(k), (k, sp.S.NegativeInfinity, n)))

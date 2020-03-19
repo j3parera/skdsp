@@ -3,6 +3,7 @@ import sympy as sp
 
 from skdsp.util.lccde import LCCDE
 from skdsp.signal.functions import UnitStep, UnitDelta, stepsimp
+from skdsp.signal.discrete import n, DiscreteSignal
 
 class Test_LCCDE(object):
 

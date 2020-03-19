@@ -3,7 +3,7 @@ from collections import defaultdict
 import sympy as sp
 from sympy.solvers.ode import get_numbered_constants, iter_numbered_constants
 
-from skdsp.signal.functions import UnitDelta
+from skdsp.signal.functions import UnitDelta, stepsimp
 from skdsp.signal.discrete import DiscreteSignal
 
 
@@ -76,7 +76,7 @@ class LCCDE(sp.Basic):
         if y is None:
             y = sp.Function("y")(n)
         if x.args[0] != y.args[0]:
-            raise ValueError("Independent variable of x[n] and y[n] must be the same.") 
+            raise ValueError("Independent variable of x[n] and y[n] must be the same.")
         B = [sp.S(b) / sp.S(A[0]) for b in B]
         A = [sp.S(a) / sp.S(A[0]) for a in A]
         obj = sp.Basic.__new__(cls, B, A, x, y)
@@ -138,15 +138,31 @@ class LCCDE(sp.Basic):
     def as_expression(self):
         return sp.Eq(self.y_part(), self.x_part())
 
+    def check_solution(self, fin, fout):
+        x_sol = self.apply_input(fin)
+        y_sol = self.apply_output(fout)
+        dif = stepsimp(y_sol - x_sol)
+        return sp.simplify(dif) == sp.S.Zero
+
     def apply_input(self, fin=None, offset=0):
         x_part = self.x_part()
         if fin is not None:
             n = self.iv
             for k in range(self.M + 1):
-                old = self.x.subs(n, n - k + offset)
+                old = self.x.subs(n, n - k)
                 new = fin.subs(n, n - k + offset)
                 x_part = x_part.subs(old, new)
         return x_part
+
+    def apply_output(self, fout=None, offset=0):
+        y_part = self.y_part()
+        if fout is not None:
+            n = self.iv
+            for k in range(self.N + 1):
+                old = self.y.subs(n, n - k)
+                new = fout.subs(n, n - k + offset)
+                y_part = y_part.subs(old, new)
+        return y_part
 
     def as_forward_recursion(self, fin=None):
         return -self.y_recursive_part() + self.apply_input(fin)
@@ -206,7 +222,27 @@ class LCCDE(sp.Basic):
         yh = sp.Add(*[c * g for c, g in zip(consts, gensols)])
         return yh, consts[: self.order]
 
+    def _non_zero_input(self, lccde, fin, offset, count):
+        # TODO ¿any easier?
+        xsup = DiscreteSignal.from_formula(
+            lccde.apply_input(fin, offset=offset), iv=lccde.iv, codomain=None
+        ).support
+        inf = xsup.inf
+        if inf != sp.S.NegativeInfinity:
+            nvals = list(range(inf, inf + count))
+        else:
+            sup = xsup.sup
+            if sup == sp.S.Infinity:
+                nvals = list(range(count))
+            else:
+                nvals = list(range(sup, sup - count, -1))
+        return nvals
+
     def solve_forced(self, fin, ac):
+        if fin != UnitDelta(self.iv):
+            # TODO más tipos entradas, delta[n-k]...?
+            # Quizá no merece la pena, ¿TZ?
+            raise NotImplementedError
         yh, consts = self.solve_homogeneous()
         # solution parts: extract solutions up to N < M
         partial_sols = []
@@ -234,29 +270,19 @@ class LCCDE(sp.Basic):
         elif isinstance(ac, str) and ac == "initial_rest":
             ac = dict(zip(range(-1, -lccde.order - 1, -1), [0] * lccde.order))
             yexpr = lccde.as_forward_recursion(fin)
+            nvals = self._non_zero_input(lccde, fin, 0, len(consts))
         elif isinstance(ac, str) and ac == "final_rest":
             ac = dict(zip(range(0, lccde.order), [0] * lccde.order))
             yexpr = lccde.as_backward_recursion(fin)
+            nvals = list(reversed(self._non_zero_input(lccde, fin, lccde.N, len(consts))))
         else:
             # TODO
-            raise ValueError("Not valid auxiliary conditions.")
-        # equations over non vanishing inputs
-        xsup = DiscreteSignal.from_formula(lccde.apply_input(fin), iv=n, codomain=None).support
-        inf = xsup.inf
-        if inf != sp.S.NegativeInfinity:
-            nvals = list(range(inf, inf + len(consts)))
-        else:
-            sup = xsup.sup
-            if sup == sp.S.Infinity:
-                nvals = range(len(consts))
-            else:
-                nvals = list(range(sup, sup - len(consts), -1))
-        #
+            raise NotImplementedError
         lhss = [yh.subs(n, k) for k in nvals]
         rhss = [yexpr.subs(n, nvals[0])]
-        for k in nvals[1:]:
-            yk = yexpr.subs(n, k)
-            yk = yk.subs(y.subs(n, k - 1), rhss[k - 1])
+        for k, v in enumerate(nvals[1:], start=1):
+            yk = yexpr.subs(n, v)
+            yk = yk.subs(y.subs(n, v - (nvals[k] - nvals[k - 1])), rhss[k - 1])
             rhss.append(yk)
         # apply auxiliary conditions
         for k1, rhs in enumerate(rhss):

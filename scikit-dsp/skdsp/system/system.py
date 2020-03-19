@@ -14,6 +14,8 @@ class System(sp.Basic):
     def __new__(cls, T, x, y):
         if not x.is_Function or not y.is_Function:
             raise ValueError("Input and output must be functions.")
+        if isinstance(T, LCCDE):
+            T = T.as_expression
         if isinstance(T, sp.Equality):
             T = T.lhs - T.rhs
         sol = sp.solve(T, y)
@@ -171,6 +173,8 @@ class System(sp.Basic):
 
     @property
     def is_causal(self):
+        if self.is_recursive:
+            return None
         i = self._traverse_compare_iv(sp.Gt, self.input_)
         o = self._traverse_compare_iv(sp.Gt, self.output_)
         return not i and not o

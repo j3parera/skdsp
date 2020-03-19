@@ -4,7 +4,7 @@ import sympy as sp
 from sympy.solvers.ode import ode_nth_linear_constant_coeff_homogeneous
 
 from skdsp.signal.discrete import Constant, Data, Delta, Exponential, Step, n
-from skdsp.system.discrete import Delay, DiscreteSystem, Identity, Zero, filter
+from skdsp.system.discrete import Delay, DiscreteSystem, Identity, LCCDESystem, Zero, filter
 from skdsp.util.lccde import LCCDE
 from skdsp.signal.functions import UnitStep, UnitDelta
 
@@ -180,6 +180,43 @@ class Test_Delay(object):
         h = S.impulse_response()
         assert h == Delta().shift(3)
 
+
+class Test_LCCDESystem(object):
+    def test_LCCDESystem_constructor(self):
+        lccde = LCCDE([2, -sp.Rational(3, 4)], [1, -sp.Rational(3, 4), -sp.Rational(1, 8)])
+        S = LCCDESystem(lccde)
+        assert S.is_discrete
+        assert S.is_input_discrete
+        assert S.is_output_discrete
+        assert not S.is_continuous
+        assert not S.is_input_continuous
+        assert not S.is_input_continuous
+        assert not S.is_hybrid
+        assert not S.is_memoryless
+        assert not S.is_time_invariant
+        assert not S.is_linear
+        assert not S.is_causal
+        assert not S.is_anticausal
+        assert S.is_recursive
+        assert not S.is_stable
+
+    def test_LCCDE_impulse_response(self):
+        lccde = LCCDE([2, -sp.Rational(3, 4)], [1, -sp.Rational(3, 4), sp.Rational(1, 8)])
+        S = LCCDESystem(lccde)
+        h = S.impulse_response()
+        assert h == None
+
+        h = S.impulse_response(force_lti=True)
+        expected = (sp.Rational(1, 2)**n * UnitStep(n) + sp.Rational(1, 4)**n * UnitStep(n))
+        assert sp.simplify(h.amplitude - expected) == sp.S.Zero
+
+        h = S.impulse_response(force_lti=True, select='causal')
+        expected = (sp.Rational(1, 2)**n * UnitStep(n) + sp.Rational(1, 4)**n * UnitStep(n))
+        assert sp.simplify(h.amplitude - expected) == sp.S.Zero
+
+        h = S.impulse_response(force_lti=True, select='anticausal')
+        expected = (-sp.Rational(1, 2)**n * UnitStep(-n-1) + -sp.Rational(1, 4)**n * UnitStep(-n-1))
+        assert sp.simplify(h.amplitude - expected) == sp.S.Zero
 
 
 class Test_KK(object):

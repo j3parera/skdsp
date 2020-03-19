@@ -41,9 +41,9 @@ class DiscreteSystem(System):
     is_input_continuous = False
     is_output_continuous = False
 
-    def __new__(cls, T):
+    def __new__(cls, T, x=_x(n), y=_y(n)):
         T = sp.sympify(T)
-        return System.__new__(cls, T, _x(n), _y(n))
+        return System.__new__(cls, T, x, y)
 
     def impulse_response(self, force_lti=False, select='causal'):
         if self.is_lti:
@@ -54,9 +54,11 @@ class DiscreteSystem(System):
                 he = lccde.solve_forced(UnitDelta(n), ac='initial_rest')
                 he = he * UnitStep(n)
             elif select == 'anticausal':
-                # TODO
                 he = lccde.solve_forced(UnitDelta(n), ac='final_rest')
-                he = he * UnitStep(-n-1) 
+                he = he * UnitStep(-n - 1)
+            else:
+                # TODO
+                raise NotImplementedError
             he = stepsimp(he)
             return DiscreteSignal.from_formula(he, lccde.iv)
         return None
@@ -149,3 +151,10 @@ class Delay(DiscreteSystem):
         T = sp.Eq(_y(n), _x(n - k))
         return DiscreteSystem.__new__(cls, T)
 
+class LCCDESystem(DiscreteSystem):
+
+    def __new__(cls, lccde):
+        if not isinstance(lccde, LCCDE):
+            raise TypeError("lccde must be an LCCDE object.")
+        obj = DiscreteSystem.__new__(cls, lccde, lccde.x, lccde.y)
+        return obj
