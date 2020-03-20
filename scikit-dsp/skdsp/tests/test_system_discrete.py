@@ -92,8 +92,8 @@ class Test_DiscreteSystem(object):
         expr = (-sp.S(1)/5*(-1)**n + sp.S(6)/5*(4)**n) * UnitStep(n)
         assert sp.simplify(h.amplitude - expr) == sp.S.Zero
 
-        # eq = sp.Eq(y(n) + sp.S(9)/10*y(n-2), sp.S(3)/10*x(n) + sp.S(6)/10*x(n-1) + sp.S(3)/10*x(n-2))
-        eq = sp.Eq(y(n) + sp.S(9)/10*y(n-2), sp.S(3)/5*x(n) + sp.S(3)/100*x(n-1))
+        eq = sp.Eq(y(n) + sp.S(9)/10*y(n-2), sp.S(3)/10*x(n) + sp.S(6)/10*x(n-1) + sp.S(3)/10*x(n-2))
+        # eq = sp.Eq(y(n) + sp.S(9)/10*y(n-2), sp.S(3)/5*x(n) + sp.S(3)/100*x(n-1))
         # eq = sp.Eq(10*y(n) + 9*y(n-2), 3*x(n) + 6*x(n-1) + 3*x(n-2))
         S = DiscreteSystem(eq)
         h = S.impulse_response(force_lti=True)

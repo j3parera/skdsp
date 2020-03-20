@@ -215,7 +215,9 @@ class LCCDE(sp.Basic):
                         continue
                     conjugate_roots.append(sp.conjugate(root))
                     gensols.append(n ** i * absroot ** n * sp.cos(angleroot * n))
-                    gensols.append(n ** i * absroot ** n * sp.sin(angleroot * n))
+                    gensols.append(n ** i * absroot ** n * sp.sin(angleroot * n) * sp.I)
+                    #gensols.append(n ** i * root ** n)
+                    #gensols.append(n ** i * sp.conjugate(root) ** n)
         # Constants
         const_gen = iter_numbered_constants(chareq, start=1, prefix="C")
         consts = [next(const_gen) for i in range(len(gensols))]
@@ -246,17 +248,16 @@ class LCCDE(sp.Basic):
         yh, consts = self.solve_homogeneous()
         # solution parts: extract solutions up to N < M
         partial_sols = []
-        if self.M >= self.M:
-            n = self.iv
-            y = self.y
-            x = self.x
-            N = self.N
+        n = self.iv
+        y = self.y
+        x = self.x
+        if self.M >= self.N:
             lccde = self.copy()
-            while lccde.M >= N:
+            while lccde.M >= lccde.N:
                 B = lccde.B
-                xM = x.subs(n, n - lccde.M + 1)
+                xM = x.subs(n, n - lccde.M + lccde.N)
                 yk = B[-1] / self.A[-1] * xM
-                partial_sols.append(yk.subs(xM, fin.subs(n, n - lccde.M + 1)))
+                partial_sols.append(yk.subs(xM, fin.subs(n, n - lccde.M + lccde.N)))
                 del B[-1]
                 new_x_part = sp.Add(*[bk * x.subs(n, n - k) for k, bk in enumerate(B)]) - yk
                 lccde = LCCDE.from_expression(
