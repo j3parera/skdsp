@@ -172,9 +172,6 @@ class DiscreteSignal(Signal):
     def __str__(self, *_args, **_kwargs):
         return sp.sstr(self.amplitude)
 
-    def _latex(self, printer=None):
-        return printer.doprint(self)
-
     def display(self, span=None):
         if span is None:
             span = range(-3, 16)
