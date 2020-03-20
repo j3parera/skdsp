@@ -4,7 +4,7 @@ import sympy as sp
 from sympy.solvers.ode import ode_nth_linear_constant_coeff_homogeneous
 
 from skdsp.signal.discrete import Constant, Data, Delta, Exponential, Step, n
-from skdsp.system.discrete import Delay, DiscreteSystem, Identity, LCCDESystem, Zero, filter
+from skdsp.system.discrete import Delay, DiscreteSystem, Identity, LCCDESystem, Zero
 from skdsp.util.lccde import LCCDE
 from skdsp.signal.functions import UnitStep, UnitDelta
 
@@ -231,7 +231,20 @@ class Test_KK(object):
         span = range(0, 51)
         B = [1, 0]
         A = [1, -z0]
-        y3f = Data(filter(B, A, x(span)), iv=n)
+        S = DiscreteSystem(LCCDE(B, A))
+        y3f = Data(S.filter(x(span)), iv=n)
+
+
+        z_0 = sp.S(1)/2 * sp.exp(sp.I*0)
+        span = range(0, 21)
+        x = Delta()
+        B = [1, 0]
+        Ar = [1, -sp.re(z_0)]
+        Sr = DiscreteSystem(LCCDE(B, Ar))
+        yrf = Data(Sr.filter(x.real(span)))
+        Ai = [1, -sp.im(z_0)]
+        Si = DiscreteSystem(LCCDE(B, Ai))
+        yif = Data(Si.filter(x.imag(span)))
 
     def test_dsolve(self):
         f = sp.Function("f")
@@ -255,7 +268,8 @@ class Test_KK(object):
 
         B = [sp.S(3) / 10, sp.S(6) / 10, sp.S(3) / 10]
         A = [1, 0, sp.S(9) / 10]
-        Y = filter(B, A, Delta()(range(0, 129)))
+        S = DiscreteSystem(LCCDE(B, A))
+        Y = S.filter(Delta()(range(0, 129)))
         assert Y is not None
 
         x = Delta()
@@ -269,7 +283,10 @@ class Test_KK(object):
         ipystem(span, np.array([float(y) for y in yv[2:]]), title=r'$h[n]$');
 
     def test_roots(self):
-        x = sp.Symbol('x')
-        poly = sp.Poly(x**2 - 2*x + 1) 
-        res = sp.roots(poly)
-        assert res is not None
+        B = [sp.Rational(3, 10), sp.Rational(6, 10), sp.Rational(3, 10)]
+        A = [1, 0, sp.Rational(9, 10)]
+        lccde = LCCDE(B, A)
+        S = DiscreteSystem(lccde)
+        h = S.impulse_response(force_lti=True)
+        h._repr_latex_()
+        assert h is not None

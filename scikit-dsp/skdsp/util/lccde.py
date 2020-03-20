@@ -246,21 +246,24 @@ class LCCDE(sp.Basic):
         yh, consts = self.solve_homogeneous()
         # solution parts: extract solutions up to N < M
         partial_sols = []
-        n = self.iv
-        y = self.y
-        x = self.x
-        N = self.N
-        lccde = self.copy()
-        while lccde.M >= N:
-            B = lccde.B
-            xM = x.subs(n, n - lccde.M + 1)
-            yk = B[-1] / self.A[-1] * xM
-            partial_sols.append(yk.subs(xM, fin.subs(n, n - lccde.M + 1)))
-            del B[-1]
-            new_x_part = sp.Add(*[bk * x.subs(n, n - k) for k, bk in enumerate(B)]) - yk
-            lccde = LCCDE.from_expression(
-                sp.Eq(self.y_part(), new_x_part), self.x, self.y
-            )
+        if self.M >= self.M:
+            n = self.iv
+            y = self.y
+            x = self.x
+            N = self.N
+            lccde = self.copy()
+            while lccde.M >= N:
+                B = lccde.B
+                xM = x.subs(n, n - lccde.M + 1)
+                yk = B[-1] / self.A[-1] * xM
+                partial_sols.append(yk.subs(xM, fin.subs(n, n - lccde.M + 1)))
+                del B[-1]
+                new_x_part = sp.Add(*[bk * x.subs(n, n - k) for k, bk in enumerate(B)]) - yk
+                lccde = LCCDE.from_expression(
+                    sp.Eq(self.y_part(), new_x_part), self.x, self.y
+                )
+        else:
+            lccde = self
         #
         if isinstance(ac, dict):
             if len(ac.keys()) != self.order:

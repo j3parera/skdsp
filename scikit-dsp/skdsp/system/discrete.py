@@ -11,26 +11,6 @@ _x = sp.Function("x")
 _y = sp.Function("y")
 
 
-def filter(B, A, x, ci=None):
-    # muy preliminar
-    # transposed DFII
-    mm = max(len(B), len(A))
-    B = B + [0] * (mm - len(B))
-    B = [sp.S(b) / sp.S(A[0]) for b in B]
-    A = A + [0] * (mm - len(A))
-    A = [sp.S(a) / sp.S(A[0]) for a in A]
-    M = sp.S(ci) if ci is not None else sp.S([0] * (mm - 1))
-    Y = sp.S([0] * len(x))
-    x = sp.S(x)
-    for k, v in enumerate(x):
-        y = B[0] * v + M[0]
-        Y[k] = y
-        for m in range(0, len(M) - 1):
-            M[m] = B[m + 1] * v - A[m + 1] * y + M[m + 1]
-        M[-1] = B[-1] * v - A[-1] * y
-    return Y
-
-
 class DiscreteSystem(System):
     
     is_discrete = True
@@ -88,6 +68,32 @@ class DiscreteSystem(System):
     def is_iir(self):
         # TODO
         raise NotImplementedError
+
+    def filter(self, x, ci=None, span=None):
+        lccde = self.as_lccde
+        if lccde is None:
+            raise TypeError("The system cannot implement a filter.")
+        if isinstance(x, DiscreteSignal):
+            if span is None:
+                raise TypeError("Cannot filter a full signal.")
+            else:
+                x = x(span)
+        # muy preliminar
+        # transposed DFII
+        mm = max(len(lccde.B), len(lccde.A))
+        B = lccde.B + [0] * (mm - len(lccde.B))
+        A = lccde.A + [0] * (mm - len(lccde.A))
+        M = sp.S(ci) if ci is not None else sp.S([0] * max(1, (mm - 1)))
+        Y = sp.S([0] * len(x))
+        x = sp.S(x)
+        for k, v in enumerate(x):
+            y = B[0] * v + M[0]
+            Y[k] = y
+            for m in range(0, len(M) - 1):
+                M[m] = B[m + 1] * v - A[m + 1] * y + M[m + 1]
+            M[-1] = B[-1] * v - A[-1] * y
+        return Y
+
 
 class Zero(DiscreteSystem):
 
@@ -158,3 +164,5 @@ class LCCDESystem(DiscreteSystem):
             raise TypeError("lccde must be an LCCDE object.")
         obj = DiscreteSystem.__new__(cls, lccde, lccde.x, lccde.y)
         return obj
+
+
