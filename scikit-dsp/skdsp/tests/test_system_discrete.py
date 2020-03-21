@@ -201,7 +201,7 @@ class Test_LCCDESystem(object):
         assert not S.is_stable
 
         B = [1, sp.Rational(1, 2)]
-        A = [1, -sp.Rational(1, 8)*sp.cos(sp.S.Pi/16), sp.Rational(81, 100)]
+        A = [1, -sp.Rational(18, 10)*sp.cos(sp.S.Pi/16), sp.Rational(81, 100)]
         S = LCCDESystem.from_coefficients(B, A)
         lccde = S.as_lccde
         assert lccde.B == B

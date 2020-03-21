@@ -178,50 +178,64 @@ class LCCDE(sp.Basic):
 
     def solve_homogeneous(self):
         n = self.iv
-        # Characteristic polynomial
-        chareq, symbol = sp.S.Zero, sp.Dummy("lambda")
-        for k, a in enumerate(reversed(self.A)):
-            chareq += a * symbol ** k
-        chareq = sp.Poly(chareq, symbol)
-        chareqroots = sp.roots(chareq, symbol)
-        if len(chareqroots) != self.order:
-            chareqroots = [sp.rootof(chareq, k) for k in range(chareq.degree())]
-        chareq_is_complex = not all([i.is_real for i in chareq.all_coeffs()])
-        # Create a dict root: multiplicity or charroots
-        charroots = defaultdict(int)
-        for root in chareqroots:
-            charroots[root] += 1
-        # generate solutions
+        done = False
         gensols = []
-        conjugate_roots = []  # used to prevent double-use of conjugate roots
-        # Loop over roots in the order provided by roots/rootof...
-        for root in chareqroots:
-            # but don't repeat multiple roots.
-            if root not in charroots:
-                continue
-            multiplicity = charroots.pop(root)
-            for i in range(multiplicity):
-                if chareq_is_complex:
-                    gensols.append(n ** i * root ** n)
+        # try cosine
+        if len(self.A) == 3 and self.A[1] <= 0 and self.A[2] > 0:
+            theta = sp.Wild('theta')
+            a = sp.Wild('a')
+            m = self.A[1].match(a * sp.cos(theta))
+            if m:
+                r = sp.sqrt(self.A[2])
+                if sp.simplify(m[a] + 2 * r) == sp.S.Zero:
+                    chareqroots = [r * sp.exp(sp.I * m[theta]), r * sp.exp(-sp.I * m[theta])]
+                    gensols.append(r ** n * sp.cos(m[theta] * n))
+                    gensols.append(r ** n * sp.sin(m[theta] * n) * sp.I)
+                    done = True
+        # Characteristic polynomial
+        if not done:
+            chareq, symbol = sp.S.Zero, sp.Dummy("lambda")
+            for k, a in enumerate(reversed(self.A)):
+                chareq += a * symbol ** k
+            chareq = sp.Poly(chareq, symbol)
+            chareqroots = sp.roots(chareq, symbol)
+            if len(chareqroots) != self.order:
+                chareqroots = [sp.rootof(chareq, k) for k in range(chareq.degree())]
+            chareq_is_complex = not all([i.is_real for i in self.A])
+            # Create a dict root: multiplicity or charroots
+            charroots = defaultdict(int)
+            for root in chareqroots:
+                charroots[root] += 1
+            # generate solutions
+            conjugate_roots = []  # used to prevent double-use of conjugate roots
+            # Loop over roots in the order provided by roots/rootof...
+            for root in chareqroots:
+                # but don't repeat multiple roots.
+                if root not in charroots:
                     continue
-                absroot = sp.Abs(root)
-                angleroot = sp.arg(root)
-                if angleroot.has(sp.atan2):
-                    # Remove this condition when arg stop returning circular atan2 usages.
-                    gensols.append(n ** i * root ** n)
-                else:
-                    if root in conjugate_roots:
+                multiplicity = charroots.pop(root)
+                for i in range(multiplicity):
+                    if chareq_is_complex:
+                        gensols.append(n ** i * root ** n)
                         continue
-                    if angleroot == 0:
-                        gensols.append(n ** i * absroot ** n)
-                        continue
-                    conjugate_roots.append(sp.conjugate(root))
-                    gensols.append(n ** i * absroot ** n * sp.cos(angleroot * n))
-                    gensols.append(n ** i * absroot ** n * sp.sin(angleroot * n) * sp.I)
-                    #gensols.append(n ** i * root ** n)
-                    #gensols.append(n ** i * sp.conjugate(root) ** n)
+                    absroot = sp.Abs(root)
+                    angleroot = sp.arg(root)
+                    if angleroot.has(sp.atan2):
+                        # Remove this condition when arg stop returning circular atan2 usages.
+                        gensols.append(n ** i * root ** n)
+                    else:
+                        if root in conjugate_roots:
+                            continue
+                        if angleroot == 0:
+                            gensols.append(n ** i * absroot ** n)
+                            continue
+                        conjugate_roots.append(sp.conjugate(root))
+                        gensols.append(n ** i * absroot ** n * sp.cos(angleroot * n))
+                        gensols.append(n ** i * absroot ** n * sp.sin(angleroot * n) * sp.I)
+                        #gensols.append(n ** i * root ** n)
+                        #gensols.append(n ** i * sp.conjugate(root) ** n)
         # Constants
-        const_gen = iter_numbered_constants(chareq, start=1, prefix="C")
+        const_gen = iter_numbered_constants(sp.Add(*self.A), start=1, prefix="C")
         consts = [next(const_gen) for i in range(len(gensols))]
         yh = sp.Add(*[c * g for c, g in zip(consts, gensols)])
         return yh, consts[: self.order]
@@ -296,7 +310,9 @@ class LCCDE(sp.Basic):
                 rhs = rhs.subs(y.subs(n, k2), v)
             rhss[k1] = rhs
         eqs = [sp.Eq(lhs, rhs) for lhs, rhs in zip(lhss, rhss)]
-        sol = sp.solve(eqs, consts)
-        y = yh.subs(sol)
+        sol = sp.linsolve(eqs, consts)
+        y = yh
+        for c, s in zip(consts, list(sol)[0]):
+            y = y.subs(c, s)
         y += sp.Add(*partial_sols)
         return y
