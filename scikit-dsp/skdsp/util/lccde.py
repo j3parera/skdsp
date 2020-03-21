@@ -46,6 +46,8 @@ class LCCDE(sp.Basic):
                             raise ValueError(
                                 "Non constant coefficient found: {0}".format(h)
                             )
+                        # is part of the coeff
+                        coeff *= h
                 else:
                     if not h.is_constant(n):
                         raise ValueError(

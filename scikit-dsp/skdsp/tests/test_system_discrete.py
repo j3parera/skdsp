@@ -200,7 +200,14 @@ class Test_LCCDESystem(object):
         assert S.is_recursive
         assert not S.is_stable
 
-    def test_LCCDE_impulse_response(self):
+        B = [1, sp.Rational(1, 2)]
+        A = [1, -sp.Rational(1, 8)*sp.cos(sp.S.Pi/16), sp.Rational(81, 100)]
+        S = LCCDESystem.from_coefficients(B, A)
+        lccde = S.as_lccde
+        assert lccde.B == B
+        assert lccde.A == A
+
+    def test_LCCDESystem_impulse_response(self):
         lccde = LCCDE([2, -sp.Rational(3, 4)], [1, -sp.Rational(3, 4), sp.Rational(1, 8)])
         S = LCCDESystem(lccde)
         h = S.impulse_response()
