@@ -75,7 +75,7 @@ class DiscreteSystem(System):
             raise TypeError("The system cannot implement a filter.")
         if isinstance(x, DiscreteSignal):
             if span is None:
-                raise TypeError("Cannot filter a full signal.")
+                raise TypeError("Cannot filter an everlasting signal.")
             else:
                 x = x(span)
         # muy preliminar
@@ -159,10 +159,15 @@ class Delay(DiscreteSystem):
 
 class LCCDESystem(DiscreteSystem):
 
+    @classmethod
+    def from_coefficients(cls, B, A, x=None, y=None):
+        lccde = LCCDE(B, A, x, y)
+        obj = LCCDESystem.__new__(cls, lccde)
+        return obj
+
     def __new__(cls, lccde):
         if not isinstance(lccde, LCCDE):
             raise TypeError("lccde must be an LCCDE object.")
         obj = DiscreteSystem.__new__(cls, lccde, lccde.x, lccde.y)
         return obj
-
 
