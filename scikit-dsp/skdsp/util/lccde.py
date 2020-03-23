@@ -176,10 +176,7 @@ class LCCDE(sp.Basic):
             + self.apply_input(fin, offset=offset)
         ) / self.A[-1]
 
-    def solve_homogeneous(self):
-        n = self.iv
-        done = False
-        gensols = []
+    def roots(self):
         # try cosine
         if len(self.A) == 3 and self.A[1] <= 0 and self.A[2] > 0:
             theta = sp.Wild('theta')
@@ -188,28 +185,44 @@ class LCCDE(sp.Basic):
             if m:
                 r = sp.sqrt(self.A[2])
                 if sp.simplify(m[a] + 2 * r) == sp.S.Zero:
-                    chareqroots = [r * sp.exp(sp.I * m[theta]), r * sp.exp(-sp.I * m[theta])]
-                    gensols.append(r ** n * sp.cos(m[theta] * n))
-                    gensols.append(r ** n * sp.sin(m[theta] * n) * sp.I)
-                    done = True
+                    roots = {r * sp.exp(sp.I * m[theta]): 1, r * sp.exp(-sp.I * m[theta]): 1}
+                    return roots
+        # characteristic polynomial
+        chareq, symbol = sp.S.Zero, sp.Dummy("lambda")
+        for k, a in enumerate(reversed(self.A)):
+            chareq += a * symbol ** k
+        chareq = sp.Poly(chareq, symbol)
+        chareqroots = sp.roots(chareq, symbol)
+        if len(chareqroots) != self.order:
+            chareqroots = [sp.rootof(chareq, k) for k in range(chareq.degree())]
+        return chareqroots
+    
+    def solve_homogeneous(self):
+        n = self.iv
+        roots = self.roots()
+        gensols = []
+        done = False
+        if len(roots) == 2:
+            lroots = list(roots)
+            r = sp.Wild('r')
+            theta = sp.Wild('theta')
+            m1 = lroots[0].match(r*sp.exp(sp.I * theta))
+            m2 = lroots[1].match(r*sp.exp(sp.I * theta))
+            if (m1 and m2) and (m1[r] == m2[r]) and (m1[theta] == -m2[theta]):
+                gensols.append(m1[r] ** n * sp.cos(m1[theta] * n))
+                gensols.append(m1[r] ** n * sp.sin(m1[theta] * n) * sp.I)
+                done = True
         # Characteristic polynomial
         if not done:
-            chareq, symbol = sp.S.Zero, sp.Dummy("lambda")
-            for k, a in enumerate(reversed(self.A)):
-                chareq += a * symbol ** k
-            chareq = sp.Poly(chareq, symbol)
-            chareqroots = sp.roots(chareq, symbol)
-            if len(chareqroots) != self.order:
-                chareqroots = [sp.rootof(chareq, k) for k in range(chareq.degree())]
             chareq_is_complex = not all([i.is_real for i in self.A])
             # Create a dict root: multiplicity or charroots
             charroots = defaultdict(int)
-            for root in chareqroots:
+            for root in roots:
                 charroots[root] += 1
             # generate solutions
             conjugate_roots = []  # used to prevent double-use of conjugate roots
             # Loop over roots in the order provided by roots/rootof...
-            for root in chareqroots:
+            for root in roots:
                 # but don't repeat multiple roots.
                 if root not in charroots:
                     continue
@@ -232,8 +245,6 @@ class LCCDE(sp.Basic):
                         conjugate_roots.append(sp.conjugate(root))
                         gensols.append(n ** i * absroot ** n * sp.cos(angleroot * n))
                         gensols.append(n ** i * absroot ** n * sp.sin(angleroot * n) * sp.I)
-                        #gensols.append(n ** i * root ** n)
-                        #gensols.append(n ** i * sp.conjugate(root) ** n)
         # Constants
         const_gen = iter_numbered_constants(sp.Add(*self.A), start=1, prefix="C")
         consts = [next(const_gen) for i in range(len(gensols))]
