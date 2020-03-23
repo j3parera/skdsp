@@ -1,9 +1,10 @@
 import sympy as sp
-from skdsp.system.system import System
-from skdsp.signal.signal import Signal
-from skdsp.signal.discrete import n, Delta, Constant, DiscreteSignal
-from skdsp.util.lccde import LCCDE
+
+from skdsp.signal.discrete import Constant, Delta, DiscreteSignal, Step, n
 from skdsp.signal.functions import UnitDelta, UnitStep, stepsimp
+from skdsp.signal.signal import Signal
+from skdsp.system.system import System
+from skdsp.util.lccde import LCCDE
 
 __all__ = [s for s in dir() if not s.startswith("_")]
 
@@ -12,7 +13,7 @@ _y = sp.Function("y")
 
 
 class DiscreteSystem(System):
-    
+
     is_discrete = True
     is_continuous = False
     is_hybrid = False
@@ -25,16 +26,16 @@ class DiscreteSystem(System):
         T = sp.sympify(T)
         return System.__new__(cls, T, x, y)
 
-    def impulse_response(self, force_lti=False, select='causal'):
+    def _response(self, sin, force_lti=False, select="causal"):
         if self.is_lti:
-            return self.apply(Delta(n))
+            return self.apply(sin)
         lccde = self.as_lccde
         if lccde is not None and force_lti:
-            if select == 'causal':
-                he = lccde.solve_forced(UnitDelta(n), ac='initial_rest')
+            if select == "causal":
+                he = lccde.solve_forced(sin.amplitude, ac="initial_rest")
                 he = he * UnitStep(n)
-            elif select == 'anticausal':
-                he = lccde.solve_forced(UnitDelta(n), ac='final_rest')
+            elif select == "anticausal":
+                he = lccde.solve_forced(sin.amplitude, ac="final_rest")
                 he = he * UnitStep(-n - 1)
             else:
                 # TODO
@@ -42,6 +43,12 @@ class DiscreteSystem(System):
             he = stepsimp(he)
             return DiscreteSignal.from_formula(he, lccde.iv)
         return None
+
+    def impulse_response(self, force_lti=False, select="causal"):
+        return self._response(Delta(n), force_lti, select)
+
+    def step_response(self, force_lti=False, select="causal"):
+        return self._response(Step(n), force_lti, select)
 
     def convolve(self, other):
         # TODO ¿es todo? ¿separar aquí la convolución periódica?
@@ -59,7 +66,7 @@ class DiscreteSystem(System):
             eq = sp.Eq(self.output_, self.mapping)
             return LCCDE.from_expression(eq, self.input_, self.output_)
         except:
-            return None     
+            return None
 
     def is_fir(self):
         # TODO
@@ -115,7 +122,9 @@ class Zero(DiscreteSystem):
     def apply(self, _ins):
         return Constant(0)
 
+
 Null = Zero
+
 
 class Identity(DiscreteSystem):
 
@@ -137,7 +146,9 @@ class Identity(DiscreteSystem):
     def apply(self, ins):
         return ins
 
+
 One = Identity
+
 
 class Delay(DiscreteSystem):
 
@@ -157,8 +168,8 @@ class Delay(DiscreteSystem):
         T = sp.Eq(_y(n), _x(n - k))
         return DiscreteSystem.__new__(cls, T)
 
-class LCCDESystem(DiscreteSystem):
 
+class LCCDESystem(DiscreteSystem):
     @classmethod
     def from_coefficients(cls, B, A, x=None, y=None):
         lccde = LCCDE(B, A, x, y)
@@ -170,4 +181,3 @@ class LCCDESystem(DiscreteSystem):
             raise TypeError("lccde must be an LCCDE object.")
         obj = DiscreteSystem.__new__(cls, lccde, lccde.x, lccde.y)
         return obj
-
