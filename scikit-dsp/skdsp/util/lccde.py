@@ -86,12 +86,12 @@ class LCCDE(sp.Basic):
         return obj
 
     def x(self, value=None):
-        if not value:
+        if value is None:
             return self.args[2]
         return self.args[2].subs(self.iv, value)
 
     def y(self, value=None):
-        if not value:
+        if value is None:
             return self.args[3]
         return self.args[3].subs(self.iv, value)
 
