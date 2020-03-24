@@ -43,9 +43,9 @@ class Test_LCCDE(object):
         y = sp.Piecewise((yb, n < -1), (lccde.y(-1), sp.Eq(n, -1)), (yf, n > -1))
         assert sp.simplify(yp - y) == sp.S.Zero
 
-        assert y.subs(n, -1) == lccde.y(-1)
-        assert y.subs(n, 0) == a * lccde.y(-1) + lccde.x(0)
-        assert sp.simplify(y.subs(n, -2) - (lccde.y(-1) - lccde.x(-1)) / a) == sp.S.Zero
+        assert yp.subs(n, -1) == lccde.y(-1)
+        assert yp.subs(n, 0) == a * lccde.y(-1) + lccde.x(0)
+        assert sp.simplify(yp.subs(n, -2) - (lccde.y(-1) - lccde.x(-1)) / a) == sp.S.Zero
 
         yh, Cs = lccde.solve_homogeneous()
         assert len(Cs) == 1
