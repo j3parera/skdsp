@@ -31,7 +31,18 @@ class Test_LCCDE(object):
         yb = lccde.as_backward_recursion()
         assert sp.simplify(yb - (lccde.y(n + 1) - lccde.x(n + 1)) / a) == sp.S.Zero
 
-        y = sp.Piecewise((yb, n < -1), (lccde.y(-1), sp.Eq(n, -1)), (yf, n >= 0))
+        yp = lccde.as_piecewise(ac='initial_rest')
+        y = sp.Piecewise((yf, n >= 0), (0, True))
+        assert sp.simplify(yp - y) == sp.S.Zero
+
+        yp = lccde.as_piecewise(ac='final_rest')
+        y = sp.Piecewise((yb, n <= -1), (0, True))
+        assert sp.simplify(yp - y) == sp.S.Zero
+
+        yp = lccde.as_piecewise(ac={-1: lccde.y(-1)})
+        y = sp.Piecewise((yb, n < -1), (lccde.y(-1), sp.Eq(n, -1)), (yf, n > -1))
+        assert sp.simplify(yp - y) == sp.S.Zero
+
         assert y.subs(n, -1) == lccde.y(-1)
         assert y.subs(n, 0) == a * lccde.y(-1) + lccde.x(0)
         assert sp.simplify(y.subs(n, -2) - (lccde.y(-1) - lccde.x(-1)) / a) == sp.S.Zero

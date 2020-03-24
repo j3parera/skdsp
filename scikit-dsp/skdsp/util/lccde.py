@@ -127,9 +127,7 @@ class LCCDE(sp.Basic):
     def y_recursive_part(self, forward=True, offset=0):
         n = self.iv
         if forward:
-            adds = [
-                a * self.y(n - (k + 1) + offset) for k, a in enumerate(self.A[1:])
-            ]
+            adds = [a * self.y(n - (k + 1) + offset) for k, a in enumerate(self.A[1:])]
         else:
             adds = [a * self.y(n - k + offset) for k, a in enumerate(self.A[:-1])]
         return sp.Add(*adds)
@@ -183,16 +181,56 @@ class LCCDE(sp.Basic):
             + self.apply_input(fin, offset=offset)
         ) / self.A[-1]
 
+    def _process_aux_conditions(self, ac="initial_rest"):
+        n = self.iv
+        N = self.order
+        if isinstance(ac, dict):
+            if len(ac.keys()) != N:
+                raise ValueError(
+                    "The number of auxiliary conditions is not equal to the LCDDE order."
+                )
+                if all(isinstance(k, Number) for k in ac.keys()):
+                    if sorted(ac.keys()) != list(
+                        range(min(ac.keys()), max(ac.keys()) + 1)
+                    ):
+                        raise ValueError("Auxiliary conditions must be contiguous.")
+        elif isinstance(ac, str) and ac == "initial_rest":
+            ac = dict(zip(range(-1, -N - 1, -1), [0] * N))
+        elif isinstance(ac, str) and ac == "final_rest":
+            ac = dict(zip(range(0, self.order), [0] * self.order))
+        else:
+            raise ValueError("Invalid auxiliary conditions.")
+        return ac
+
+    def as_piecewise(self, fin=None, ac="initial_rest"):
+        pac = self._process_aux_conditions(ac)
+        n = self.iv
+        N = self.order
+        if ac == "initial_rest":
+            y = sp.Piecewise((self.as_forward_recursion(fin), n >= 0), (0, True))
+        elif ac == "final_rest":
+            y = sp.Piecewise((self.as_backward_recursion(fin), n <= -1), (0, True))
+        else:
+            y = sp.Piecewise(
+                (self.as_forward_recursion(fin), n > max(pac.keys())),
+                *[(ac[n0], sp.Eq(n, n0)) for n0 in pac.keys()],
+                (self.as_backward_recursion(fin), n < min(pac.keys()))
+            )
+        return y
+
     def roots(self):
         # try cosine
         if len(self.A) == 3 and self.A[1] <= 0 and self.A[2] > 0:
-            theta = sp.Wild('theta')
-            a = sp.Wild('a')
+            theta = sp.Wild("theta")
+            a = sp.Wild("a")
             m = self.A[1].match(a * sp.cos(theta))
             if m:
                 r = sp.sqrt(self.A[2])
                 if sp.simplify(m[a] + 2 * r) == sp.S.Zero:
-                    roots = {r * sp.exp(sp.I * m[theta]): 1, r * sp.exp(-sp.I * m[theta]): 1}
+                    roots = {
+                        r * sp.exp(sp.I * m[theta]): 1,
+                        r * sp.exp(-sp.I * m[theta]): 1,
+                    }
                     return roots
         # characteristic polynomial
         chareq, symbol = sp.S.Zero, sp.Dummy("lambda")
@@ -203,7 +241,7 @@ class LCCDE(sp.Basic):
         if len(chareqroots) != self.order:
             chareqroots = [sp.rootof(chareq, k) for k in range(chareq.degree())]
         return chareqroots
-    
+
     def solve_homogeneous(self):
         n = self.iv
         roots = self.roots()
@@ -211,10 +249,10 @@ class LCCDE(sp.Basic):
         done = False
         if len(roots) == 2:
             lroots = list(roots)
-            r = sp.Wild('r')
-            theta = sp.Wild('theta')
-            m1 = lroots[0].match(r*sp.exp(sp.I * theta))
-            m2 = lroots[1].match(r*sp.exp(sp.I * theta))
+            r = sp.Wild("r")
+            theta = sp.Wild("theta")
+            m1 = lroots[0].match(r * sp.exp(sp.I * theta))
+            m2 = lroots[1].match(r * sp.exp(sp.I * theta))
             if (m1 and m2) and (m1[r] == m2[r]) and (m1[theta] == -m2[theta]):
                 gensols.append(m1[r] ** n * sp.cos(m1[theta] * n))
                 gensols.append(m1[r] ** n * sp.sin(m1[theta] * n) * sp.I)
@@ -251,7 +289,9 @@ class LCCDE(sp.Basic):
                             continue
                         conjugate_roots.append(sp.conjugate(root))
                         gensols.append(n ** i * absroot ** n * sp.cos(angleroot * n))
-                        gensols.append(n ** i * absroot ** n * sp.sin(angleroot * n) * sp.I)
+                        gensols.append(
+                            n ** i * absroot ** n * sp.sin(angleroot * n) * sp.I
+                        )
         # Constants
         const_gen = iter_numbered_constants(sp.Add(*self.A), start=1, prefix="C")
         consts = [next(const_gen) for i in range(len(gensols))]
@@ -284,7 +324,7 @@ class LCCDE(sp.Basic):
                     "The number of auxiliary conditions is not equal to the LCDDE order."
                 )
             nvals = ac.keys()
-        elif ac == "initial_rest"  or ac == "final_rest":
+        elif ac == "initial_rest" or ac == "final_rest":
             return sp.S.Zero
         else:
             raise ValueError("Invalid auxiliary conditions.")
@@ -315,7 +355,9 @@ class LCCDE(sp.Basic):
                 yk = B[-1] / self.A[-1] * xM
                 partial_sols.append(yk.subs(xM, fin.subs(n, n - lccde.M + lccde.N)))
                 del B[-1]
-                new_x_part = sp.Add(*[bk * self.x(n - k) for k, bk in enumerate(B)]) - yk
+                new_x_part = (
+                    sp.Add(*[bk * self.x(n - k) for k, bk in enumerate(B)]) - yk
+                )
                 lccde = LCCDE.from_expression(
                     sp.Eq(self.y_part(), new_x_part), self.x(), self.y()
                 )
@@ -333,9 +375,10 @@ class LCCDE(sp.Basic):
                     if sorted(ac.keys()) != list(range(m, M + 1)):
                         raise ValueError("Auxiliary conditions must be contiguous.")
                     yexpr = sp.Piecewise(
-                        (lccde.as_forward_recursion(fin), n >= max(ac.keys())),
-                        *[(n0, ac[n0]) for n0 in range(m, M + 1)],
-                        (lccde.as_backward_recursion(fin), n <= min(ac.keys())))
+                        (lccde.as_forward_recursion(fin), n > max(ac.keys())),
+                        *[(ac[n0], sp.Eq(n, n0)) for n0 in range(m, M + 1)],
+                        (lccde.as_backward_recursion(fin), n < min(ac.keys()))
+                    )
                     nvals = range(m, M + 1)
             else:
                 nvals = ac.keys()
@@ -348,7 +391,9 @@ class LCCDE(sp.Basic):
         elif isinstance(ac, str) and ac == "final_rest":
             ac = dict(zip(range(0, lccde.order), [0] * lccde.order))
             yexpr = lccde.as_backward_recursion(fin)
-            nvals = list(reversed(self._non_zero_input(lccde, fin, lccde.N, len(consts))))
+            nvals = list(
+                reversed(self._non_zero_input(lccde, fin, lccde.N, len(consts)))
+            )
             postfix = UnitStep(-n - 1)
         else:
             raise ValueError("Invalid auxiliary conditions.")
