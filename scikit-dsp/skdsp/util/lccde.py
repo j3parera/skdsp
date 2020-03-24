@@ -3,8 +3,9 @@ from collections import defaultdict
 import sympy as sp
 from sympy.solvers.ode import get_numbered_constants, iter_numbered_constants
 
-from skdsp.signal.functions import UnitDelta, stepsimp
+from skdsp.signal.functions import UnitDelta, UnitStep, stepsimp
 from skdsp.signal.discrete import DiscreteSignal
+from numbers import Number
 
 
 class LCCDE(sp.Basic):
@@ -84,17 +85,19 @@ class LCCDE(sp.Basic):
         obj = sp.Basic.__new__(cls, B, A, x, y)
         return obj
 
-    @property
-    def x(self):
-        return self.args[2]
+    def x(self, value=None):
+        if not value:
+            return self.args[2]
+        return self.args[2].subs(self.iv, value)
 
-    @property
-    def y(self):
-        return self.args[3]
+    def y(self, value=None):
+        if not value:
+            return self.args[3]
+        return self.args[3].subs(self.iv, value)
 
     @property
     def iv(self):
-        return self.y.args[0]
+        return self.y().args[0]
 
     @property
     def B(self):
@@ -118,23 +121,21 @@ class LCCDE(sp.Basic):
 
     def x_part(self, offset=0):
         n = self.iv
-        x = self.x
-        adds = [c * x.subs(n, n - k + offset) for k, c in enumerate(self.B)]
+        adds = [c * self.x(n - k + offset) for k, c in enumerate(self.B)]
         return sp.Add(*adds)
 
     def y_recursive_part(self, forward=True, offset=0):
         n = self.iv
-        y = self.y
         if forward:
             adds = [
-                a * y.subs(n, n - (k + 1) + offset) for k, a in enumerate(self.A[1:])
+                a * self.y(n - (k + 1) + offset) for k, a in enumerate(self.A[1:])
             ]
         else:
-            adds = [a * y.subs(n, n - k + offset) for k, a in enumerate(self.A[:-1])]
+            adds = [a * self.y(n - k + offset) for k, a in enumerate(self.A[:-1])]
         return sp.Add(*adds)
 
     def y_part(self, offset=0):
-        return self.y + self.y_recursive_part(offset=offset)
+        return self.y() + self.y_recursive_part(offset=offset)
 
     @property
     def as_expression(self):
@@ -148,21 +149,27 @@ class LCCDE(sp.Basic):
 
     def apply_input(self, fin=None, offset=0):
         x_part = self.x_part()
-        if fin is not None:
+        if offset != 0 or fin is not None:
             n = self.iv
             for k in range(self.M + 1):
-                old = self.x.subs(n, n - k)
-                new = fin.subs(n, n - k + offset)
+                old = self.x(n - k)
+                if fin is not None:
+                    new = fin.subs(n, n - k + offset)
+                else:
+                    new = self.x(n - k + offset)
                 x_part = x_part.subs(old, new)
         return x_part
 
     def apply_output(self, fout=None, offset=0):
         y_part = self.y_part()
-        if fout is not None:
+        if offset != 0 or fout is not None:
             n = self.iv
             for k in range(self.N + 1):
-                old = self.y.subs(n, n - k)
-                new = fout.subs(n, n - k + offset)
+                old = self.y(n - k)
+                if fout is not None:
+                    new = fout.subs(n, n - k + offset)
+                else:
+                    new = self.y(n - k + offset)
                 y_part = y_part.subs(old, new)
         return y_part
 
@@ -267,6 +274,30 @@ class LCCDE(sp.Basic):
                 nvals = list(range(sup, sup - count, -1))
         return nvals
 
+    def solve_free(self, ac):
+        # homogeneous solution
+        yh, consts = self.solve_homogeneous()
+        n = self.iv
+        if isinstance(ac, dict):
+            if len(ac.keys()) != self.order:
+                raise ValueError(
+                    "The number of auxiliary conditions is not equal to the LCDDE order."
+                )
+            nvals = ac.keys()
+        elif ac == "initial_rest"  or ac == "final_rest":
+            return sp.S.Zero
+        else:
+            raise ValueError("Invalid auxiliary conditions.")
+        # apply auxiliary conditions
+        eqs = [sp.Eq(yh.subs(n, k), ac[k]) for k in nvals]
+        sol = sp.linsolve(eqs, consts)
+        if sol is None:
+            raise ValueError("The equation cannot be solved.")
+        yf = yh
+        for c, s in zip(consts, list(sol)[0]):
+            yf = yf.subs(c, s)
+        return yf
+
     def solve_forced(self, fin, ac):
         if fin != UnitDelta(self.iv):
             # TODO más tipos entradas, delta[n-k]...?
@@ -276,19 +307,17 @@ class LCCDE(sp.Basic):
         # solution parts: extract solutions up to N < M
         partial_sols = []
         n = self.iv
-        y = self.y
-        x = self.x
         if self.M >= self.N:
             lccde = self.copy()
             while lccde.M >= lccde.N:
                 B = lccde.B
-                xM = x.subs(n, n - lccde.M + lccde.N)
+                xM = self.x(n - lccde.M + lccde.N)
                 yk = B[-1] / self.A[-1] * xM
                 partial_sols.append(yk.subs(xM, fin.subs(n, n - lccde.M + lccde.N)))
                 del B[-1]
-                new_x_part = sp.Add(*[bk * x.subs(n, n - k) for k, bk in enumerate(B)]) - yk
+                new_x_part = sp.Add(*[bk * self.x(n - k) for k, bk in enumerate(B)]) - yk
                 lccde = LCCDE.from_expression(
-                    sp.Eq(self.y_part(), new_x_part), self.x, self.y
+                    sp.Eq(self.y_part(), new_x_part), self.x(), self.y()
                 )
         else:
             lccde = self
@@ -298,27 +327,41 @@ class LCCDE(sp.Basic):
                 raise ValueError(
                     "The number of auxiliary conditions is not equal to the LCDDE order."
                 )
+                if all(isinstance(k, Number) for k in ac.keys()):
+                    m = min(ac.keys())
+                    M = max(ac.keys())
+                    if sorted(ac.keys()) != list(range(m, M + 1)):
+                        raise ValueError("Auxiliary conditions must be contiguous.")
+                    yexpr = sp.Piecewise(
+                        (lccde.as_forward_recursion(fin), n >= max(ac.keys())),
+                        *[(n0, ac[n0]) for n0 in range(m, M + 1)],
+                        (lccde.as_backward_recursion(fin), n <= min(ac.keys())))
+                    nvals = range(m, M + 1)
+            else:
+                nvals = ac.keys()
+            postfix = sp.S.One
         elif isinstance(ac, str) and ac == "initial_rest":
             ac = dict(zip(range(-1, -lccde.order - 1, -1), [0] * lccde.order))
             yexpr = lccde.as_forward_recursion(fin)
             nvals = self._non_zero_input(lccde, fin, 0, len(consts))
+            postfix = UnitStep(n)
         elif isinstance(ac, str) and ac == "final_rest":
             ac = dict(zip(range(0, lccde.order), [0] * lccde.order))
             yexpr = lccde.as_backward_recursion(fin)
             nvals = list(reversed(self._non_zero_input(lccde, fin, lccde.N, len(consts))))
+            postfix = UnitStep(-n - 1)
         else:
-            # TODO
-            raise NotImplementedError
+            raise ValueError("Invalid auxiliary conditions.")
         lhss = [yh.subs(n, k) for k in nvals]
         rhss = [yexpr.subs(n, nvals[0])]
         for k, v in enumerate(nvals[1:], start=1):
             yk = yexpr.subs(n, v)
-            yk = yk.subs(y.subs(n, v - (nvals[k] - nvals[k - 1])), rhss[k - 1])
+            yk = yk.subs(self.y(v - (nvals[k] - nvals[k - 1])), rhss[k - 1])
             rhss.append(yk)
         # apply auxiliary conditions
         for k1, rhs in enumerate(rhss):
             for k2, v in ac.items():
-                rhs = rhs.subs(y.subs(n, k2), v)
+                rhs = rhs.subs(self.y(k2), v)
             rhss[k1] = rhs
         eqs = [sp.Eq(lhs, rhs) for lhs, rhs in zip(lhss, rhss)]
         sol = sp.linsolve(eqs, consts)
