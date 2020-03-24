@@ -4,31 +4,18 @@ import sympy as sp
 from sympy.solvers.ode import ode_nth_linear_constant_coeff_homogeneous
 
 from skdsp.signal.discrete import Constant, Data, Delta, Exponential, Step, n
-from skdsp.system.discrete import Delay, DiscreteSystem, Identity, LCCDESystem, Zero
+from skdsp.system.discrete import Delay, DiscreteSystem, Identity, Zero
 from skdsp.util.lccde import LCCDE
 from skdsp.signal.functions import UnitStep, UnitDelta
 
 
 class Test_DiscreteSystem(object):
 
-    def test_DiscreteSystem_as_LCCDE(self):
+    def test_DiscreteSystem_constructor(self):
         n = sp.Symbol("n", integer=True)
         k = sp.Symbol("k", integer=True)
         x = sp.Function("x")
         y = sp.Function("y")
-
-        eq = sp.Eq(y(n) - y(n-1)/4, x(n) - x(n-2))
-        S = DiscreteSystem(eq)
-        h = S.impulse_response(force_lti=True)
-        assert h is not None
-
-        eq = sp.Eq(y(n) - sp.S(1)*y(n-1)/4, x(n))
-        S = DiscreteSystem(eq)
-        h = S.impulse_response(force_lti=True, select='causal')
-        assert h is not None
-
-        h = S.impulse_response(force_lti=True, select='anticausal')
-        assert h is not None
 
         T = sp.Eq(y(n), x(n) - x(n - 1))
         S = DiscreteSystem(T)
@@ -86,6 +73,56 @@ class Test_DiscreteSystem(object):
         eq = S.as_lccde
         assert eq is None
 
+        lccde = LCCDE([2, -sp.Rational(3, 4)], [1, -sp.Rational(3, 4), -sp.Rational(1, 8)])
+        S = DiscreteSystem(lccde)
+        assert S.is_discrete
+        assert S.is_input_discrete
+        assert S.is_output_discrete
+        assert not S.is_continuous
+        assert not S.is_input_continuous
+        assert not S.is_input_continuous
+        assert not S.is_hybrid
+        assert not S.is_memoryless
+        assert not S.is_time_invariant
+        assert not S.is_linear
+        assert not S.is_causal
+        assert not S.is_anticausal
+        assert S.is_recursive
+        assert not S.is_stable
+
+        B = [1, sp.Rational(1, 2)]
+        A = [1, -sp.Rational(18, 10)*sp.cos(sp.S.Pi/16), sp.Rational(81, 100)]
+        S = DiscreteSystem.from_coefficients(B, A)
+        lccde = S.as_lccde
+        assert lccde.B == B
+        assert lccde.A == A
+
+    def test_DiscreteSystem_impulse_response(self):
+        x = sp.Function("x")
+        y = sp.Function("y")
+
+        lccde = LCCDE([2, -sp.Rational(3, 4)], [1, -sp.Rational(3, 4), sp.Rational(1, 8)])
+        S = DiscreteSystem(lccde)
+        h = S.impulse_response()
+        assert h == None
+
+        h = S.impulse_response(force_lti=True)
+        expected = (sp.Rational(1, 2)**n * UnitStep(n) + sp.Rational(1, 4)**n * UnitStep(n))
+        assert sp.simplify(h.amplitude - expected) == sp.S.Zero
+
+        h = S.impulse_response(force_lti=True, select='causal')
+        expected = (sp.Rational(1, 2)**n * UnitStep(n) + sp.Rational(1, 4)**n * UnitStep(n))
+        assert sp.simplify(h.amplitude - expected) == sp.S.Zero
+
+        h = S.impulse_response(force_lti=True, select='anticausal')
+        expected = (-sp.Rational(1, 2)**n * UnitStep(-n-1) + -sp.Rational(1, 4)**n * UnitStep(-n-1))
+        assert sp.simplify(h.amplitude - expected) == sp.S.Zero
+
+        eq = sp.Eq(y(n) - y(n-1)/4, x(n) - x(n-2))
+        S = DiscreteSystem(eq)
+        h = S.impulse_response(force_lti=True)
+        assert h is not None
+
         eq = sp.Eq(y(n) - 3*y(n-1) - 4*y(n-2), x(n) + 2*x(n-1))
         S = DiscreteSystem(eq)
         h = S.impulse_response(force_lti=True)
@@ -98,6 +135,14 @@ class Test_DiscreteSystem(object):
         S = DiscreteSystem(eq)
         h = S.impulse_response(force_lti=True)
         # s = h.latex()
+        assert h is not None
+
+        eq = sp.Eq(y(n) - sp.S(1)*y(n-1)/4, x(n))
+        S = DiscreteSystem(eq)
+        h = S.impulse_response(force_lti=True, select='causal')
+        assert h is not None
+
+        h = S.impulse_response(force_lti=True, select='anticausal')
         assert h is not None
 
 class Test_Zero(object):
@@ -180,50 +225,6 @@ class Test_Delay(object):
         h = S.impulse_response()
         assert h == Delta().shift(3)
 
-
-class Test_LCCDESystem(object):
-    def test_LCCDESystem_constructor(self):
-        lccde = LCCDE([2, -sp.Rational(3, 4)], [1, -sp.Rational(3, 4), -sp.Rational(1, 8)])
-        S = LCCDESystem(lccde)
-        assert S.is_discrete
-        assert S.is_input_discrete
-        assert S.is_output_discrete
-        assert not S.is_continuous
-        assert not S.is_input_continuous
-        assert not S.is_input_continuous
-        assert not S.is_hybrid
-        assert not S.is_memoryless
-        assert not S.is_time_invariant
-        assert not S.is_linear
-        assert not S.is_causal
-        assert not S.is_anticausal
-        assert S.is_recursive
-        assert not S.is_stable
-
-        B = [1, sp.Rational(1, 2)]
-        A = [1, -sp.Rational(18, 10)*sp.cos(sp.S.Pi/16), sp.Rational(81, 100)]
-        S = LCCDESystem.from_coefficients(B, A)
-        lccde = S.as_lccde
-        assert lccde.B == B
-        assert lccde.A == A
-
-    def test_LCCDESystem_impulse_response(self):
-        lccde = LCCDE([2, -sp.Rational(3, 4)], [1, -sp.Rational(3, 4), sp.Rational(1, 8)])
-        S = LCCDESystem(lccde)
-        h = S.impulse_response()
-        assert h == None
-
-        h = S.impulse_response(force_lti=True)
-        expected = (sp.Rational(1, 2)**n * UnitStep(n) + sp.Rational(1, 4)**n * UnitStep(n))
-        assert sp.simplify(h.amplitude - expected) == sp.S.Zero
-
-        h = S.impulse_response(force_lti=True, select='causal')
-        expected = (sp.Rational(1, 2)**n * UnitStep(n) + sp.Rational(1, 4)**n * UnitStep(n))
-        assert sp.simplify(h.amplitude - expected) == sp.S.Zero
-
-        h = S.impulse_response(force_lti=True, select='anticausal')
-        expected = (-sp.Rational(1, 2)**n * UnitStep(-n-1) + -sp.Rational(1, 4)**n * UnitStep(-n-1))
-        assert sp.simplify(h.amplitude - expected) == sp.S.Zero
 
 
 class Test_KK(object):

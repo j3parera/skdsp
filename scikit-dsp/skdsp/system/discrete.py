@@ -22,6 +22,12 @@ class DiscreteSystem(System):
     is_input_continuous = False
     is_output_continuous = False
 
+    @classmethod
+    def from_coefficients(cls, B, A, x=None, y=None):
+        lccde = LCCDE(B, A, x, y)
+        obj = DiscreteSystem.__new__(cls, lccde)
+        return obj
+
     def __new__(cls, T, x=_x(n), y=_y(n)):
         T = sp.sympify(T)
         return System.__new__(cls, T, x, y)
@@ -168,16 +174,3 @@ class Delay(DiscreteSystem):
         T = sp.Eq(_y(n), _x(n - k))
         return DiscreteSystem.__new__(cls, T)
 
-
-class LCCDESystem(DiscreteSystem):
-    @classmethod
-    def from_coefficients(cls, B, A, x=None, y=None):
-        lccde = LCCDE(B, A, x, y)
-        obj = LCCDESystem.__new__(cls, lccde)
-        return obj
-
-    def __new__(cls, lccde):
-        if not isinstance(lccde, LCCDE):
-            raise TypeError("lccde must be an LCCDE object.")
-        obj = DiscreteSystem.__new__(cls, lccde, lccde.x, lccde.y)
-        return obj
