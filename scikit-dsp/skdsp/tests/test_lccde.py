@@ -31,9 +31,35 @@ class Test_LCCDE(object):
         yb = lccde.as_backward_recursion()
         assert sp.simplify(yb - (lccde.y(n + 1) - lccde.x(n + 1)) / a) == sp.S.Zero
 
+        y = sp.Piecewise((yb, n < -1), (lccde.y(-1), sp.Eq(n, -1)), (yf, n >= 0))
+        assert y.subs(n, -1) == lccde.y(-1)
+        assert y.subs(n, 0) == a * lccde.y(-1) + lccde.x(0)
+        assert sp.simplify(y.subs(n, -2) - (lccde.y(-1) - lccde.x(-1)) / a) == sp.S.Zero
+
         yh, Cs = lccde.solve_homogeneous()
         assert len(Cs) == 1
         assert yh == Cs[0] * a ** n
+
+        A = [1, -sp.Rational(3, 4), sp.Rational(1, 8)]
+        B = [1, -sp.Rational(3, 8)]
+        lccde = LCCDE(B, A)
+        yf = lccde.as_forward_recursion()
+        expected = (
+            -A[1] * lccde.y(n - 1)
+            - A[2] * lccde.y(n - 2)
+            + B[0] * lccde.x(n)
+            + B[1] * lccde.x(n - 1)
+        )
+        assert sp.simplify(yf - expected) == sp.S.Zero
+
+        yb = lccde.as_backward_recursion()
+        expected = (
+            -8 * lccde.y(n + 2)
+            - 8 * A[1] * lccde.y(n + 1)
+            + 8 * B[0] * lccde.x(n + 2)
+            + 8 * B[1] * lccde.x(n + 1)
+        )
+        assert sp.simplify(yb - expected) == sp.S.Zero
 
     def test_LCCDE_solve_free(self):
         a = sp.Symbol("a")
@@ -54,8 +80,8 @@ class Test_LCCDE(object):
         yf = lccde.solve_free("final_rest")
         assert yf == sp.S.Zero
 
-        n0 = sp.Symbol('n0', integer=True)
-        K = sp.Symbol('K')
+        n0 = sp.Symbol("n0", integer=True)
+        K = sp.Symbol("K")
         yf = lccde.solve_free({n0: K})
         assert sp.simplify(yf - K * a ** (n - n0)) == sp.S.Zero
 
@@ -67,7 +93,7 @@ class Test_LCCDE(object):
         yf = lccde.solve_free({n0: K})
         assert sp.simplify(yf - K * a ** (n - n0)) == sp.S.Zero
 
-        n0 = sp.Symbol('n0', integer=True)
+        n0 = sp.Symbol("n0", integer=True)
         K = sp.S.Zero
         yf = lccde.solve_free({n0: K})
         assert yf == sp.S.Zero
@@ -84,10 +110,10 @@ class Test_LCCDE(object):
         yf = lccde.solve_free("final_rest")
         assert yf == sp.S.Zero
 
-        n0 = sp.Symbol('n0', integer=True)
-        n1 = sp.Symbol('n1', integer=True)
-        K0 = sp.Symbol('K0')
-        K1 = sp.Symbol('K1')
+        n0 = sp.Symbol("n0", integer=True)
+        n1 = sp.Symbol("n1", integer=True)
+        K0 = sp.Symbol("K0")
+        K1 = sp.Symbol("K1")
         yf = lccde.solve_free({n0: K0, n1: K1})
         M = sp.Matrix([[2 ** -n0, 4 ** -n0], [2 ** -n1, 4 ** -n1]])
         dM = M.det()
@@ -98,7 +124,7 @@ class Test_LCCDE(object):
         MC2 = M[:, :]
         MC2[:, 1] = V
         dMC2 = MC2.det()
-        expected = dMC1/dM * (2 ** -n) + dMC2/dM * (4 ** -n)
+        expected = dMC1 / dM * (2 ** -n) + dMC2 / dM * (4 ** -n)
         assert sp.simplify(yf - expected) == sp.S.Zero
 
         yf = lccde.solve_free({0: 1, 2: 2})
