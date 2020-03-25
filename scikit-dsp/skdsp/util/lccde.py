@@ -181,6 +181,27 @@ class LCCDE(sp.Basic):
             + self.apply_input(fin, offset=offset)
         ) / self.A[-1]
 
+    def _recur(self, eq, span, forward):
+        offset = -1 if forward else 1
+        result = dict()
+        for k in range(span.start + offset * self.order, span.start, -offset):
+            result[k] = self.y(k)
+        for k in span:
+            yk = eq.subs(self.iv, k)
+            for r in range(self.order):
+                idx = k + (r + 1) * offset
+                yk = yk.subs(self.y(idx), result[idx])
+            result[k] = sp.expand_mul(yk)
+        return result
+
+    def forward_recur(self, span, fin=None):
+        y = self.as_forward_recursion(fin)
+        return self._recur(y, span, True)
+    
+    def backward_recur(self, span, fin=None):
+        y = self.as_backward_recursion(fin)
+        return self._recur(y, span, False)
+    
     def _process_aux_conditions(self, ac="initial_rest"):
         n = self.iv
         N = self.order

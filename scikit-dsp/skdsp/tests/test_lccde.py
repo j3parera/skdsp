@@ -19,23 +19,77 @@ class Test_LCCDE(object):
         assert eq.A == A
         assert eq.order == 2
 
-    def test_LCCDE_solve_helpers(self):
+    def test_LCCDE_solve_recursion(self):
         a = sp.Symbol("a")
         B = [1]
         A = [1, -a]
         lccde = LCCDE(B, A)
         n = lccde.iv
+
         yf = lccde.as_forward_recursion()
         assert yf == a * lccde.y(n - 1) + lccde.x(n)
 
         yb = lccde.as_backward_recursion()
         assert sp.simplify(yb - (lccde.y(n + 1) - lccde.x(n + 1)) / a) == sp.S.Zero
 
-        yp = lccde.as_piecewise(ac='initial_rest')
+        res = lccde.forward_recur(range(3))
+        assert res[-1] == lccde.y(-1)
+        assert res[0] == a * lccde.y(-1) + lccde.x(0)
+        assert res[1] == a ** 2 * lccde.y(-1) + a * lccde.x(0) + lccde.x(1)
+        assert res[2] == (
+            a ** 3 * lccde.y(-1) + a ** 2 * lccde.x(0) + a * lccde.x(1) + lccde.x(2)
+        )
+
+        res = lccde.backward_recur(range(-1, -4, -1))
+        assert res[0] == lccde.y(0)
+        assert res[-1] == -lccde.x(0) / a + lccde.y(0) / a
+        assert res[-2] == -lccde.x(-1) / a - lccde.x(0) / a ** 2 + lccde.y(0) / a ** 2
+        assert res[-3] == (
+            -lccde.x(-2) / a
+            - lccde.x(-1) / a ** 2
+            + -lccde.x(0) / a ** 3
+            + lccde.y(0) / a ** 3
+        )
+
+        res = lccde.forward_recur(range(1, 3))
+        assert res[0] == lccde.y(0)
+        assert res[1] == a * lccde.y(0) + lccde.x(1)
+        assert res[2] == a ** 2 * lccde.y(0) + a * lccde.x(1) + lccde.x(2)
+
+        res = lccde.backward_recur(range(-2, -4, -1))
+        assert res[-1] == lccde.y(-1)
+        assert res[-2] == -lccde.x(-1) / a + lccde.y(-1) / a
+        assert res[-3] == -lccde.x(-2) / a - lccde.x(-1) / a ** 2 + lccde.y(-1) / a ** 2
+
+        res = lccde.forward_recur(range(3), UnitDelta(n))
+        assert res[-1] == lccde.y(-1)
+        assert res[0] == a * lccde.y(-1) + 1
+        assert res[1] == a ** 2 * lccde.y(-1) + a
+        assert res[2] == a ** 3 * lccde.y(-1) + a ** 2
+
+        res = lccde.backward_recur(range(-1, -4, -1), UnitDelta(n))
+        assert res[0] == lccde.y(0)
+        assert res[-1] == lccde.y(0) / a - 1 / a
+        assert res[-2] == lccde.y(0) / a ** 2 - 1 / a ** 2
+        assert res[-3] == lccde.y(0) / a ** 3 - 1 / a ** 3
+
+        res = lccde.forward_recur(range(3), UnitStep(n))
+        assert res[-1] == lccde.y(-1)
+        assert res[0] == a * lccde.y(-1) + 1
+        assert res[1] == a ** 2 * lccde.y(-1) + a + 1
+        assert res[2] == a ** 3 * lccde.y(-1) + a ** 2 + a + 1
+
+        res = lccde.backward_recur(range(-1, -4, -1), UnitStep(-n - 1))
+        assert res[0] == lccde.y(0)
+        assert res[-1] == lccde.y(0) / a
+        assert res[-2] == -1 / a + lccde.y(0) / a ** 2
+        assert res[-3] == -1 / a - 1 / a ** 2 + lccde.y(0) / a ** 3
+
+        yp = lccde.as_piecewise(ac="initial_rest")
         y = sp.Piecewise((yf, n >= 0), (0, True))
         assert sp.simplify(yp - y) == sp.S.Zero
 
-        yp = lccde.as_piecewise(ac='final_rest')
+        yp = lccde.as_piecewise(ac="final_rest")
         y = sp.Piecewise((yb, n <= -1), (0, True))
         assert sp.simplify(yp - y) == sp.S.Zero
 
@@ -45,11 +99,9 @@ class Test_LCCDE(object):
 
         assert yp.subs(n, -1) == lccde.y(-1)
         assert yp.subs(n, 0) == a * lccde.y(-1) + lccde.x(0)
-        assert sp.simplify(yp.subs(n, -2) - (lccde.y(-1) - lccde.x(-1)) / a) == sp.S.Zero
-
-        yh, Cs = lccde.solve_homogeneous()
-        assert len(Cs) == 1
-        assert yh == Cs[0] * a ** n
+        assert (
+            sp.simplify(yp.subs(n, -2) - (lccde.y(-1) - lccde.x(-1)) / a) == sp.S.Zero
+        )
 
         A = [1, -sp.Rational(3, 4), sp.Rational(1, 8)]
         B = [1, -sp.Rational(3, 8)]
@@ -71,6 +123,57 @@ class Test_LCCDE(object):
             + 8 * B[1] * lccde.x(n + 1)
         )
         assert sp.simplify(yb - expected) == sp.S.Zero
+
+        res = lccde.forward_recur(range(2))
+        assert res[-2] == lccde.y(-2)
+        assert res[-1] == lccde.y(-1)
+        assert res[0] == (
+            -3 * lccde.x(-1) / 8 + lccde.x(0) - lccde.y(-2) / 8 + 3 * lccde.y(-1) / 4
+        )
+        assert res[1] == (
+            -9 * lccde.x(-1) / 32
+            + 3 * lccde.x(0) / 8
+            + lccde.x(1)
+            - 3 * lccde.y(-2) / 32
+            + 7 * lccde.y(-1) / 16
+        )
+
+        res = lccde.backward_recur(range(-1, -3, -1))
+        assert res[1] == lccde.y(1)
+        assert res[0] == lccde.y(0)
+        assert res[-1] == (
+            -3 * lccde.x(0) + 8 * lccde.x(1) + 6 * lccde.y(0) - 8 * lccde.y(1)
+        )
+        assert res[-2] == (
+            -3 * lccde.x(-1)
+            - 10 * lccde.x(0)
+            + 48 * lccde.x(1)
+            + 28 * lccde.y(0)
+            - 48 * lccde.y(1)
+        )
+
+        res = lccde.forward_recur(range(2), UnitDelta(n))
+        assert res[-2] == lccde.y(-2)
+        assert res[-1] == lccde.y(-1)
+        assert res[0] == -lccde.y(-2) / 8 + 3 * lccde.y(-1) / 4 + 1
+        assert res[1] == - 3 * lccde.y(-2) / 32 + 7 * lccde.y(-1) / 16 + sp.Rational(3, 8)
+
+        res = lccde.backward_recur(range(-1, -3, -1), UnitDelta(n))
+        assert res[1] == lccde.y(1)
+        assert res[0] == lccde.y(0)
+        assert res[-1] == 6 * lccde.y(0) - 8 * lccde.y(1) - 3
+        assert res[-2] == 28 * lccde.y(0) - 48 * lccde.y(1) - 10
+        
+    def test_LCCDE_solve_homogeneous(self):
+        a = sp.Symbol("a")
+        B = [1]
+        A = [1, -a]
+        lccde = LCCDE(B, A)
+        n = lccde.iv
+
+        yh, Cs = lccde.solve_homogeneous()
+        assert len(Cs) == 1
+        assert yh == Cs[0] * a ** n
 
     def test_LCCDE_solve_free(self):
         a = sp.Symbol("a")
