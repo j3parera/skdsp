@@ -10,14 +10,30 @@ class Test_LCCDE(object):
     def test_LCCDE_constructor(self):
         A = [1, -sp.S(3) / 4, sp.S(1) / 8]
         B = [2, -sp.S(3) / 4]
-        eq = LCCDE(B, A)
-        assert eq is not None
-        assert eq.iv == sp.Symbol("n", integer=True)
-        assert eq.x() == sp.Function("x")(eq.iv)
-        assert eq.y() == sp.Function("y")(eq.iv)
-        assert eq.B == B
-        assert eq.A == A
-        assert eq.order == 2
+        lccde = LCCDE(B, A)
+        assert lccde is not None
+        assert lccde.iv == sp.Symbol("n", integer=True)
+        assert lccde.x() == sp.Function("x")(lccde.iv)
+        assert lccde.y() == sp.Function("y")(lccde.iv)
+        assert lccde.B == B
+        assert lccde.A == A
+        assert lccde.order == 2
+
+    def test_LCDDE_from_expression(self):
+        y = sp.Function("y")
+        x = sp.Function("x")
+        n = sp.Symbol("n", integer=True)
+        ed = sp.Eq(
+            y(n) - sp.S(3) / 4 * y(n - 1) + sp.S(1) / 8 * y(n - 2),
+            2 * x(n) - sp.S(3) / 4 * x(n - 1),
+        )
+        lccde = LCCDE.from_expression(ed, x(n), y(n))
+        assert lccde.A == [1, -sp.S(3) / 4, sp.S(1) / 8]
+        assert lccde.B == [2, -sp.S(3) / 4]
+        ed2 = lccde.as_expression
+        y1 = sp.solve(ed, y(n))
+        y2 = sp.solve(ed2, y(n))
+        assert y1 == y2
 
     def test_LCCDE_solve_recursion(self):
         a = sp.Symbol("a")
@@ -209,31 +225,38 @@ class Test_LCCDE(object):
         K = sp.Symbol("K")
         yf = lccde.solve_free({n0: K})
         assert sp.simplify(yf - K * a ** (n - n0)) == sp.S.Zero
+        assert lccde.check_solution(sp.S.Zero, yf)
 
         n0 = 3
         yf = lccde.solve_free({n0: K})
         assert sp.simplify(yf - K * a ** (n - n0)) == sp.S.Zero
+        assert lccde.check_solution(sp.S.Zero, yf)
 
         n0 = -3
         yf = lccde.solve_free({n0: K})
         assert sp.simplify(yf - K * a ** (n - n0)) == sp.S.Zero
+        assert lccde.check_solution(sp.S.Zero, yf)
 
         n0 = sp.Symbol("n0", integer=True)
         K = sp.S.Zero
         yf = lccde.solve_free({n0: K})
         assert yf == sp.S.Zero
+        assert lccde.check_solution(sp.S.Zero, yf)
 
         A = [1, -sp.Rational(3, 4), sp.Rational(1, 8)]
         B = [1, -sp.Rational(3, 8)]
         lccde = LCCDE(B, A)
         yf = lccde.solve_free(ac={3: 2, 2: 5})
         assert sp.simplify(yf - (12 * 2 ** (-n) + 32 * 4 ** (-n))) == sp.S.Zero
+        assert lccde.check_solution(sp.S.Zero, yf)
 
         yf = lccde.solve_free("initial_rest")
         assert yf == sp.S.Zero
+        assert lccde.check_solution(sp.S.Zero, yf)
 
         yf = lccde.solve_free("final_rest")
         assert yf == sp.S.Zero
+        assert lccde.check_solution(sp.S.Zero, yf)
 
         n0 = sp.Symbol("n0", integer=True)
         n1 = sp.Symbol("n1", integer=True)
@@ -251,9 +274,12 @@ class Test_LCCDE(object):
         dMC2 = MC2.det()
         expected = dMC1 / dM * (2 ** -n) + dMC2 / dM * (4 ** -n)
         assert sp.simplify(yf - expected) == sp.S.Zero
+        assert lccde.check_solution(sp.S.Zero, yf)
 
         yf = lccde.solve_free({0: 1, 2: 2})
-        assert yf
+        expected = -28 / 4 ** n / 3 + 31 / 2 ** n / 3
+        assert sp.simplify(yf - expected) == sp.S.Zero
+        assert lccde.check_solution(sp.S.Zero, yf)
 
         B = [1]
         A = [1, -3, -4]
@@ -267,19 +293,26 @@ class Test_LCCDE(object):
             16 * ym2 / 5 + 16 * ym1 / 5
         )
         assert sp.simplify(yf - expected) == sp.S.Zero
+        assert lccde.check_solution(sp.S.Zero, yf)
 
         yf = lccde.solve_free({-1: 5, -2: 0})
         expected = (-1) ** (n + 1) + 4 ** (n + 2)
         assert sp.simplify(yf - expected) == sp.S.Zero
+        assert lccde.check_solution(sp.S.Zero, yf)
 
         r = sp.Symbol('r', positive=True)
         B = [-1]
         A = [1, -(1 + r)]
         lccde = LCCDE(B, A)
-        yh = lccde.solve_free({0: -1})
+        yf = lccde.solve_free({0: -1})
         expr = -(1 + r)**lccde.iv
-        dif = sp.simplify(yh - expr)
+        dif = sp.simplify(yf - expr)
         assert dif == sp.S.Zero
+        assert lccde.check_solution(sp.S.Zero, yf)
+
+        yf = lccde.solve_free('initial_rest')
+        assert yf == sp.S.Zero
+        assert lccde.check_solution(sp.S.Zero, yf)
 
     def test_LCCDE_solve_forced(self):
         A = [1, -sp.Rational(3, 4), sp.Rational(1, 8)]
@@ -299,10 +332,6 @@ class Test_LCCDE(object):
         # dif = sp.simplify(yh - expr)
         # assert dif == sp.S.Zero
 
-        # TODO solve_free
-        # yh = eq.solve_free(ac='initial_rest')
-        # assert yh == sp.S.Zero
-
         # TODO solve_forced(u[n])
         # a1 = sp.Symbol('a1')
         # B = [1]
@@ -310,18 +339,3 @@ class Test_LCCDE(object):
         # eq = LCCDE(B, A)
         # y = eq.solve_forced(UnitStep(n))
 
-    def test_LCDDE_from_expression(self):
-        y = sp.Function("y")
-        x = sp.Function("x")
-        n = sp.Symbol("n", integer=True)
-        ed = sp.Eq(
-            y(n) - sp.S(3) / 4 * y(n - 1) + sp.S(1) / 8 * y(n - 2),
-            2 * x(n) - sp.S(3) / 4 * x(n - 1),
-        )
-        eq = LCCDE.from_expression(ed, x(n), y(n))
-        assert eq.A == [1, -sp.S(3) / 4, sp.S(1) / 8]
-        assert eq.B == [2, -sp.S(3) / 4]
-        ed2 = eq.as_expression
-        y1 = sp.solve(ed, y(n))
-        y2 = sp.solve(ed2, y(n))
-        assert y1 == y2

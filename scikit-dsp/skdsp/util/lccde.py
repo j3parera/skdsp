@@ -140,10 +140,18 @@ class LCCDE(sp.Basic):
         return sp.Eq(self.y_part(), self.x_part())
 
     def check_solution(self, fin, fout):
-        x_sol = self.apply_input(fin)
-        y_sol = self.apply_output(fout)
+        # Caution. not 100% reliable
+        x_sol = self.apply_input(fin).expand()
+        y_sol = self.apply_output(fout).expand()
         dif = stepsimp(y_sol - x_sol)
-        return sp.simplify(dif) == sp.S.Zero
+        if sp.simplify(dif) == sp.S.Zero:
+            return True
+        # try some points
+        n = self.iv
+        for n0 in range(-10, 11):
+            if sp.simplify(x_sol.subs(n, n0) - y_sol.subs(n, n0)) != sp.S.Zero:
+                return False
+        return True
 
     def apply_input(self, fin=None, offset=0):
         x_part = self.x_part()
