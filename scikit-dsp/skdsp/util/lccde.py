@@ -239,7 +239,7 @@ class LCCDE(sp.Basic):
             )
         return y
 
-    def roots(self):
+    def y_roots(self):
         # try cosine
         if len(self.A) == 3 and self.A[1] <= 0 and self.A[2] > 0:
             theta = sp.Wild("theta")
@@ -265,7 +265,7 @@ class LCCDE(sp.Basic):
 
     def solve_homogeneous(self):
         n = self.iv
-        roots = self.roots()
+        roots = self.y_roots()
         gensols = []
         done = False
         if len(roots) == 2:
