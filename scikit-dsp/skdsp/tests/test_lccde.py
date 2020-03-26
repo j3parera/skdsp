@@ -156,14 +156,16 @@ class Test_LCCDE(object):
         assert res[-2] == lccde.y(-2)
         assert res[-1] == lccde.y(-1)
         assert res[0] == -lccde.y(-2) / 8 + 3 * lccde.y(-1) / 4 + 1
-        assert res[1] == - 3 * lccde.y(-2) / 32 + 7 * lccde.y(-1) / 16 + sp.Rational(3, 8)
+        assert res[1] == -3 * lccde.y(-2) / 32 + 7 * lccde.y(-1) / 16 + sp.Rational(
+            3, 8
+        )
 
         res = lccde.backward_recur(range(-1, -3, -1), UnitDelta(n))
         assert res[1] == lccde.y(1)
         assert res[0] == lccde.y(0)
         assert res[-1] == 6 * lccde.y(0) - 8 * lccde.y(1) - 3
         assert res[-2] == 28 * lccde.y(0) - 48 * lccde.y(1) - 10
-        
+
     def test_LCCDE_solve_homogeneous(self):
         a = sp.Symbol("a")
         B = [1]
@@ -172,8 +174,17 @@ class Test_LCCDE(object):
         n = lccde.iv
 
         yh, Cs = lccde.solve_homogeneous()
-        assert len(Cs) == 1
+        assert len(Cs) == lccde.order
         assert yh == Cs[0] * a ** n
+
+        B = [1]
+        A = [1, -3, -4]
+        lccde = LCCDE(B, A)
+        n = lccde.iv
+
+        yh, Cs = lccde.solve_homogeneous()
+        assert len(Cs) == lccde.order
+        assert yh == Cs[1] * (-1) ** n + Cs[0] * (4) ** n
 
     def test_LCCDE_solve_free(self):
         a = sp.Symbol("a")
@@ -244,15 +255,41 @@ class Test_LCCDE(object):
         yf = lccde.solve_free({0: 1, 2: 2})
         assert yf
 
+        B = [1]
+        A = [1, -3, -4]
+        lccde = LCCDE(B, A)
+        n = lccde.iv
+
+        ym1 = lccde.y(-1)
+        ym2 = lccde.y(-2)
+        yf = lccde.solve_free({-1: ym1, -2: ym2})
+        expected = (-1) ** n * (4 * ym2 / 5 - ym1 / 5) + 4 ** n * (
+            16 * ym2 / 5 + 16 * ym1 / 5
+        )
+        assert sp.simplify(yf - expected) == sp.S.Zero
+
+        yf = lccde.solve_free({-1: 5, -2: 0})
+        expected = (-1) ** (n + 1) + 4 ** (n + 2)
+        assert sp.simplify(yf - expected) == sp.S.Zero
+
+        r = sp.Symbol('r', positive=True)
+        B = [-1]
+        A = [1, -(1 + r)]
+        lccde = LCCDE(B, A)
+        yh = lccde.solve_free({0: -1})
+        expr = -(1 + r)**lccde.iv
+        dif = sp.simplify(yh - expr)
+        assert dif == sp.S.Zero
+
     def test_LCCDE_solve_forced(self):
         A = [1, -sp.Rational(3, 4), sp.Rational(1, 8)]
         B = [1, -sp.Rational(3, 8)]
-        eq = LCCDE(B, A)
-        yh, _ = eq.solve_homogeneous()
+        lccde = LCCDE(B, A)
+        yh, _ = lccde.solve_homogeneous()
         Ca = sp.Wild("Ca")
         Cb = sp.Wild("Cb")
-        roots = list(eq.roots())
-        expr = Ca * roots[0] ** eq.iv + Cb * roots[1] ** eq.iv
+        roots = list(lccde.y_roots())
+        expr = Ca * roots[0] ** lccde.iv + Cb * roots[1] ** lccde.iv
         match = yh.match(expr)
         assert match is not None
 
@@ -265,15 +302,6 @@ class Test_LCCDE(object):
         # TODO solve_free
         # yh = eq.solve_free(ac='initial_rest')
         # assert yh == sp.S.Zero
-
-        # r = sp.Symbol('r', positive=True)
-        # A = [1, -(1 + r)]
-        # B = [-1]
-        # eq = LCCDE(B, A)
-        # yh = eq.solve_free({0: -1})
-        # expr = -(1 + r)**eq.iv
-        # dif = sp.simplify(yh - expr)
-        # assert dif == sp.S.Zero
 
         # TODO solve_forced(u[n])
         # a1 = sp.Symbol('a1')
