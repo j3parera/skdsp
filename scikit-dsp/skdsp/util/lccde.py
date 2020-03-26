@@ -148,7 +148,7 @@ class LCCDE(sp.Basic):
             return True
         # try some points
         n = self.iv
-        for n0 in range(-10, 11):
+        for n0 in range(-100, 101):
             if sp.simplify(x_sol.subs(n, n0) - y_sol.subs(n, n0)) != sp.S.Zero:
                 return False
         return True
