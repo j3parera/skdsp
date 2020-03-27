@@ -3,7 +3,7 @@ from collections import defaultdict
 import sympy as sp
 from sympy.solvers.ode import get_numbered_constants, iter_numbered_constants
 
-from skdsp.signal.functions import UnitDelta, UnitStep, stepsimp
+from skdsp.signal.functions import UnitDelta, UnitRamp, UnitStep, stepsimp
 from skdsp.signal.discrete import DiscreteSignal
 from numbers import Number
 
@@ -205,11 +205,11 @@ class LCCDE(sp.Basic):
     def forward_recur(self, span, fin=None):
         y = self.as_forward_recursion(fin)
         return self._recur(y, span, True)
-    
+
     def backward_recur(self, span, fin=None):
         y = self.as_backward_recursion(fin)
         return self._recur(y, span, False)
-    
+
     def _process_aux_conditions(self, ac="initial_rest"):
         n = self.iv
         N = self.order
@@ -388,11 +388,74 @@ class LCCDE(sp.Basic):
             lccde = self
         return partial_sols, lccde
 
-    def solve_forced(self, fin, ac):
-        if fin != UnitDelta(self.iv):
-            # TODO más tipos entradas, delta[n-k]...?
-            # Quizá no merece la pena, ¿TZ?
-            raise NotImplementedError
+    def _forced_guess(self, fin):
+        finc = sp.sympify(fin).expand()
+        if finc.is_Add:
+            raise ValueError("Cannot solve fon function addition.")
+        for f in sp.Mul.make_args(fin):
+            if f.is_Function:
+                if not isinstance(
+                    f, (UnitDelta, UnitStep, UnitRamp, sp.cos, sp.sin, sp.exp)
+                ):
+                    raise NotImplementedError
+        n = self.iv
+        nm = 0
+        postfix = sp.S.One
+        guess = sp.S.One
+        cgen = iter_numbered_constants(fin, start=1, prefix="K")
+        consts = []
+        terms, gens = fin.as_terms()
+        for m, e in zip(gens, terms[0][1][1]):
+            if m.is_Pow:
+                guess *= m ** e
+                guess = sp.simplify(guess)
+                continue
+            elif isinstance(m, (sp.cos, sp.sin)):
+                nm = max(nm, sp.solve(m.args[0], n)[0])
+                consts.append(next(cgen))
+                consts.append(next(cgen))
+                guess *= consts[0] * sp.cos(m.args[0]) + consts[1] * sp.sin(m.args[0])
+                continue
+            elif isinstance(m, sp.exp):
+                nm = max(nm, sp.solve(m.args[0], n)[0])
+                consts.append(next(cgen))
+                consts.append(next(cgen))
+                guess *= consts[0] * sp.exp(m.args[0]) + consts[1] * sp.exp(-m.args[0])
+                continue
+            if isinstance(m, UnitDelta):
+                nm = sp.solve(m.args[1], n)[0]
+                guess = m
+                break
+            elif isinstance(m, UnitStep):
+                nm = max(nm, sp.solve(m.args[0], n)[0])
+                if guess == sp.S.One or guess.is_Pow:
+                    consts.append(next(cgen))
+                    guess *= consts[0] * m
+                else:
+                    guess *= m
+                break
+            elif isinstance(m, UnitRamp):
+                nm = max(nm, sp.solve(m.args[0], n)[0])
+                if guess == sp.S.One or guess.is_Pow:
+                    consts.append(next(cgen))
+                    consts.append(next(cgen))
+                    guess *= consts[0] + consts[1] * m
+                else:
+                    guess *= m
+                break
+        return guess, consts, nm + self.N
+
+    def solve_forced(self, fin):
+        # guess function and first point to compute
+        guess, consts, nmin = self._forced_guess(fin)
+        # partial solutions: extract solutions up to N < M
+        partial_sols, lccde = self.solve_partial(fin)
+        # TODO
+        y = sp.S.Zero
+        y += sp.Add(*partial_sols)
+        return y
+
+    def solve_forced_bad(self, fin, ac):
         n = self.iv
         yh, consts = self.solve_homogeneous()
         # solution parts: extract solutions up to N < M
