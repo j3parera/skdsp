@@ -367,16 +367,10 @@ class LCCDE(sp.Basic):
             yf = yf.subs(c, s)
         return yf
 
-    def solve_forced(self, fin, ac):
-        if fin != UnitDelta(self.iv):
-            # TODO más tipos entradas, delta[n-k]...?
-            # Quizá no merece la pena, ¿TZ?
-            raise NotImplementedError
-        yh, consts = self.solve_homogeneous()
-        # solution parts: extract solutions up to N < M
+    def solve_partial(self, fin):
         partial_sols = []
-        n = self.iv
         if self.M >= self.N:
+            n = self.iv
             lccde = self.copy()
             while lccde.M >= lccde.N:
                 B = lccde.B
@@ -392,6 +386,17 @@ class LCCDE(sp.Basic):
                 )
         else:
             lccde = self
+        return partial_sols, lccde
+
+    def solve_forced(self, fin, ac):
+        if fin != UnitDelta(self.iv):
+            # TODO más tipos entradas, delta[n-k]...?
+            # Quizá no merece la pena, ¿TZ?
+            raise NotImplementedError
+        n = self.iv
+        yh, consts = self.solve_homogeneous()
+        # solution parts: extract solutions up to N < M
+        partial_sols, lccde = self.solve_partial(fin)
         #
         if isinstance(ac, dict):
             if len(ac.keys()) != self.order:
