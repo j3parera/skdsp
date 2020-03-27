@@ -2,7 +2,7 @@ import pytest
 import sympy as sp
 
 from skdsp.util.lccde import LCCDE
-from skdsp.signal.functions import UnitStep, UnitDelta, stepsimp
+from skdsp.signal.functions import UnitDelta, UnitRamp, UnitStep, stepsimp
 from skdsp.signal.discrete import n, DiscreteSignal
 
 
@@ -189,6 +189,8 @@ class Test_LCCDE(object):
         lccde = LCCDE(B, A)
         n = lccde.iv
 
+        r = lccde.y_roots()
+        assert list(r) == [a]
         yh, Cs = lccde.solve_homogeneous()
         assert len(Cs) == lccde.order
         assert yh == Cs[0] * a ** n
@@ -198,9 +200,24 @@ class Test_LCCDE(object):
         lccde = LCCDE(B, A)
         n = lccde.iv
 
+        r = lccde.y_roots()
+        assert sorted(list(r)) == [-1, 4]
         yh, Cs = lccde.solve_homogeneous()
         assert len(Cs) == lccde.order
         assert yh == Cs[1] * (-1) ** n + Cs[0] * (4) ** n
+
+        B = [1]
+        A = [1, 0, 1]
+        lccde = LCCDE(B, A)
+        n = lccde.iv
+
+        r = lccde.y_roots()
+        assert sorted(list(r), key=lambda x: abs(x)) == [-sp.I, sp.I]
+        yh, Cs = lccde.solve_homogeneous()
+        assert len(Cs) == lccde.order
+        assert yh == Cs[0] * sp.cos(sp.S.Pi * n / 2) - sp.I * Cs[1] * sp.sin(
+            sp.S.Pi * n / 2
+        )
 
     def test_LCCDE_solve_free(self):
         a = sp.Symbol("a")
@@ -300,42 +317,130 @@ class Test_LCCDE(object):
         assert sp.simplify(yf - expected) == sp.S.Zero
         assert lccde.check_solution(sp.S.Zero, yf)
 
-        r = sp.Symbol('r', positive=True)
+        r = sp.Symbol("r", positive=True)
         B = [-1]
         A = [1, -(1 + r)]
         lccde = LCCDE(B, A)
         yf = lccde.solve_free({0: -1})
-        expr = -(1 + r)**lccde.iv
+        expr = -((1 + r) ** lccde.iv)
         dif = sp.simplify(yf - expr)
         assert dif == sp.S.Zero
         assert lccde.check_solution(sp.S.Zero, yf)
 
-        yf = lccde.solve_free('initial_rest')
+        yf = lccde.solve_free("initial_rest")
         assert yf == sp.S.Zero
         assert lccde.check_solution(sp.S.Zero, yf)
 
-    def test_LCCDE_solve_forced(self):
-        A = [1, -sp.Rational(3, 4), sp.Rational(1, 8)]
-        B = [1, -sp.Rational(3, 8)]
+    def test_LCCDE_solve__forced_guess(self):
+        a = sp.Symbol("a", integer=True)
+        B = [1]
+        A = [1, a]
         lccde = LCCDE(B, A)
-        yh, _ = lccde.solve_homogeneous()
-        Ca = sp.Wild("Ca")
-        Cb = sp.Wild("Cb")
-        roots = list(lccde.y_roots())
-        expr = Ca * roots[0] ** lccde.iv + Cb * roots[1] ** lccde.iv
-        match = yh.match(expr)
-        assert match is not None
+        n = lccde.iv
+
+        with pytest.raises(ValueError):
+            lccde._forced_guess(2 * (UnitStep(n) + UnitDelta(n)))
+
+        with pytest.raises(NotImplementedError):
+            lccde._forced_guess(2 * sp.tanh(n))
+
+        guess, consts, nmin = lccde._forced_guess(3 * 2 ** (n - a) * UnitDelta(n - 10))
+        assert guess == UnitDelta(n - 10)
+        assert len(consts) == 0
+        assert nmin == 11
+
+        guess, consts, nmin = lccde._forced_guess(UnitDelta(n - 10))
+        assert guess == UnitDelta(n - 10)
+        assert len(consts) == 0
+        assert nmin == 11
+
+        guess, consts, nmin = lccde._forced_guess(3 * 2 ** (n - a) * UnitStep(n - 10))
+        assert len(consts) == 1
+        assert guess == consts[0] * 2 ** (n - a) * UnitStep(n - 10)
+        assert nmin == 11
+
+        guess, consts, nmin = lccde._forced_guess(UnitStep(n - 10))
+        assert len(consts) == 1
+        assert guess == consts[0] * UnitStep(n - 10)
+        assert nmin == 11
+
+        guess, consts, nmin = lccde._forced_guess(3 * 2 ** (n - a) * UnitRamp(n - 10))
+        assert len(consts) == 2
+        assert guess == 2 ** (n - a) * (consts[0] + consts[1] * UnitRamp(n - 10))
+        assert nmin == 11
+
+        guess, consts, nmin = lccde._forced_guess(UnitRamp(n - 10))
+        assert len(consts) == 2
+        assert guess == consts[0] + consts[1] * UnitRamp(n - 10)
+        assert nmin == 11
+
+        om = sp.S.Pi * (n - 3) / 16
+        guess, consts, nmin = lccde._forced_guess(3 * sp.cos(om))
+        assert len(consts) == 2
+        assert guess == consts[0] * sp.cos(om) + consts[1] * sp.sin(om)
+        assert nmin == 4
+
+        guess, consts, nmin = lccde._forced_guess(3 * sp.cos(om) * UnitStep(n - 10))
+        assert len(consts) == 2
+        assert guess == (
+            (consts[0] * sp.cos(om) + consts[1] * sp.sin(om)) * UnitStep(n - 10)
+        )
+        assert nmin == 11
+
+        guess, consts, nmin = lccde._forced_guess(3 * sp.sin(om))
+        assert len(consts) == 2
+        assert guess == consts[0] * sp.cos(om) + consts[1] * sp.sin(om)
+        assert nmin == 4
+
+        guess, consts, nmin = lccde._forced_guess(3 * sp.sin(om) * UnitStep(n - 10))
+        assert len(consts) == 2
+        assert guess == (
+            (consts[0] * sp.cos(om) + consts[1] * sp.sin(om)) * UnitStep(n - 10)
+        )
+        assert nmin == 11
+
+        jom = sp.I * om
+        guess, consts, nmin = lccde._forced_guess(3 * sp.exp(jom))
+        assert len(consts) == 2
+        assert guess == consts[0] * sp.exp(jom) + consts[1] * sp.exp(-jom)
+        assert nmin == 4
+
+        guess, consts, nmin = lccde._forced_guess(3 * sp.exp(jom) * UnitStep(n - 10))
+        assert len(consts) == 2
+        assert guess == (
+            (consts[0] * sp.exp(jom) + consts[1] * sp.exp(-jom)) * UnitStep(n - 10)
+        )
+        assert nmin == 11
+
+    def test_LCCDE_solve_forced(self):
+        a = sp.Symbol("a", real=True)
+        B = [1]
+        A = [1, -a]
+        lccde = LCCDE(B, A)
+        n = lccde.iv
+        hs1 = - a ** (n + 1) / (1 - a) * UnitStep(n)
+        hs2 = a ** (n + 1) / (1 - a) * UnitStep(-n - 1)
+        xs = 1 / (1 - a) * UnitStep(n)
+        assert lccde.check_solution(UnitStep(n), hs1 + xs)
+        assert lccde.check_solution(UnitStep(n), hs2 + xs)
+
+        a = sp.Rational(1, 2)
+        B = [1]
+        A = [1, -a]
+        lccde = LCCDE(B, A)
+        n = lccde.iv
+        hs1 = - a ** (n + 1) / (1 - a) * UnitStep(n)
+        hs2 = a ** (n + 1) / (1 - a) * UnitStep(-n - 1)
+        xs = 1 / (1 - a) * UnitStep(n)
+        assert lccde.check_solution(UnitStep(n), hs1 + xs)
+        assert lccde.check_solution(UnitStep(n), hs2 + xs)
+
+        # A = [1, -sp.Rational(3, 4), sp.Rational(1, 8)]
+        # B = [1, -sp.Rational(3, 8)]
+        # lccde = LCCDE(B, A)
 
         # TODO ac
         # yh = eq.solve_forced(UnitDelta(eq.iv), ac={0: 1, -1: -2})
         # expr = -2 * roots[0] ** eq.iv + 3 * roots[1] ** eq.iv
         # dif = sp.simplify(yh - expr)
         # assert dif == sp.S.Zero
-
-        # TODO solve_forced(u[n])
-        # a1 = sp.Symbol('a1')
-        # B = [1]
-        # A = [1, a1]
-        # eq = LCCDE(B, A)
-        # y = eq.solve_forced(UnitStep(n))
-
