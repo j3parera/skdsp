@@ -400,7 +400,6 @@ class LCCDE(sp.Basic):
                     raise NotImplementedError
         n = self.iv
         nm = 0
-        postfix = sp.S.One
         guess = sp.S.One
         cgen = iter_numbered_constants(fin, start=1, prefix="K")
         consts = []
@@ -423,10 +422,9 @@ class LCCDE(sp.Basic):
                 guess *= consts[0] * sp.exp(m.args[0]) + consts[1] * sp.exp(-m.args[0])
                 continue
             if isinstance(m, UnitDelta):
-                nm = sp.solve(m.args[1], n)[0]
-                # TODO or sp.S.Zero????
-                guess = m 
-                break
+                # nm = sp.solve(m.args[1], n)[0]
+                # guess = m
+                return sp.S.Zero
             elif isinstance(m, UnitStep):
                 nm = max(nm, sp.solve(m.args[0], n)[0])
                 if guess == sp.S.One or guess.is_Pow:
@@ -444,13 +442,25 @@ class LCCDE(sp.Basic):
                 else:
                     guess *= m
                 break
-        return guess, consts, nm + self.N
+        nmin = nm + self.N
+        yg = self.apply_output(guess)
+        xp = self.apply_input(fin)
+        eqs = []
+        for n0 in range(nmin, nmin + len(consts)):
+            eqs.append(sp.Eq(yg.subs(n, n0), xp.subs(n, n0)))
+        sol = sp.linsolve(eqs, consts)
+        if sol == sp.S.EmptySet:
+            raise ValueError("Cannot solve for constants.")
+        yp = guess
+        for c, s in zip(consts, list(sol)[0]):
+            yp = yp.subs(c, s)
+        return yp
 
     def solve_forced(self, fin):
-        # guess function, constants and first point to compute
-        guess, consts, nmin = self._forced_guess(fin)
         # partial solutions: extract solutions up to N < M and reduced lccde
         partial_sols, lccde = self.solve_partial(fin)
+        # guess function, constants and first point to compute
+        yp = lccde.solve_particular(fin)
         # TODO
         y = sp.S.Zero
         y += sp.Add(*partial_sols)

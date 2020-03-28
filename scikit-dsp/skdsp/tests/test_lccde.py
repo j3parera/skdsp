@@ -344,73 +344,74 @@ class Test_LCCDE(object):
         with pytest.raises(NotImplementedError):
             lccde.solve_particular(2 * sp.tanh(n))
 
-        guess, consts, nmin = lccde.solve_particular(3 * 2 ** (n - a) * UnitDelta(n - 10))
-        assert guess == UnitDelta(n - 10)
-        assert len(consts) == 0
-        assert nmin == 11
+        yp = lccde.solve_particular(UnitStep(n))
+        assert yp == UnitStep(n) / (1 + a)
 
-        guess, consts, nmin = lccde.solve_particular(UnitDelta(n - 10))
-        assert guess == UnitDelta(n - 10)
-        assert len(consts) == 0
-        assert nmin == 11
+        yp = lccde.solve_particular(3 * 2 ** (n - a) * UnitDelta(n - 10))
+        assert yp == sp.S.Zero
 
-        guess, consts, nmin = lccde.solve_particular(3 * 2 ** (n - a) * UnitStep(n - 10))
-        assert len(consts) == 1
-        assert guess == consts[0] * 2 ** (n - a) * UnitStep(n - 10)
-        assert nmin == 11
+        yp = lccde.solve_particular(UnitDelta(n - 10))
+        assert yp == sp.S.Zero
 
-        guess, consts, nmin = lccde.solve_particular(UnitStep(n - 10))
-        assert len(consts) == 1
-        assert guess == consts[0] * UnitStep(n - 10)
-        assert nmin == 11
+        yp = lccde.solve_particular(3 * 2 ** (n - a) * UnitStep(n - 10))
+        assert yp == 6 / (2 + a) * 2 ** (n - a) * UnitStep(n - 10)
 
-        guess, consts, nmin = lccde.solve_particular(3 * 2 ** (n - a) * UnitRamp(n - 10))
-        assert len(consts) == 2
-        assert guess == 2 ** (n - a) * (consts[0] + consts[1] * UnitRamp(n - 10))
-        assert nmin == 11
+        yp = lccde.solve_particular(UnitStep(n - 10))
+        assert yp == UnitStep(n - 10) / (1 + a)
 
-        guess, consts, nmin = lccde.solve_particular(UnitRamp(n - 10))
-        assert len(consts) == 2
-        assert guess == consts[0] + consts[1] * UnitRamp(n - 10)
-        assert nmin == 11
-
-        om = sp.S.Pi * (n - 3) / 16
-        guess, consts, nmin = lccde.solve_particular(3 * sp.cos(om))
-        assert len(consts) == 2
-        assert guess == consts[0] * sp.cos(om) + consts[1] * sp.sin(om)
-        assert nmin == 4
-
-        guess, consts, nmin = lccde.solve_particular(3 * sp.cos(om) * UnitStep(n - 10))
-        assert len(consts) == 2
-        assert guess == (
-            (consts[0] * sp.cos(om) + consts[1] * sp.sin(om)) * UnitStep(n - 10)
+        yp = lccde.solve_particular(3 * 2 ** (n - a) * UnitRamp(n - 10))
+        expected = (2 ** (n - a)) * (
+            6 * a / (a ** 2 + 4 * a + 4) + 6 * UnitRamp(n - 10) / (a + 2)
         )
-        assert nmin == 11
+        assert sp.simplify(yp - expected) == sp.S.Zero
 
-        guess, consts, nmin = lccde.solve_particular(3 * sp.sin(om))
-        assert len(consts) == 2
-        assert guess == consts[0] * sp.cos(om) + consts[1] * sp.sin(om)
-        assert nmin == 4
+        yp = lccde.solve_particular(UnitRamp(n - 10))
+        expected = (a / (a ** 2 + 2 * a + 1)) + UnitRamp(n - 10) / (a + 1)
+        assert sp.simplify(yp - expected) == sp.S.Zero
 
-        guess, consts, nmin = lccde.solve_particular(3 * sp.sin(om) * UnitStep(n - 10))
-        assert len(consts) == 2
-        assert guess == (
-            (consts[0] * sp.cos(om) + consts[1] * sp.sin(om)) * UnitStep(n - 10)
+        om = sp.S.Pi * (n - 3) / 2
+        yp = lccde.solve_particular(3 * sp.cos(om))
+        expected = (-3 * a * sp.sin(om) + 3 * sp.cos(om)) / (a ** 2 + 1)
+        assert sp.simplify(yp - expected) == sp.S.Zero
+
+        yp = lccde.solve_particular(3 * sp.cos(om) * UnitStep(n - 10))
+        expected = (
+            (-3 * a * sp.sin(om) + 3 * sp.cos(om)) / (a ** 2 + 1) * UnitStep(n - 10)
         )
-        assert nmin == 11
+        assert sp.simplify(yp - expected) == sp.S.Zero
+
+        yp = lccde.solve_particular(3 * sp.sin(om))
+        expected = (3 * a * sp.cos(om) + 3 * sp.sin(om)) / (a ** 2 + 1)
+        assert sp.simplify(yp - expected) == sp.S.Zero
+
+        yp = lccde.solve_particular(3 * sp.sin(om) * UnitStep(n - 10))
+        expected = (
+            (3 * a * sp.cos(om) + 3 * sp.sin(om)) / (a ** 2 + 1) * UnitStep(n - 10)
+        )
+        assert sp.simplify(yp - expected) == sp.S.Zero
 
         jom = sp.I * om
-        guess, consts, nmin = lccde.solve_particular(3 * sp.exp(jom))
-        assert len(consts) == 2
-        assert guess == consts[0] * sp.exp(jom) + consts[1] * sp.exp(-jom)
-        assert nmin == 4
+        yp = lccde.solve_particular(3 * sp.exp(jom))
+        expected = 3 * sp.I * sp.exp(jom) / (a + sp.I)
+        assert sp.simplify(yp - expected) == sp.S.Zero
 
-        guess, consts, nmin = lccde.solve_particular(3 * sp.exp(jom) * UnitStep(n - 10))
-        assert len(consts) == 2
-        assert guess == (
-            (consts[0] * sp.exp(jom) + consts[1] * sp.exp(-jom)) * UnitStep(n - 10)
-        )
-        assert nmin == 11
+        yp = lccde.solve_particular(3 * sp.exp(jom) * UnitStep(n - 10))
+        expected = 3 * sp.I * sp.exp(jom) / (a + sp.I) * UnitStep(n - 10)
+        assert sp.simplify(yp - expected) == sp.S.Zero
+
+        yp = lccde.solve_particular(3 * sp.exp(-jom))
+        expected = (-3 * sp.I * a + 3) * sp.exp(-jom) / (a ** 2 + 1)
+        assert sp.simplify(yp - expected) == sp.S.Zero
+
+        yp = lccde.solve_particular(3 * sp.exp(-jom) * UnitStep(n - 10))
+        expected = (-3 * sp.I * a + 3) * sp.exp(-jom) / (a ** 2 + 1) * UnitStep(n - 10)
+        assert sp.simplify(yp - expected) == sp.S.Zero
+
+        B = [1]
+        A = [1, -sp.Rational(5, 6), sp.Rational(1, 6)]
+        lccde = LCCDE(B, A)
+        yp = lccde.solve_particular(2 ** n * UnitStep(n))
+        assert yp == 8 * 2**n * UnitStep(n) / 5 
 
     def test_LCCDE_solve_forced(self):
         a = sp.Symbol("a", real=True)
@@ -418,7 +419,7 @@ class Test_LCCDE(object):
         A = [1, -a]
         lccde = LCCDE(B, A)
         n = lccde.iv
-        hs1 = - a ** (n + 1) / (1 - a) * UnitStep(n)
+        hs1 = -(a ** (n + 1)) / (1 - a) * UnitStep(n)
         hs2 = a ** (n + 1) / (1 - a) * UnitStep(-n - 1)
         xs = 1 / (1 - a) * UnitStep(n)
         assert lccde.check_solution(UnitStep(n), hs1 + xs)
@@ -429,7 +430,7 @@ class Test_LCCDE(object):
         A = [1, -a]
         lccde = LCCDE(B, A)
         n = lccde.iv
-        hs1 = - a ** (n + 1) / (1 - a) * UnitStep(n)
+        hs1 = -(a ** (n + 1)) / (1 - a) * UnitStep(n)
         hs2 = a ** (n + 1) / (1 - a) * UnitStep(-n - 1)
         xs = 1 / (1 - a) * UnitStep(n)
         assert lccde.check_solution(UnitStep(n), hs1 + xs)
