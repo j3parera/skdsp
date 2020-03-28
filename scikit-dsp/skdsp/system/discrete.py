@@ -1,6 +1,6 @@
 import sympy as sp
 
-from skdsp.signal.discrete import Constant, Delta, DiscreteSignal, Step, n
+from skdsp.signal.discrete import Constant, Delta, DiscreteSignal, Ramp, Step, n
 from skdsp.signal.functions import UnitDelta, UnitStep, stepsimp
 from skdsp.signal.signal import Signal
 from skdsp.system.system import System
@@ -55,6 +55,9 @@ class DiscreteSystem(System):
 
     def step_response(self, force_lti=False, select="causal"):
         return self._response(Step(n), force_lti, select)
+
+    def ramp_response(self, force_lti=False, select="causal"):
+        return self._response(Ramp(n), force_lti, select)
 
     def convolve(self, other):
         # TODO ¿es todo? ¿separar aquí la convolución periódica?
