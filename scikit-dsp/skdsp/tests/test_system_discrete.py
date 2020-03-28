@@ -10,7 +10,6 @@ from skdsp.signal.functions import UnitStep, UnitDelta
 
 
 class Test_DiscreteSystem(object):
-
     def test_DiscreteSystem_constructor(self):
         n = sp.Symbol("n", integer=True)
         k = sp.Symbol("k", integer=True)
@@ -21,22 +20,22 @@ class Test_DiscreteSystem(object):
         S = DiscreteSystem(T)
         eq = S.as_lccde
         assert isinstance(eq, LCCDE)
-        assert eq.B == [sp.S.One, -sp.S.One] 
-        assert eq.A == [sp.S.One] 
+        assert eq.B == [sp.S.One, -sp.S.One]
+        assert eq.A == [sp.S.One]
 
         T = sp.Eq(y(n), x(n) - y(n - 1))
         S = DiscreteSystem(T)
         eq = S.as_lccde
         assert isinstance(eq, LCCDE)
-        assert eq.B == [sp.S.One] 
-        assert eq.A == [sp.S.One, sp.S.One] 
+        assert eq.B == [sp.S.One]
+        assert eq.A == [sp.S.One, sp.S.One]
 
         T = sp.Eq(y(n), -10 * x(n))
         S = DiscreteSystem(T)
         eq = S.as_lccde
         assert isinstance(eq, LCCDE)
-        assert eq.B == [-10] 
-        assert eq.A == [sp.S.One] 
+        assert eq.B == [-10]
+        assert eq.A == [sp.S.One]
 
         T = sp.Eq(y(n), y(n - 1) + sp.Sum(x(k), (k, sp.S.NegativeInfinity, n)))
         S = DiscreteSystem(T)
@@ -73,7 +72,9 @@ class Test_DiscreteSystem(object):
         eq = S.as_lccde
         assert eq is None
 
-        lccde = LCCDE([2, -sp.Rational(3, 4)], [1, -sp.Rational(3, 4), -sp.Rational(1, 8)])
+        lccde = LCCDE(
+            [2, -sp.Rational(3, 4)], [1, -sp.Rational(3, 4), -sp.Rational(1, 8)]
+        )
         S = DiscreteSystem(lccde)
         assert S.is_discrete
         assert S.is_input_discrete
@@ -91,7 +92,7 @@ class Test_DiscreteSystem(object):
         assert not S.is_stable
 
         B = [1, sp.Rational(1, 2)]
-        A = [1, -sp.Rational(18, 10)*sp.cos(sp.S.Pi/16), sp.Rational(81, 100)]
+        A = [1, -sp.Rational(18, 10) * sp.cos(sp.S.Pi / 16), sp.Rational(81, 100)]
         S = DiscreteSystem.from_coefficients(B, A)
         lccde = S.as_lccde
         assert lccde.B == B
@@ -101,49 +102,55 @@ class Test_DiscreteSystem(object):
         x = sp.Function("x")
         y = sp.Function("y")
 
-        lccde = LCCDE([2, -sp.Rational(3, 4)], [1, -sp.Rational(3, 4), sp.Rational(1, 8)])
+        lccde = LCCDE(
+            [2, -sp.Rational(3, 4)], [1, -sp.Rational(3, 4), sp.Rational(1, 8)]
+        )
         S = DiscreteSystem(lccde)
         h = S.impulse_response()
         assert h == None
 
         h = S.impulse_response(force_lti=True)
-        expected = (sp.Rational(1, 2)**n * UnitStep(n) + sp.Rational(1, 4)**n * UnitStep(n))
+        expected = sp.Rational(1, 2) ** n * UnitStep(n) + sp.Rational(
+            1, 4
+        ) ** n * UnitStep(n)
         assert sp.simplify(h.amplitude - expected) == sp.S.Zero
 
-        h = S.impulse_response(force_lti=True, select='causal')
-        expected = (sp.Rational(1, 2)**n * UnitStep(n) + sp.Rational(1, 4)**n * UnitStep(n))
+        h = S.impulse_response(force_lti=True, select="causal")
+        expected = sp.Rational(1, 2) ** n * UnitStep(n) + sp.Rational(
+            1, 4
+        ) ** n * UnitStep(n)
         assert sp.simplify(h.amplitude - expected) == sp.S.Zero
 
-        h = S.impulse_response(force_lti=True, select='anticausal')
-        expected = (-sp.Rational(1, 2)**n * UnitStep(-n-1) + -sp.Rational(1, 4)**n * UnitStep(-n-1))
+        h = S.impulse_response(force_lti=True, select="anticausal")
+        expected = -sp.Rational(1, 2) ** n * UnitStep(-n - 1) + -sp.Rational(
+            1, 4
+        ) ** n * UnitStep(-n - 1)
         assert sp.simplify(h.amplitude - expected) == sp.S.Zero
 
-        eq = sp.Eq(y(n) - y(n-1)/4, x(n) - x(n-2))
+        eq = sp.Eq(y(n) - y(n - 1) / 4, x(n) - x(n - 2))
         S = DiscreteSystem(eq)
         h = S.impulse_response(force_lti=True)
-        assert h is not None
+        expected = (
+            16 * UnitDelta(n) + 4 * UnitDelta(n - 1) + sp.Rational(1, 4) ** n
+        ) * UnitStep(n)
+        assert sp.simplify(h.amplitude - expected) == sp.S.Zero
 
-        eq = sp.Eq(y(n) - 3*y(n-1) - 4*y(n-2), x(n) + 2*x(n-1))
+        eq = sp.Eq(y(n) - 3 * y(n - 1) - 4 * y(n - 2), x(n) + 2 * x(n - 1))
         S = DiscreteSystem(eq)
         h = S.impulse_response(force_lti=True)
-        expr = (-sp.S(1)/5*(-1)**n + sp.S(6)/5*(4)**n) * UnitStep(n)
-        assert sp.simplify(h.amplitude - expr) == sp.S.Zero
+        expected = (-sp.S(1) / 5 * (-1) ** n + sp.S(6) / 5 * (4) ** n) * UnitStep(n)
+        assert sp.simplify(h.amplitude - expected) == sp.S.Zero
 
-        eq = sp.Eq(y(n) + sp.S(9)/10*y(n-2), sp.S(3)/10*x(n) + sp.S(6)/10*x(n-1) + sp.S(3)/10*x(n-2))
-        # eq = sp.Eq(y(n) + sp.S(9)/10*y(n-2), sp.S(3)/5*x(n) + sp.S(3)/100*x(n-1))
-        # eq = sp.Eq(10*y(n) + 9*y(n-2), 3*x(n) + 6*x(n-1) + 3*x(n-2))
+        eq = sp.Eq(y(n) - sp.S(1) * y(n - 1) / 4, x(n))
         S = DiscreteSystem(eq)
-        h = S.impulse_response(force_lti=True)
-        # s = h.latex()
-        assert h is not None
+        h = S.impulse_response(force_lti=True, select="causal")
+        expected = sp.Rational(1, 4) ** n * UnitStep(n)
+        assert sp.simplify(h.amplitude - expected) is not None
 
-        eq = sp.Eq(y(n) - sp.S(1)*y(n-1)/4, x(n))
-        S = DiscreteSystem(eq)
-        h = S.impulse_response(force_lti=True, select='causal')
-        assert h is not None
+        h = S.impulse_response(force_lti=True, select="anticausal")
+        expected = -sp.Rational(1, 4) ** -n * UnitStep(-n - 1)
+        assert sp.simplify(h.amplitude - expected) is not None
 
-        h = S.impulse_response(force_lti=True, select='anticausal')
-        assert h is not None
 
 class Test_Zero(object):
     def test_Zero_misc(self):
@@ -226,13 +233,9 @@ class Test_Delay(object):
         assert h == Delta().shift(3)
 
 
-
 class Test_KK(object):
-
     def test_filter(self):
-        y3 = Exponential(
-            sp.exp(sp.I * sp.S.Pi / 4), 1.1 * sp.exp(sp.I * sp.S.Pi / 11)
-        )
+        y3 = Exponential(sp.exp(sp.I * sp.S.Pi / 4), 1.1 * sp.exp(sp.I * sp.S.Pi / 11))
         G = y3.phasor
         z0 = y3.alpha
         x = G * Delta()
@@ -241,9 +244,7 @@ class Test_KK(object):
         A = [1, -z0]
         S = DiscreteSystem(LCCDE(B, A))
         y3f = Data(S.filter(x(span)), iv=n)
-
-
-        z_0 = sp.S(1)/2 * sp.exp(sp.I*0)
+        z_0 = sp.S(1) / 2 * sp.exp(sp.I * 0)
         span = range(0, 21)
         x = Delta()
         B = [1, 0]
@@ -258,20 +259,28 @@ class Test_KK(object):
         f = sp.Function("f")
         y = sp.Function("y")
         # ode = sp.Eq(sp.S(1)/8*f(n).diff(n, 2) - sp.S(3)/4*f(n).diff(n) + f(n), 10)
-        ode = sp.Eq(f(n).diff(n, 2) - sp.S(3)/4*f(n).diff(n) + sp.S(1)/8*f(n), 0)
+        ode = sp.Eq(
+            f(n).diff(n, 2) - sp.S(3) / 4 * f(n).diff(n) + sp.S(1) / 8 * f(n), 0
+        )
         # jint = 'nth_linear_constant_coeff_undetermined_coefficients'
-        jint = 'nth_linear_constant_coeff_homogeneous'
+        jint = "nth_linear_constant_coeff_homogeneous"
         # sol = sp.dsolve(ode, f(n), hint=jint)
-        lccde_out = y(n) - sp.S(3)/4*y(n-1) + sp.S(1)/8*y(n-2)
-        coeffs = {0: sp.S(1)/8, 1: -sp.S(3)/4, 2: 1}
-        sol = ode_nth_linear_constant_coeff_homogeneous(lccde_out, f(n), len(coeffs)-1, coeffs, returns="sol")
+        lccde_out = y(n) - sp.S(3) / 4 * y(n - 1) + sp.S(1) / 8 * y(n - 2)
+        coeffs = {0: sp.S(1) / 8, 1: -sp.S(3) / 4, 2: 1}
+        sol = ode_nth_linear_constant_coeff_homogeneous(
+            lccde_out, f(n), len(coeffs) - 1, coeffs, returns="sol"
+        )
         assert sol is not None
 
     def test_recursion(self):
-        x = sp.S(3)/10*Delta() + sp.S(6)/10*Delta().shift(1) + sp.S(3)/10*Delta().shift(2)
+        x = (
+            sp.S(3) / 10 * Delta()
+            + sp.S(6) / 10 * Delta().shift(1)
+            + sp.S(3) / 10 * Delta().shift(2)
+        )
         y = [0, 0]
         for k in range(0, 128):
-            y.append(-sp.S(9)/10*y[k-2+2] + x(k))
+            y.append(-sp.S(9) / 10 * y[k - 2 + 2] + x(k))
         assert y is not None
 
         B = [sp.S(3) / 10, sp.S(6) / 10, sp.S(3) / 10]
@@ -285,10 +294,11 @@ class Test_KK(object):
         yv = [0, 0]
         span = range(0, 50)
         for m in span:
-            v = -A[2]*yv[m] + B[0]*xv[m+2] + B[1]*xv[m+1] + B[2]*xv[m]
+            v = -A[2] * yv[m] + B[0] * xv[m + 2] + B[1] * xv[m + 1] + B[2] * xv[m]
             yv.append(v)
         from skdsp.util.util import ipystem
-        ipystem(span, np.array([float(y) for y in yv[2:]]), title=r'$h[n]$');
+
+        ipystem(span, np.array([float(y) for y in yv[2:]]), title=r"$h[n]$")
 
     def test_roots(self):
         B = [sp.Rational(3, 10), sp.Rational(6, 10), sp.Rational(3, 10)]

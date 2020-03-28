@@ -422,8 +422,6 @@ class LCCDE(sp.Basic):
                 guess *= consts[0] * sp.exp(m.args[0]) + consts[1] * sp.exp(-m.args[0])
                 continue
             if isinstance(m, UnitDelta):
-                # nm = sp.solve(m.args[1], n)[0]
-                # guess = m
                 return sp.S.Zero
             elif isinstance(m, UnitStep):
                 nm = max(nm, sp.solve(m.args[0], n)[0])
@@ -456,70 +454,48 @@ class LCCDE(sp.Basic):
             yp = yp.subs(c, s)
         return yp
 
-    def solve_forced(self, fin):
+    def solve(self, fin, ac):
         # partial solutions: extract solutions up to N < M and reduced lccde
         partial_sols, lccde = self.solve_partial(fin)
-        # guess function, constants and first point to compute
-        yp = lccde.solve_particular(fin)
-        # TODO
-        y = sp.S.Zero
-        y += sp.Add(*partial_sols)
-        return y
-
-    def solve_forced_bad(self, fin, ac):
-        n = self.iv
+        # homogeneous and particular
         yh, consts = self.solve_homogeneous()
-        # solution parts: extract solutions up to N < M
-        partial_sols, lccde = self.solve_partial(fin)
-        #
-        if isinstance(ac, dict):
-            if len(ac.keys()) != self.order:
-                raise ValueError(
-                    "The number of auxiliary conditions is not equal to the LCDDE order."
-                )
-                if all(isinstance(k, Number) for k in ac.keys()):
-                    m = min(ac.keys())
-                    M = max(ac.keys())
-                    if sorted(ac.keys()) != list(range(m, M + 1)):
-                        raise ValueError("Auxiliary conditions must be contiguous.")
-                    yexpr = sp.Piecewise(
-                        (lccde.as_forward_recursion(fin), n > max(ac.keys())),
-                        *[(ac[n0], sp.Eq(n, n0)) for n0 in range(m, M + 1)],
-                        (lccde.as_backward_recursion(fin), n < min(ac.keys()))
-                    )
-                    nvals = range(m, M + 1)
-            else:
-                nvals = ac.keys()
-            postfix = sp.S.One
-        elif isinstance(ac, str) and ac == "initial_rest":
-            ac = dict(zip(range(-1, -lccde.order - 1, -1), [0] * lccde.order))
-            yexpr = lccde.as_forward_recursion(fin)
-            nvals = self._non_zero_input(lccde, fin, 0, len(consts))
-            postfix = UnitStep(n)
-        elif isinstance(ac, str) and ac == "final_rest":
-            ac = dict(zip(range(0, lccde.order), [0] * lccde.order))
-            yexpr = lccde.as_backward_recursion(fin)
-            nvals = list(
-                reversed(self._non_zero_input(lccde, fin, lccde.N, len(consts)))
-            )
-            postfix = UnitStep(-n - 1)
-        else:
-            raise ValueError("Invalid auxiliary conditions.")
-        lhss = [yh.subs(n, k) for k in nvals]
-        rhss = [yexpr.subs(n, nvals[0])]
-        for k, v in enumerate(nvals[1:], start=1):
-            yk = yexpr.subs(n, v)
-            yk = yk.subs(self.y(v - (nvals[k] - nvals[k - 1])), rhss[k - 1])
-            rhss.append(yk)
+        yp = lccde.solve_particular(fin)
+        ysol = yh + yp
+        # difference equation
+        yeq = self.as_piecewise(fin, ac)
         # apply auxiliary conditions
-        for k1, rhs in enumerate(rhss):
-            for k2, v in ac.items():
-                rhs = rhs.subs(self.y(k2), v)
-            rhss[k1] = rhs
-        eqs = [sp.Eq(lhs, rhs) for lhs, rhs in zip(lhss, rhss)]
+        pac = self._process_aux_conditions(ac)
+        if ac == "initial_rest":
+            span = range(0, len(consts))
+            yvals = lccde.forward_recur(span, fin)
+        elif ac == "final_rest":
+            span = range(-1, -len(consts)-1, -1)
+            yvals = lccde.backward_recur(span, fin)
+        else:
+            # TODO
+            raise NotImplementedError
+        for k, v in pac.items():
+            yvals[k] = v
+        n = self.iv
+        eqs = [sp.Eq(ysol.subs(n, k), yeq.subs(n, k)) for k in span]
         sol = sp.linsolve(eqs, consts)
-        y = yh
+        if sol == sp.S.EmptySet:
+            raise ValueError("Cannot solve for constants.")
+        # homogeneous constants
+        y = ysol
         for c, s in zip(consts, list(sol)[0]):
-            y = y.subs(c, s)
-        y += sp.Add(*partial_sols)
-        return y
+            ysol = ysol.subs(c, s)
+        # auxiliary conditions
+        while True:
+            a = list(ysol.atoms(self.y()))
+            if len(a) == 0:
+                break
+            ysol = ysol.subs(a[0], yvals[a[0].args[0]])
+        # add partial solutions
+        ysol += sp.Add(*partial_sols)
+        return ysol
+
+    def solve_forced(self, fin, ac):
+        if ac != "initial_rest" and ac != "final_rest":
+            raise ValueError("Invalid auxiliary conditions.")
+        return self.solve(fin, ac)
