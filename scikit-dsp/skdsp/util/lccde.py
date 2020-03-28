@@ -388,7 +388,7 @@ class LCCDE(sp.Basic):
             lccde = self
         return partial_sols, lccde
 
-    def _forced_guess(self, fin):
+    def solve_particular(self, fin):
         finc = sp.sympify(fin).expand()
         if finc.is_Add:
             raise ValueError("Cannot solve fon function addition.")
@@ -424,7 +424,8 @@ class LCCDE(sp.Basic):
                 continue
             if isinstance(m, UnitDelta):
                 nm = sp.solve(m.args[1], n)[0]
-                guess = m
+                # TODO or sp.S.Zero????
+                guess = m 
                 break
             elif isinstance(m, UnitStep):
                 nm = max(nm, sp.solve(m.args[0], n)[0])
@@ -446,9 +447,9 @@ class LCCDE(sp.Basic):
         return guess, consts, nm + self.N
 
     def solve_forced(self, fin):
-        # guess function and first point to compute
+        # guess function, constants and first point to compute
         guess, consts, nmin = self._forced_guess(fin)
-        # partial solutions: extract solutions up to N < M
+        # partial solutions: extract solutions up to N < M and reduced lccde
         partial_sols, lccde = self.solve_partial(fin)
         # TODO
         y = sp.S.Zero

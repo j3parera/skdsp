@@ -331,7 +331,7 @@ class Test_LCCDE(object):
         assert yf == sp.S.Zero
         assert lccde.check_solution(sp.S.Zero, yf)
 
-    def test_LCCDE_solve__forced_guess(self):
+    def test_LCCDE_solve_particular(self):
         a = sp.Symbol("a", integer=True)
         B = [1]
         A = [1, a]
@@ -339,60 +339,60 @@ class Test_LCCDE(object):
         n = lccde.iv
 
         with pytest.raises(ValueError):
-            lccde._forced_guess(2 * (UnitStep(n) + UnitDelta(n)))
+            lccde.solve_particular(2 * (UnitStep(n) + UnitDelta(n)))
 
         with pytest.raises(NotImplementedError):
-            lccde._forced_guess(2 * sp.tanh(n))
+            lccde.solve_particular(2 * sp.tanh(n))
 
-        guess, consts, nmin = lccde._forced_guess(3 * 2 ** (n - a) * UnitDelta(n - 10))
+        guess, consts, nmin = lccde.solve_particular(3 * 2 ** (n - a) * UnitDelta(n - 10))
         assert guess == UnitDelta(n - 10)
         assert len(consts) == 0
         assert nmin == 11
 
-        guess, consts, nmin = lccde._forced_guess(UnitDelta(n - 10))
+        guess, consts, nmin = lccde.solve_particular(UnitDelta(n - 10))
         assert guess == UnitDelta(n - 10)
         assert len(consts) == 0
         assert nmin == 11
 
-        guess, consts, nmin = lccde._forced_guess(3 * 2 ** (n - a) * UnitStep(n - 10))
+        guess, consts, nmin = lccde.solve_particular(3 * 2 ** (n - a) * UnitStep(n - 10))
         assert len(consts) == 1
         assert guess == consts[0] * 2 ** (n - a) * UnitStep(n - 10)
         assert nmin == 11
 
-        guess, consts, nmin = lccde._forced_guess(UnitStep(n - 10))
+        guess, consts, nmin = lccde.solve_particular(UnitStep(n - 10))
         assert len(consts) == 1
         assert guess == consts[0] * UnitStep(n - 10)
         assert nmin == 11
 
-        guess, consts, nmin = lccde._forced_guess(3 * 2 ** (n - a) * UnitRamp(n - 10))
+        guess, consts, nmin = lccde.solve_particular(3 * 2 ** (n - a) * UnitRamp(n - 10))
         assert len(consts) == 2
         assert guess == 2 ** (n - a) * (consts[0] + consts[1] * UnitRamp(n - 10))
         assert nmin == 11
 
-        guess, consts, nmin = lccde._forced_guess(UnitRamp(n - 10))
+        guess, consts, nmin = lccde.solve_particular(UnitRamp(n - 10))
         assert len(consts) == 2
         assert guess == consts[0] + consts[1] * UnitRamp(n - 10)
         assert nmin == 11
 
         om = sp.S.Pi * (n - 3) / 16
-        guess, consts, nmin = lccde._forced_guess(3 * sp.cos(om))
+        guess, consts, nmin = lccde.solve_particular(3 * sp.cos(om))
         assert len(consts) == 2
         assert guess == consts[0] * sp.cos(om) + consts[1] * sp.sin(om)
         assert nmin == 4
 
-        guess, consts, nmin = lccde._forced_guess(3 * sp.cos(om) * UnitStep(n - 10))
+        guess, consts, nmin = lccde.solve_particular(3 * sp.cos(om) * UnitStep(n - 10))
         assert len(consts) == 2
         assert guess == (
             (consts[0] * sp.cos(om) + consts[1] * sp.sin(om)) * UnitStep(n - 10)
         )
         assert nmin == 11
 
-        guess, consts, nmin = lccde._forced_guess(3 * sp.sin(om))
+        guess, consts, nmin = lccde.solve_particular(3 * sp.sin(om))
         assert len(consts) == 2
         assert guess == consts[0] * sp.cos(om) + consts[1] * sp.sin(om)
         assert nmin == 4
 
-        guess, consts, nmin = lccde._forced_guess(3 * sp.sin(om) * UnitStep(n - 10))
+        guess, consts, nmin = lccde.solve_particular(3 * sp.sin(om) * UnitStep(n - 10))
         assert len(consts) == 2
         assert guess == (
             (consts[0] * sp.cos(om) + consts[1] * sp.sin(om)) * UnitStep(n - 10)
@@ -400,12 +400,12 @@ class Test_LCCDE(object):
         assert nmin == 11
 
         jom = sp.I * om
-        guess, consts, nmin = lccde._forced_guess(3 * sp.exp(jom))
+        guess, consts, nmin = lccde.solve_particular(3 * sp.exp(jom))
         assert len(consts) == 2
         assert guess == consts[0] * sp.exp(jom) + consts[1] * sp.exp(-jom)
         assert nmin == 4
 
-        guess, consts, nmin = lccde._forced_guess(3 * sp.exp(jom) * UnitStep(n - 10))
+        guess, consts, nmin = lccde.solve_particular(3 * sp.exp(jom) * UnitStep(n - 10))
         assert len(consts) == 2
         assert guess == (
             (consts[0] * sp.exp(jom) + consts[1] * sp.exp(-jom)) * UnitStep(n - 10)
