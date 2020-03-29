@@ -87,8 +87,6 @@ def ipystem(
 ):
     # TODO
     # comprobar que no existan símbolos libres sin asignar
-    # pretítulo + título por defecto
-    # complejos (modulo/fase, re/im)
     offx = 0.5
     lines = plt.stem(
         nx,
