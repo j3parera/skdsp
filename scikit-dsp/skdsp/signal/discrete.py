@@ -318,6 +318,11 @@ class DiscreteSignal(Signal):
         s = self.sum(high=-1)
         return s == sp.S.Zero
 
+    @property
+    def is_abs_summable(self):
+        s = sp.Sum(sp.Abs(self.amplitude), (self.iv, sp.S.NegativeInfinity, sp.S.Infinity)).doit()
+        return s.is_finite
+
 
 class Undefined(DiscreteSignal):
     def __new__(cls, name, iv=None, period=None, duration=None, codomain=sp.S.Reals):

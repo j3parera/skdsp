@@ -32,6 +32,31 @@ class DiscreteSystem(System):
         T = sp.sympify(T)
         return System.__new__(cls, T, x, y)
 
+    @property
+    def as_lccde(self):
+        try:
+            eq = sp.Eq(self.output_, self.mapping)
+            return LCCDE.from_expression(eq, self.input_, self.output_)
+        except:
+            return None
+
+    @property
+    def is_stable(self):
+        lccde = self.as_lccde
+        if lccde is None:
+            try:
+                h = self.impulse_response()
+                if h is not None and h.is_abs_summable:
+                    return True
+            except:
+                pass
+            return super().is_stable
+        if self.is_fir:
+            return True
+        y_roots = lccde.y_roots
+        stable = all(sp.Abs(r) < sp.S.One for r in y_roots.keys())
+        return stable
+
     def _response(self, sin, force_lti=False, select="causal"):
         if self.is_lti:
             return self.apply(sin)
@@ -68,14 +93,6 @@ class DiscreteSystem(System):
         if self.is_compatible(other) and other.is_lti:
             return self.impulse_response.convolve(other.impulse_response)
         raise TypeError("Cannot convolve.")
-
-    @property
-    def as_lccde(self):
-        try:
-            eq = sp.Eq(self.output_, self.mapping)
-            return LCCDE.from_expression(eq, self.input_, self.output_)
-        except:
-            return None
 
     def as_rational(self, sym=None, cancel=False):
         lccde = self.as_lccde

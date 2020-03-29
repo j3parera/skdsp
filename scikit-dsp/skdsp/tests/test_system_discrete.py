@@ -24,6 +24,7 @@ class Test_DiscreteSystem(object):
         assert lccde.A == [sp.S.One]
         assert S.is_fir
         assert not S.is_iir
+        assert S.is_stable
 
         T = sp.Eq(y(n), x(n) - y(n - 1))
         S = DiscreteSystem(T)
@@ -33,6 +34,7 @@ class Test_DiscreteSystem(object):
         assert lccde.A == [sp.S.One, sp.S.One]
         assert not S.is_fir
         assert S.is_iir
+        assert not S.is_stable
 
         T = sp.Eq(y(n), -10 * x(n))
         S = DiscreteSystem(T)
@@ -42,6 +44,7 @@ class Test_DiscreteSystem(object):
         assert lccde.A == [sp.S.One]
         assert S.is_fir
         assert not S.is_iir
+        assert S.is_stable
 
         T = sp.Eq(y(n), y(n - 1) + sp.Sum(x(k), (k, sp.S.NegativeInfinity, n)))
         S = DiscreteSystem(T)
@@ -49,6 +52,7 @@ class Test_DiscreteSystem(object):
         assert lccde is None
         assert not S.is_fir
         assert S.is_iir
+        assert S.is_stable == None
 
         T = sp.Eq(y(n), y(n + 1) + sp.Sum(x(k), (k, sp.S.NegativeInfinity, n)))
         S = DiscreteSystem(T)
@@ -56,6 +60,7 @@ class Test_DiscreteSystem(object):
         assert lccde is None
         assert not S.is_fir
         assert S.is_iir
+        assert S.is_stable == None
 
         T = sp.Eq(y(n), y(n + 1) + sp.Sum(x(k), (k, sp.S.NegativeInfinity, n + 1)))
         S = DiscreteSystem(T)
@@ -63,6 +68,7 @@ class Test_DiscreteSystem(object):
         assert lccde is None
         assert not S.is_fir
         assert S.is_iir
+        assert S.is_stable == None
 
         T = sp.Eq(y(n), x(n) + 3 * x(n + 4))
         S = DiscreteSystem(T)
@@ -70,6 +76,7 @@ class Test_DiscreteSystem(object):
         assert lccde is None
         assert S.is_fir
         assert not S.is_iir
+        assert S.is_stable
 
         T = sp.Eq(y(n), x(n ** 2))
         S = DiscreteSystem(T)
@@ -77,6 +84,7 @@ class Test_DiscreteSystem(object):
         assert lccde is None
         assert S.is_fir
         assert not S.is_iir
+        assert S.is_stable
 
         T = sp.Eq(y(n), x(2 * n))
         S = DiscreteSystem(T)
@@ -84,6 +92,7 @@ class Test_DiscreteSystem(object):
         assert lccde is None
         assert S.is_fir
         assert not S.is_iir
+        assert S.is_stable
 
         T = sp.Eq(y(n), x(-n))
         S = DiscreteSystem(T)
@@ -91,6 +100,7 @@ class Test_DiscreteSystem(object):
         assert lccde is None
         assert S.is_fir
         assert not S.is_iir
+        assert S.is_stable
 
         lccde = LCCDE(
             [1, -sp.Rational(3, 8)], [1, -sp.Rational(3, 4), -sp.Rational(1, 8)]
@@ -109,7 +119,7 @@ class Test_DiscreteSystem(object):
         assert not S.is_causal
         assert not S.is_anticausal
         assert S.is_recursive
-        assert not S.is_stable
+        assert S.is_stable
         assert not S.is_fir
         assert S.is_iir
 
@@ -121,6 +131,7 @@ class Test_DiscreteSystem(object):
         assert S.is_recursive
         assert S.is_fir
         assert not S.is_iir
+        assert S.is_stable
 
         B = [1, sp.Rational(1, 2)]
         A = [1, -sp.Rational(18, 10) * sp.cos(sp.S.Pi / 16), sp.Rational(81, 100)]
@@ -130,6 +141,7 @@ class Test_DiscreteSystem(object):
         assert lccde.A == A
         assert not S.is_fir
         assert S.is_iir
+        assert S.is_stable
 
     def test_DiscreteSystem_impulse_response(self):
         x = sp.Function("x")
