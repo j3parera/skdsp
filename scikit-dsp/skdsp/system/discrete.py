@@ -39,10 +39,10 @@ class DiscreteSystem(System):
         if lccde is not None and force_lti:
             if select == "causal":
                 he = lccde.solve_forced(sin.amplitude, ac="initial_rest")
-                he = he * UnitStep(n)
+                # he = he * UnitStep(n)
             elif select == "anticausal":
                 he = lccde.solve_forced(sin.amplitude, ac="final_rest")
-                he = he * UnitStep(-n - 1)
+                # he = he * UnitStep(-n - 1)
             else:
                 # TODO
                 raise NotImplementedError
