@@ -77,13 +77,31 @@ class DiscreteSystem(System):
         except:
             return None
 
+    def as_rational(self, sym=None, cancel=False):
+        lccde = self.as_lccde
+        if lccde is None:
+            return None
+        if sym is None:
+            sym = sp.Symbol('z1')
+        num = sp.Poly(reversed(lccde.B), sym)
+        den = sp.Poly(reversed(lccde.A), sym)
+        rat = num / den
+        if cancel:
+            rat = sp.cancel(rat)
+        return rat
+    
+    @property
     def is_fir(self):
-        # TODO
-        raise NotImplementedError
+        sym = sp.Symbol('z1')
+        rat = self.as_rational(sym=sym, cancel=True)
+        if rat is None:
+            return not self._depends_on_outputs
+        num, den = rat.as_numer_denom()
+        return den.is_constant(sym)
 
+    @property
     def is_iir(self):
-        # TODO
-        raise NotImplementedError
+        return not self.is_fir
 
     def filter(self, x, ci=None, span=None):
         lccde = self.as_lccde

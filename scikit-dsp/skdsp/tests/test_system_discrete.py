@@ -16,64 +16,84 @@ class Test_DiscreteSystem(object):
         x = sp.Function("x")
         y = sp.Function("y")
 
-        T = sp.Eq(y(n), x(n) - x(n - 1))
+        T = sp.Eq(y(n), x(n) - 2*x(n - 1))
         S = DiscreteSystem(T)
-        eq = S.as_lccde
-        assert isinstance(eq, LCCDE)
-        assert eq.B == [sp.S.One, -sp.S.One]
-        assert eq.A == [sp.S.One]
+        lccde = S.as_lccde
+        assert isinstance(lccde, LCCDE)
+        assert lccde.B == [sp.S.One, -2]
+        assert lccde.A == [sp.S.One]
+        assert S.is_fir
+        assert not S.is_iir
 
         T = sp.Eq(y(n), x(n) - y(n - 1))
         S = DiscreteSystem(T)
-        eq = S.as_lccde
-        assert isinstance(eq, LCCDE)
-        assert eq.B == [sp.S.One]
-        assert eq.A == [sp.S.One, sp.S.One]
+        lccde = S.as_lccde
+        assert isinstance(lccde, LCCDE)
+        assert lccde.B == [sp.S.One]
+        assert lccde.A == [sp.S.One, sp.S.One]
+        assert not S.is_fir
+        assert S.is_iir
 
         T = sp.Eq(y(n), -10 * x(n))
         S = DiscreteSystem(T)
-        eq = S.as_lccde
-        assert isinstance(eq, LCCDE)
-        assert eq.B == [-10]
-        assert eq.A == [sp.S.One]
+        lccde = S.as_lccde
+        assert isinstance(lccde, LCCDE)
+        assert lccde.B == [-10]
+        assert lccde.A == [sp.S.One]
+        assert S.is_fir
+        assert not S.is_iir
 
         T = sp.Eq(y(n), y(n - 1) + sp.Sum(x(k), (k, sp.S.NegativeInfinity, n)))
         S = DiscreteSystem(T)
-        eq = S.as_lccde
-        assert eq is None
+        lccde = S.as_lccde
+        assert lccde is None
+        assert not S.is_fir
+        assert S.is_iir
 
         T = sp.Eq(y(n), y(n + 1) + sp.Sum(x(k), (k, sp.S.NegativeInfinity, n)))
         S = DiscreteSystem(T)
-        eq = S.as_lccde
-        assert eq is None
+        lccde = S.as_lccde
+        assert lccde is None
+        assert not S.is_fir
+        assert S.is_iir
 
         T = sp.Eq(y(n), y(n + 1) + sp.Sum(x(k), (k, sp.S.NegativeInfinity, n + 1)))
         S = DiscreteSystem(T)
-        eq = S.as_lccde
-        assert eq is None
+        lccde = S.as_lccde
+        assert lccde is None
+        assert not S.is_fir
+        assert S.is_iir
 
         T = sp.Eq(y(n), x(n) + 3 * x(n + 4))
         S = DiscreteSystem(T)
-        eq = S.as_lccde
-        assert eq is None
+        lccde = S.as_lccde
+        assert lccde is None
+        assert S.is_fir
+        assert not S.is_iir
 
         T = sp.Eq(y(n), x(n ** 2))
         S = DiscreteSystem(T)
-        eq = S.as_lccde
-        assert eq is None
+        lccde = S.as_lccde
+        assert lccde is None
+        assert S.is_fir
+        assert not S.is_iir
 
         T = sp.Eq(y(n), x(2 * n))
         S = DiscreteSystem(T)
-        eq = S.as_lccde
-        assert eq is None
+        lccde = S.as_lccde
+        assert lccde is None
+        assert S.is_fir
+        assert not S.is_iir
 
         T = sp.Eq(y(n), x(-n))
         S = DiscreteSystem(T)
-        eq = S.as_lccde
-        assert eq is None
+        lccde = S.as_lccde
+        assert lccde is None
+        assert S.is_fir
+        assert not S.is_iir
 
         lccde = LCCDE(
-            [2, -sp.Rational(3, 4)], [1, -sp.Rational(3, 4), -sp.Rational(1, 8)]
+            [1, -sp.Rational(3, 8)], [1, -sp.Rational(3, 4), -sp.Rational(1, 8)]
         )
         S = DiscreteSystem(lccde)
         assert S.is_discrete
@@ -90,6 +110,17 @@ class Test_DiscreteSystem(object):
         assert not S.is_anticausal
         assert S.is_recursive
         assert not S.is_stable
+        assert not S.is_fir
+        assert S.is_iir
+
+        lccde = LCCDE(
+            [1, 0, -1], [1, -1]
+        )
+        S = DiscreteSystem(lccde)
+        assert S.is_dynamic
+        assert S.is_recursive
+        assert S.is_fir
+        assert not S.is_iir
 
         B = [1, sp.Rational(1, 2)]
         A = [1, -sp.Rational(18, 10) * sp.cos(sp.S.Pi / 16), sp.Rational(81, 100)]
@@ -97,6 +128,8 @@ class Test_DiscreteSystem(object):
         lccde = S.as_lccde
         assert lccde.B == B
         assert lccde.A == A
+        assert not S.is_fir
+        assert S.is_iir
 
     def test_DiscreteSystem_impulse_response(self):
         x = sp.Function("x")
