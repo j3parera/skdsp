@@ -436,12 +436,24 @@ class Test_LCCDE(object):
         assert lccde.check_solution(UnitStep(n), hs1 + xs)
         assert lccde.check_solution(UnitStep(n), hs2 + xs)
 
-        # A = [1, -sp.Rational(3, 4), sp.Rational(1, 8)]
-        # B = [1, -sp.Rational(3, 8)]
-        # lccde = LCCDE(B, A)
+        A = [1, -sp.Rational(3, 4), sp.Rational(1, 8)]
+        B = [1, -sp.Rational(3, 8)]
+        lccde = LCCDE(B, A)
+        n = lccde.iv
+        yzs = lccde.solve_forced(UnitDelta(n), ac="initial_rest")
+        assert sp.simplify(yzs - (4 ** (-n) / 2 + 2 ** (-n) / 2) * UnitStep(n)) == sp.S.Zero
+        yt, yss = lccde.solve_transient_and_steady_state(UnitStep(n))
+        assert yss == sp.Rational(5, 3)
+        yt, yss = lccde.solve_transient_and_steady_state(UnitDelta(n))
+        assert yss == sp.S.Zero
+        assert yt == 2 ** (-3 * n) * (2 ** n + 4 ** n) * UnitStep(n) / 2
 
-        # TODO ac
-        # yh = eq.solve_forced(UnitDelta(eq.iv), ac={0: 1, -1: -2})
-        # expr = -2 * roots[0] ** eq.iv + 3 * roots[1] ** eq.iv
-        # dif = sp.simplify(yh - expr)
-        # assert dif == sp.S.Zero
+    def test_LCCDE_solve(self):
+        B = [1, 2]
+        A = [1, -3, -4]
+        lccde = LCCDE(B, A)
+        n = lccde.iv
+        x = 4 ** n * UnitStep(n)
+        y = lccde.solve(x, "initial_rest")
+        expected = (-(-1) ** n / 25 + 26 * 4 ** n / 25 + 6 * 4 ** n * n / 5) * UnitStep(n)
+        assert sp.simplify(y - expected) == sp.S.Zero
