@@ -247,14 +247,22 @@ class LCCDE(sp.Basic):
             )
         return y
 
+    @property
+    def x_roots(self):
+        return self._roots(self.B)
+
+    @property
     def y_roots(self):
+        return self._roots(self.A)
+
+    def _roots(self, vect):
         # try cosine
-        if len(self.A) == 3 and self.A[1] <= 0 and self.A[2] > 0:
+        if len(vect) == 3 and vect[1] <= 0 and vect[2] > 0:
             theta = sp.Wild("theta")
             a = sp.Wild("a")
-            m = self.A[1].match(a * sp.cos(theta))
+            m = vect[1].match(a * sp.cos(theta))
             if m:
-                r = sp.sqrt(self.A[2])
+                r = sp.sqrt(vect[2])
                 if sp.simplify(m[a] + 2 * r) == sp.S.Zero:
                     roots = {
                         r * sp.exp(sp.I * m[theta]): 1,
@@ -263,7 +271,7 @@ class LCCDE(sp.Basic):
                     return roots
         # characteristic polynomial
         chareq, symbol = sp.S.Zero, sp.Dummy("lambda")
-        for k, a in enumerate(reversed(self.A)):
+        for k, a in enumerate(reversed(vect)):
             chareq += a * symbol ** k
         chareq = sp.Poly(chareq, symbol)
         chareqroots = sp.roots(chareq, symbol)
@@ -273,7 +281,7 @@ class LCCDE(sp.Basic):
 
     def solve_homogeneous(self):
         n = self.iv
-        roots = self.y_roots()
+        roots = self.y_roots
         gensols = []
         done = False
         if len(roots) == 2:
@@ -326,22 +334,6 @@ class LCCDE(sp.Basic):
         consts = [next(const_gen) for i in range(len(gensols))]
         yh = sp.Add(*[c * g for c, g in zip(consts, gensols)])
         return yh, consts[: self.order]
-
-    def _non_zero_input(self, lccde, fin, offset, count):
-        # TODO ¿any easier?
-        xsup = DiscreteSignal.from_formula(
-            lccde.apply_input(fin, offset=offset), iv=lccde.iv, codomain=None
-        ).support
-        inf = xsup.inf
-        if inf != sp.S.NegativeInfinity:
-            nvals = list(range(inf, inf + count))
-        else:
-            sup = xsup.sup
-            if sup == sp.S.Infinity:
-                nvals = list(range(count))
-            else:
-                nvals = list(range(sup, sup - count, -1))
-        return nvals
 
     def solve_free(self, ac):
         # homogeneous solution
@@ -403,7 +395,7 @@ class LCCDE(sp.Basic):
         guess = sp.S.One
         cgen = iter_numbered_constants(fin, start=1, prefix="K")
         consts = []
-        roots = self.y_roots()
+        roots = self.y_roots
         terms, gens = fin.as_terms()
         for m, e in zip(gens, terms[0][1][1]):
             if m.is_Pow:
