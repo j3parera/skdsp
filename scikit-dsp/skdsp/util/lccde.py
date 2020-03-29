@@ -403,10 +403,20 @@ class LCCDE(sp.Basic):
         guess = sp.S.One
         cgen = iter_numbered_constants(fin, start=1, prefix="K")
         consts = []
+        roots = self.y_roots()
         terms, gens = fin.as_terms()
         for m, e in zip(gens, terms[0][1][1]):
             if m.is_Pow:
-                guess *= m ** e
+                b, exp = m.as_base_exp()
+                if b in roots and exp == n:
+                    multiplicity = roots[b] + 1
+                    pguess = sp.S.Zero
+                    for i in range(1, multiplicity):
+                        consts.append(next(cgen))
+                        pguess += consts[-1] * n ** i
+                else:
+                    pguess = sp.S.One
+                guess *= pguess * m ** e
                 guess = sp.simplify(guess)
                 continue
             elif isinstance(m, (sp.cos, sp.sin)):
@@ -454,29 +464,43 @@ class LCCDE(sp.Basic):
             yp = yp.subs(c, s)
         return yp
 
+    def solve_forced(self, fin, ac):
+        if ac != "initial_rest" and ac != "final_rest":
+            raise ValueError("Invalid auxiliary conditions.")
+        return self.solve(fin, ac)
+
+    def solve_transient_and_steady_state(self, fin):
+        y = self.solve_forced(fin, ac="initial_rest")
+        yss = sp.limit(y, self.iv, sp.S.Infinity)
+        yt = sp.simplify(y - yss)
+        return (yt, yss)
+
     def solve(self, fin, ac):
         # partial solutions: extract solutions up to N < M and reduced lccde
         partial_sols, lccde = self.solve_partial(fin)
         # homogeneous and particular
         yh, consts = self.solve_homogeneous()
         yp = lccde.solve_particular(fin)
-        ysol = yh + yp
         # difference equation
         yeq = self.as_piecewise(fin, ac)
         # apply auxiliary conditions
+        n = self.iv
         pac = self._process_aux_conditions(ac)
         if ac == "initial_rest":
             span = range(0, len(consts))
             yvals = lccde.forward_recur(span, fin)
+            yh *= UnitStep(n)
         elif ac == "final_rest":
-            span = range(-1, -len(consts)-1, -1)
+            span = range(-1, -len(consts) - 1, -1)
             yvals = lccde.backward_recur(span, fin)
+            yh *= UnitStep(-n - 1)
         else:
             # TODO
             raise NotImplementedError
         for k, v in pac.items():
             yvals[k] = v
-        n = self.iv
+        # solution
+        ysol = yh + yp
         eqs = [sp.Eq(ysol.subs(n, k), yeq.subs(n, k)) for k in span]
         sol = sp.linsolve(eqs, consts)
         if sol == sp.S.EmptySet:
@@ -493,9 +517,5 @@ class LCCDE(sp.Basic):
             ysol = ysol.subs(a[0], yvals[a[0].args[0]])
         # add partial solutions
         ysol += sp.Add(*partial_sols)
+        ysol = stepsimp(ysol)
         return ysol
-
-    def solve_forced(self, fin, ac):
-        if ac != "initial_rest" and ac != "final_rest":
-            raise ValueError("Invalid auxiliary conditions.")
-        return self.solve(fin, ac)
