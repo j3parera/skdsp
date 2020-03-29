@@ -131,8 +131,10 @@ class Test_DiscreteSystem(object):
         S = DiscreteSystem(eq)
         h = S.impulse_response(force_lti=True)
         expected = (
-            16 * UnitDelta(n) + 4 * UnitDelta(n - 1) + sp.Rational(1, 4) ** n
-        ) * UnitStep(n)
+            16 * UnitDelta(n)
+            + 4 * UnitDelta(n - 1)
+            + sp.Rational(1, 4) ** n * UnitStep(n)
+        )
         assert sp.simplify(h.amplitude - expected) == sp.S.Zero
 
         eq = sp.Eq(y(n) - 3 * y(n - 1) - 4 * y(n - 2), x(n) + 2 * x(n - 1))
