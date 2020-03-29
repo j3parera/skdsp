@@ -189,7 +189,7 @@ class Test_LCCDE(object):
         lccde = LCCDE(B, A)
         n = lccde.iv
 
-        r = lccde.y_roots()
+        r = lccde.y_roots
         assert list(r) == [a]
         yh, Cs = lccde.solve_homogeneous()
         assert len(Cs) == lccde.order
@@ -200,7 +200,7 @@ class Test_LCCDE(object):
         lccde = LCCDE(B, A)
         n = lccde.iv
 
-        r = lccde.y_roots()
+        r = lccde.y_roots
         assert sorted(list(r)) == [-1, 4]
         yh, Cs = lccde.solve_homogeneous()
         assert len(Cs) == lccde.order
@@ -211,7 +211,7 @@ class Test_LCCDE(object):
         lccde = LCCDE(B, A)
         n = lccde.iv
 
-        r = lccde.y_roots()
+        r = lccde.y_roots
         assert sorted(list(r), key=lambda x: abs(x)) == [-sp.I, sp.I]
         yh, Cs = lccde.solve_homogeneous()
         assert len(Cs) == lccde.order
