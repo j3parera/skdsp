@@ -449,11 +449,20 @@ class Test_LCCDE(object):
         assert yt == 2 ** (-3 * n) * (2 ** n + 4 ** n) * UnitStep(n) / 2
 
     def test_LCCDE_solve(self):
-        B = [1, 2]
-        A = [1, -3, -4]
+        # B = [1, 2]
+        # A = [1, -3, -4]
+        # lccde = LCCDE(B, A)
+        # n = lccde.iv
+        # x = 4 ** n * UnitStep(n)
+        # y = lccde.solve(x, "initial_rest")
+        # expected = (-(-1) ** n / 25 + 26 * 4 ** n / 25 + 6 * 4 ** n * n / 5) * UnitStep(n)
+        # assert sp.simplify(y - expected) == sp.S.Zero
+
+        B = [1]
+        # A = [1, -sp.Rational(7, 2), sp.Rational(7, 2), -1]
+        A = [1, -2, sp.Rational(5, 4), -sp.Rational(1, 4)]
         lccde = LCCDE(B, A)
         n = lccde.iv
-        x = 4 ** n * UnitStep(n)
-        y = lccde.solve(x, "initial_rest")
-        expected = (-(-1) ** n / 25 + 26 * 4 ** n / 25 + 6 * 4 ** n * n / 5) * UnitStep(n)
-        assert sp.simplify(y - expected) == sp.S.Zero
+        # yzs = lccde.solve(UnitDelta(n), ac="final_rest")
+        yzs = lccde.solve(UnitDelta(n), ac={-1: 0, 0: 0, 1: 0})
+        assert yzs

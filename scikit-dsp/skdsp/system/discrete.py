@@ -62,16 +62,7 @@ class DiscreteSystem(System):
             return self.apply(sin)
         lccde = self.as_lccde
         if lccde is not None and force_lti:
-            if select == "causal":
-                he = lccde.solve_forced(sin.amplitude, ac="initial_rest")
-                # he = he * UnitStep(n)
-            elif select == "anticausal":
-                he = lccde.solve_forced(sin.amplitude, ac="final_rest")
-                # he = he * UnitStep(-n - 1)
-            else:
-                # TODO
-                raise NotImplementedError
-            he = stepsimp(he)
+            he = lccde.solve(sin.amplitude, ac=select)
             return DiscreteSignal.from_formula(he, lccde.iv)
         return None
 

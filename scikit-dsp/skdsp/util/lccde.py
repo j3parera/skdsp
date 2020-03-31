@@ -1,11 +1,12 @@
 from collections import defaultdict
+from itertools import product
+from numbers import Number
 
 import sympy as sp
 from sympy.solvers.ode import get_numbered_constants, iter_numbered_constants
 
-from skdsp.signal.functions import UnitDelta, UnitRamp, UnitStep, stepsimp
 from skdsp.signal.discrete import DiscreteSignal
-from numbers import Number
+from skdsp.signal.functions import UnitDelta, UnitRamp, UnitStep, stepsimp
 
 
 class LCCDE(sp.Basic):
@@ -218,15 +219,16 @@ class LCCDE(sp.Basic):
                 raise ValueError(
                     "The number of auxiliary conditions is not equal to the LCDDE order."
                 )
-                if all(isinstance(k, Number) for k in ac.keys()):
-                    if sorted(ac.keys()) != list(
-                        range(min(ac.keys()), max(ac.keys()) + 1)
-                    ):
-                        raise ValueError("Auxiliary conditions must be contiguous.")
-        elif isinstance(ac, str) and ac == "initial_rest":
-            ac = dict(zip(range(-1, -N - 1, -1), [0] * N))
-        elif isinstance(ac, str) and ac == "final_rest":
-            ac = dict(zip(range(0, self.order), [0] * self.order))
+            if all(isinstance(k, Number) for k in ac.keys()):
+                if sorted(ac.keys()) != list(
+                    range(min(ac.keys()), max(ac.keys()) + 1)
+                ):
+                    raise ValueError("Auxiliary conditions must be contiguous.")
+        elif isinstance(ac, str):
+            if str in ["initial_rest", "causal"]:
+                ac = dict(zip(range(-1, -N - 1, -1), [0] * N))
+            if str in ["final_rest", "anticausal"]:
+                ac = dict(zip(range(0, self.order), [0] * self.order))
         else:
             raise ValueError("Invalid auxiliary conditions.")
         return ac
@@ -235,9 +237,9 @@ class LCCDE(sp.Basic):
         pac = self._process_aux_conditions(ac)
         n = self.iv
         N = self.order
-        if ac == "initial_rest":
+        if ac in ["initial_rest", "causal"]:
             y = sp.Piecewise((self.as_forward_recursion(fin), n >= 0), (0, True))
-        elif ac == "final_rest":
+        elif ac in ["final_rest", "anticausal"]:
             y = sp.Piecewise((self.as_backward_recursion(fin), n <= -1), (0, True))
         else:
             y = sp.Piecewise(
@@ -270,14 +272,16 @@ class LCCDE(sp.Basic):
                     }
                     return roots
         # characteristic polynomial
-        chareq, symbol = sp.S.Zero, sp.Dummy("lambda")
-        for k, a in enumerate(reversed(vect)):
-            chareq += a * symbol ** k
-        chareq = sp.Poly(chareq, symbol)
+        symbol = sp.Dummy("lambda")
+        chareq = sp.Poly(vect, symbol)
         chareqroots = sp.roots(chareq, symbol)
         if len(chareqroots) != self.order:
             chareqroots = [sp.rootof(chareq, k) for k in range(chareq.degree())]
-        return chareqroots
+        # Create a dict root: multiplicity
+        roots = defaultdict(int)
+        for root in chareqroots:
+            roots[root] += 1
+        return roots
 
     def solve_homogeneous(self):
         n = self.iv
@@ -297,18 +301,14 @@ class LCCDE(sp.Basic):
         # Characteristic polynomial
         if not done:
             chareq_is_complex = not all([i.is_real for i in self.A])
-            # Create a dict root: multiplicity or charroots
-            charroots = defaultdict(int)
-            for root in roots:
-                charroots[root] += 1
             # generate solutions
             conjugate_roots = []  # used to prevent double-use of conjugate roots
             # Loop over roots in the order provided by roots/rootof...
-            for root in roots:
+            for root in list(roots):
                 # but don't repeat multiple roots.
-                if root not in charroots:
+                if root not in roots:
                     continue
-                multiplicity = charroots.pop(root)
+                multiplicity = roots.pop(root)
                 for i in range(multiplicity):
                     if chareq_is_complex:
                         gensols.append(n ** i * root ** n)
@@ -457,7 +457,7 @@ class LCCDE(sp.Basic):
         return yp
 
     def solve_forced(self, fin, ac):
-        if ac != "initial_rest" and ac != "final_rest":
+        if ac not in ["initial_rest", "causal", "final_rest", "anticausal"]:
             raise ValueError("Invalid auxiliary conditions.")
         return self.solve(fin, ac)
 
@@ -473,41 +473,77 @@ class LCCDE(sp.Basic):
         # homogeneous and particular
         yh, consts = self.solve_homogeneous()
         yp = lccde.solve_particular(fin)
+        # auxiliary conditions
+        n = self.iv
+        if isinstance(ac, str):
+            zone = None
+            try:
+                zone = int(ac)
+            except:
+                pass
+            if zone == 0 or ac == "initial_rest" or ac == "causal":
+                span = range(0, len(consts))
+                yhs = [[yh * UnitStep(n)]]
+            elif zone == -1 or ac == "final_rest" or ac == "anticausal":
+                span = range(-1, -len(consts) - 1, -1)
+                yhs = [[yh * UnitStep(-n - 1)]]
+            else:
+                pass
+        else:
+            m = min(ac.keys())
+            M = max(ac.keys())
+            span = list(range(M + 1, M + 1 + len(consts)))
+            span += list(range(m - 1, m - 1 - len(consts), -1))
+            # span = range(m, M + 1)
+            roots = self.y_roots
+            gens = []
+            k = 0
+            for r in roots:
+                multiplicity = roots[r]
+                rterm = sp.S.Zero
+                for m in range(multiplicity):
+                    rterm += consts[k] * (n ** m) * (r ** n)
+                    k += 1
+                gens.append([rterm * UnitStep(n), rterm * UnitStep(-n - 1)])
+            yhs = product(*gens)
         # difference equation
         yeq = self.as_piecewise(fin, ac)
-        # apply auxiliary conditions
-        n = self.iv
-        pac = self._process_aux_conditions(ac)
-        if ac == "initial_rest":
-            span = range(0, len(consts))
-            yvals = lccde.forward_recur(span, fin)
-            yh *= UnitStep(n)
-        elif ac == "final_rest":
-            span = range(-1, -len(consts) - 1, -1)
-            yvals = lccde.backward_recur(span, fin)
-            yh *= UnitStep(-n - 1)
-        else:
-            # TODO
-            raise NotImplementedError
-        for k, v in pac.items():
-            yvals[k] = v
-        # solution
-        ysol = yh + yp
-        eqs = [sp.Eq(ysol.subs(n, k), yeq.subs(n, k)) for k in span]
-        sol = sp.linsolve(eqs, consts)
-        if sol == sp.S.EmptySet:
-            raise ValueError("Cannot solve for constants.")
-        # homogeneous constants
-        y = ysol
-        for c, s in zip(consts, list(sol)[0]):
-            ysol = ysol.subs(c, s)
-        # auxiliary conditions
-        while True:
-            a = list(ysol.atoms(self.y()))
-            if len(a) == 0:
-                break
-            ysol = ysol.subs(a[0], yvals[a[0].args[0]])
-        # add partial solutions
-        ysol += sp.Add(*partial_sols)
-        ysol = stepsimp(ysol)
-        return ysol
+        # try to solve for any yh
+        for yh in yhs:
+            ysol = sp.Add(*yh) + yp
+            eqs = [sp.Eq(ysol.subs(n, k), yeq.subs(n, k)) for k in span]
+            eqs = list(filter(lambda e: e.has(*consts), eqs))
+            sol = sp.linsolve(eqs, consts)
+            if sol == sp.S.EmptySet:
+                continue
+            if any([c == 0 for c in list(sol)[0]]):
+                continue
+            sols = list(sol)[0]
+            snull = False
+            for s in sols:
+                # auxiliary conditions
+                while True:
+                    a = list(s.atoms(self.y()))
+                    if len(a) == 0:
+                        break
+                    s = s.subs(a[0], yeq.subs(n, a[0].args[0]))
+                if s == 0:
+                    snull = True
+                    break
+            if snull:
+                continue
+            # homogeneous constants
+            y = ysol
+            for c, s in zip(consts, list(sol)[0]):
+                ysol = ysol.subs(c, s)
+            # auxiliary conditions
+            while True:
+                a = list(ysol.atoms(self.y()))
+                if len(a) == 0:
+                    break
+                ysol = ysol.subs(a[0], yeq.subs(n, a[0].args[0]))
+            # add partial solutions
+            ysol += sp.Add(*partial_sols)
+            ysol = stepsimp(ysol)
+            return ysol
+        raise ValueError("Cannot solve for constants.")
