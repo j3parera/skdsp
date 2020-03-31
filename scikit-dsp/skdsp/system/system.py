@@ -271,11 +271,37 @@ class System(sp.Basic):
                 p[s] = v
         return self.eval(x, p)
 
-    def clone(self, cls, T):
-        # TODO
-        raise NotImplementedError
+    def _upclass(self):
+        if self.__class__ == System:
+            return self.__class__
+        mro = self.__class__.__mro__
+        idx = mro.index(System)
+        return mro[idx - 1]
 
-    def h2T(self, h):
+    def copy(self):
+        obj = copy.copy(self)
+        return obj
+
+    def clone(self, cls, T, **kwargs):
+        if cls == None:
+            cls = self._upclass()
+        args = {
+            "x": self.x,
+            "y": self.y,
+        }
+        for key, value in kwargs.items():
+            args[key] = value
+        # pylint: disable-msg=redundant-keyword-arg
+        obj = System.__new__(cls, T, **args)
+        # pylint: enable-msg=redundant-keyword-arg
+        if hasattr(cls, "_transmute"):
+            cls._transmute(obj)
+        if hasattr(self, "_clone_extra"):
+            self._clone_extra(obj)
+        # pylint: enable-msg=no-member
+        return obj
+
+    def _h2T(self, h):
         # TODO
         raise NotImplementedError
 
