@@ -3,7 +3,7 @@ import pytest
 import sympy as sp
 from sympy.solvers.ode import ode_nth_linear_constant_coeff_homogeneous
 
-from skdsp.signal.discrete import Constant, Data, Delta, Exponential, Step, n
+from skdsp.signal.discrete import Constant, DataSignal, Delta, Exponential, Step, n
 from skdsp.system.discrete import Delay, DiscreteSystem, Identity, Zero
 from skdsp.util.lccde import LCCDE
 from skdsp.signal.functions import UnitStep, UnitDelta
@@ -198,6 +198,24 @@ class Test_DiscreteSystem(object):
         expected = -sp.Rational(1, 4) ** -n * UnitStep(-n - 1)
         assert sp.simplify(h.amplitude - expected) is not None
 
+        with pytest.raises(ValueError):
+            S.impulse_response(force_lti=True, select=10)
+
+        h = S.impulse_response(force_lti=True, select=-1)
+        expected = sp.Rational(1, 4) ** n * UnitStep(n)
+        assert sp.simplify(h.amplitude - expected) is not None
+
+        h = S.impulse_response(force_lti=True, select=1)
+        expected = sp.Rational(1, 4) ** n * UnitStep(n)
+        assert sp.simplify(h.amplitude - expected) is not None
+
+        h = S.impulse_response(force_lti=True, select=0)
+        expected = -sp.Rational(1, 4) ** -n * UnitStep(-n - 1)
+        assert sp.simplify(h.amplitude - expected) is not None
+
+        h = S.impulse_response(force_lti=True, select="stable")
+        expected = sp.Rational(1, 4) ** n * UnitStep(n)
+        assert sp.simplify(h.amplitude - expected) is not None
 
 class Test_Zero(object):
     def test_Zero_misc(self):
@@ -290,17 +308,17 @@ class Test_KK(object):
         B = [1, 0]
         A = [1, -z0]
         S = DiscreteSystem(LCCDE(B, A))
-        y3f = Data(S.filter(x(span)), iv=n)
+        y3f = DataSignal(S.filter(x(span)), iv=n)
         z_0 = sp.S(1) / 2 * sp.exp(sp.I * 0)
         span = range(0, 21)
         x = Delta()
         B = [1, 0]
         Ar = [1, -sp.re(z_0)]
         Sr = DiscreteSystem(LCCDE(B, Ar))
-        yrf = Data(Sr.filter(x.real(span)))
+        yrf = DataSignal(Sr.filter(x.real(span)))
         Ai = [1, -sp.im(z_0)]
         Si = DiscreteSystem(LCCDE(B, Ai))
-        yif = Data(Si.filter(x.imag(span)))
+        yif = DataSignal(Si.filter(x.imag(span)))
 
     def test_dsolve(self):
         f = sp.Function("f")
@@ -355,3 +373,11 @@ class Test_KK(object):
         h = S.impulse_response(force_lti=True)
         h._repr_latex_()
         assert h is not None
+
+    def test_cosas(self):
+        z = sp.Symbol('z')
+        num = sp.poly((z**2), z, domain='CC')
+        den = sp.poly((z + 1)*(z-1)**2, z, domain='CC')
+        Xzoz = num / den
+        F = sp.apart(Xzoz)
+        assert F
