@@ -3,8 +3,9 @@ import pytest
 import sympy as sp
 
 import skdsp.signal.discrete as ds
-from skdsp.signal.functions import UnitDelta, UnitStep, UnitRamp, UnitDeltaTrain
+from skdsp.signal.functions import UnitDelta, UnitDeltaTrain, UnitRamp, UnitStep
 from skdsp.util.util import stem
+from skdsp.signal.discrete import DiscreteSignal
 
 
 class Test_Constant(object):
@@ -301,6 +302,7 @@ class Test_Delta(object):
         assert not d.is_causal
         assert d.support == sp.Range(-1, 0)
 
+
 class Test_Step(object):
     def test_Step_function(self):
 
@@ -465,6 +467,7 @@ class Test_Step(object):
         d = ds.Step().shift(-1)
         assert not d.is_causal
         assert d.support == sp.Range(-1, sp.S.Infinity)
+
 
 class Test_Ramp(object):
     def test_Ramp_function(self):
@@ -818,38 +821,38 @@ class Test_Data(object):
         a = sp.Symbol("a", integer=True)
         b = sp.Symbol("b", real=True)
 
-        s = ds.Data([1, 1])
+        s = ds.DataSignal([1, 1])
         assert s.amplitude == UnitDelta(ds.n) + UnitDelta(ds.n - 1)
 
-        s = ds.Data([1, 2, 3], start=3, iv=n)
+        s = ds.DataSignal([1, 2, 3], start=3, iv=n)
         assert s.amplitude == (
             UnitDelta(n - 3) + 2 * UnitDelta(n - 4) + 3 * UnitDelta(n - 5)
         )
         assert s.codomain == sp.S.Reals
 
-        s = ds.Data([1, -1], iv=n)
+        s = ds.DataSignal([1, -1], iv=n)
         assert s.amplitude == (UnitDelta(n) - UnitDelta(n - 1))
         assert s.codomain == sp.S.Reals
 
-        s = ds.Data([1, 2, 3], start=3, iv=n)
+        s = ds.DataSignal([1, 2, 3], start=3, iv=n)
         assert s.amplitude == (
             UnitDelta(n - 3) + 2 * UnitDelta(n - 4) + 3 * UnitDelta(n - 5)
         )
         assert s.codomain == sp.S.Reals
 
-        s = ds.Data((1, 2, 3 * sp.I), iv=n)
+        s = ds.DataSignal((1, 2, 3 * sp.I), iv=n)
         assert s.amplitude == (
             UnitDelta(n) + 2 * UnitDelta(n - 1) + 3 * sp.I * UnitDelta(n - 2)
         )
         assert s.codomain == sp.S.Complexes
 
-        s = ds.Data(array([1, 2, 3]), iv=n)
+        s = ds.DataSignal(array([1, 2, 3]), iv=n)
         assert s.amplitude == (
             UnitDelta(n) + 2 * UnitDelta(n - 1) + 3 * UnitDelta(n - 2)
         )
         assert s.codomain == sp.S.Reals
 
-        s = ds.Data({1: 4, 0: 3 * sp.I, -2: "cos(w*k)"}, iv=n, codomain=sp.S.Reals)
+        s = ds.DataSignal({1: 4, 0: 3 * sp.I, -2: "cos(w*k)"}, iv=n, codomain=sp.S.Reals)
         assert s.amplitude == (
             sp.cos(sp.Symbol("w") * sp.Symbol("k")) * UnitDelta(n + 2)
             + 3 * sp.I * UnitDelta(n)
@@ -857,7 +860,7 @@ class Test_Data(object):
         )
         assert s.codomain == sp.S.Reals
 
-        s = ds.Data({7: a + b, 8: a * b, 9: 3}, iv=n)
+        s = ds.DataSignal({7: a + b, 8: a * b, 9: 3}, iv=n)
         assert s.amplitude == (
             (a + b) * UnitDelta(n - 7)
             + (a * b) * UnitDelta(n - 8)
@@ -865,7 +868,7 @@ class Test_Data(object):
         )
         assert s.codomain == sp.S.Reals
 
-        s = ds.Data([[1, 2], [3, 4]], iv=n)
+        s = ds.DataSignal([[1, 2], [3, 4]], iv=n)
         assert s.amplitude == (
             UnitDelta(n)
             + 2 * UnitDelta(n - 1)
@@ -874,49 +877,49 @@ class Test_Data(object):
         )
         assert s.codomain == sp.S.Reals
 
-        s = ds.Data([1, 2, "3"], iv=n)
+        s = ds.DataSignal([1, 2, "3"], iv=n)
         assert s.amplitude == (
             UnitDelta(n) + 2 * UnitDelta(n - 1) + 3 * UnitDelta(n - 2)
         )
         assert s.codomain == sp.S.Reals
 
-        s = ds.Data(("1",), iv=n)
+        s = ds.DataSignal(("1",), iv=n)
         assert s == ds.Delta(n)
         assert s.codomain == sp.S.Reals
 
-        s = ds.Data([0] * 3 + [1, 2, 3] + [0] * 5, iv=n, start=-3)
+        s = ds.DataSignal([0] * 3 + [1, 2, 3] + [0] * 5, iv=n, start=-3)
         assert s.amplitude == (
             UnitDelta(n) + 2 * UnitDelta(n - 1) + 3 * UnitDelta(n - 2)
         )
         assert s.codomain == sp.S.Reals
 
-        s = ds.Data([0] * 5 + [1, 2, 3] + [0] * 5, -3, iv=n)
+        s = ds.DataSignal([0] * 5 + [1, 2, 3] + [0] * 5, -3, iv=n)
         assert s.amplitude == (
             UnitDelta(n - 2) + 2 * UnitDelta(n - 3) + 3 * UnitDelta(n - 4)
         )
         assert s.codomain == sp.S.Reals
 
-        s = ds.Data([0] * 5 + [sp.I, 2, 3] + [0] * 5, 3, iv=n)
+        s = ds.DataSignal([0] * 5 + [sp.I, 2, 3] + [0] * 5, 3, iv=n)
         assert s.amplitude == (
             sp.I * UnitDelta(n - 8) + 2 * UnitDelta(n - 9) + 3 * UnitDelta(n - 10)
         )
         assert s.codomain == sp.S.Complexes
 
         with pytest.raises(ValueError):
-            s = ds.Data([1, 2, 3], iv=t)
+            s = ds.DataSignal([1, 2, 3], iv=t)
 
         with pytest.raises(TypeError):
-            s = ds.Data({"1": 4, "c": 3, -2: 27}, iv=n)
+            s = ds.DataSignal({"1": 4, "c": 3, -2: 27}, iv=n)
 
     def test_Data_periodic(self):
-        s = ds.Data([1, 2, 3], periodic=True, iv=ds.n)
+        s = ds.DataSignal([1, 2, 3], periodic=True, iv=ds.n)
         assert s.is_periodic == True
         assert s.period == 3
         assert s[0:3] == [1, 2, 3]
         assert s[3:6] == [1, 2, 3]
         assert s[-3:0] == [1, 2, 3]
 
-        s = ds.Data([1, 2, 3, 4], start=10, periodic=True, iv=ds.n)
+        s = ds.DataSignal([1, 2, 3, 4], start=10, periodic=True, iv=ds.n)
         assert s.is_periodic == True
         assert s.period == 4
         assert s[0:3] == [3, 4, 1]
@@ -925,11 +928,11 @@ class Test_Data(object):
         assert s.eval(-2) == 1
         assert s.eval(range(-4, 6)) == [3, 4, 1, 2, 3, 4, 1, 2, 3, 4]
 
-        s = ds.Data([1, 2, 3], start=10, periodic=False, iv=ds.n)
+        s = ds.DataSignal([1, 2, 3], start=10, periodic=False, iv=ds.n)
         assert s.is_periodic == False
         assert s.period == None
 
-        s = ds.Data([0, 1, 1, 0, 0, 0], periodic=True)
+        s = ds.DataSignal([0, 1, 1, 0, 0, 0], periodic=True)
         assert s.is_periodic == True
         assert s.period == 6
         assert s[0:6] == [0, 1, 1, 0, 0, 0]
@@ -938,7 +941,9 @@ class Test_Data(object):
 
         s = ds.DiscreteSignal(
             UnitDelta(sp.Mod(ds.n, 6) - 1) + UnitDelta(sp.Mod(ds.n, 6) - 2),
-            ds.n, 6, sp.S.Reals
+            ds.n,
+            6,
+            sp.S.Reals,
         )
         assert s.is_periodic == True
         assert s.period == 6
@@ -959,7 +964,7 @@ class Test_Data(object):
         a = sp.Symbol("a", integer=True)
         b = sp.Symbol("b", real=True)
 
-        s = ds.Data([1, 2, 3 * sp.I], 3, iv=n)
+        s = ds.DataSignal([1, 2, 3 * sp.I], 3, iv=n)
         assert s.eval(2) == 0
         assert s(3) == 1
         assert s(5) == 3 * sp.I
@@ -969,7 +974,7 @@ class Test_Data(object):
         assert s((3, 5, 4)) == [1, 3 * sp.I, 2]
         assert s[3:5] == [1, 2]
 
-        s = ds.Data((1, 2, 3), iv=n)
+        s = ds.DataSignal((1, 2, 3), iv=n)
         assert s.eval(2) == 3
         assert s(3) == 0
         assert s(1) == 2
@@ -979,7 +984,7 @@ class Test_Data(object):
         assert s((2, 3)) == [3, 0]
         assert s[1:4] == [2, 3, 0]
 
-        s = ds.Data(np.array([1, 2, 3 * sp.I]), iv=n)
+        s = ds.DataSignal(np.array([1, 2, 3 * sp.I]), iv=n)
         assert s.eval(2) == 3 * sp.I
         assert s(3) == 0
         assert s(1) == 2
@@ -989,7 +994,7 @@ class Test_Data(object):
         assert s((2, 3)) == [3 * sp.I, 0]
         assert s[1:4] == [2, 3 * sp.I, 0]
 
-        s = ds.Data({1: 4, 0: 3, -2: "cos(w*k)"}, iv=n)
+        s = ds.DataSignal({1: 4, 0: 3, -2: "cos(w*k)"}, iv=n)
         assert s.eval(-2) == sp.sympify("cos(w*k)")
         assert s(0) == 3
         assert s(1) == 4
@@ -1000,7 +1005,7 @@ class Test_Data(object):
         assert s(range(-1, 2)) == [0, 3, 4]
         assert s[-2:2, 2, 3] == [sp.cos(6), 0, 3, 4]
 
-        s = ds.Data({7: a + b, 8: a * b, 9: 3}, iv=n)
+        s = ds.DataSignal({7: a + b, 8: a * b, 9: 3}, iv=n)
         assert s.eval(7) == a + b
         assert s.eval(8) == a * b
         assert s(9) == 3
@@ -1012,7 +1017,7 @@ class Test_Data(object):
         assert s[9:11] == [3, 0]
         assert s[7:9, 1, 2] == [3, 2]
 
-        s = ds.Data([[1, 2 * sp.I], [3, 4]], iv=n)
+        s = ds.DataSignal([[1, 2 * sp.I], [3, 4]], iv=n)
         assert s.eval(1) == 2 * sp.I
         assert s(3) == 4
         assert s(0) == 1
@@ -1021,7 +1026,7 @@ class Test_Data(object):
         assert s.eval(range(-1, 2)) == [0, 1, 2 * sp.I]
         assert s[-1:2] == [0, 1, 2 * sp.I]
 
-        s = ds.Data([1, 2, "3"], iv=n)
+        s = ds.DataSignal([1, 2, "3"], iv=n)
         assert s.eval(1) == 2
         assert s(3) == 0
         assert s(2) == 3
@@ -1030,7 +1035,7 @@ class Test_Data(object):
         assert s.eval(range(-1, 2)) == [0, 1, 2]
         assert s[-1:2] == [0, 1, 2]
 
-        s = ds.Data(("1",), iv=n)
+        s = ds.DataSignal(("1",), iv=n)
         assert s.eval(1) == 0
         assert s(0) == 1
         assert s.eval(-1) == 0
@@ -1043,7 +1048,7 @@ class Test_Data(object):
         a = sp.Symbol("a", integer=True)
         b = sp.Symbol("b", real=True)
 
-        d = ds.Data([1, 2, 3], periodic=True, iv=n)
+        d = ds.DataSignal([1, 2, 3], periodic=True, iv=n)
         with pytest.raises(ValueError):
             dg = d.generate(0, step=0.1)
             next(dg)
@@ -1053,7 +1058,7 @@ class Test_Data(object):
         assert next(dg) == [3, 1, 2, 3, 1]
         assert next(dg) == [2, 3, 1, 2, 3]
 
-        d = ds.Data([a, b, a * b, a + b], iv=n)
+        d = ds.DataSignal([a, b, a * b, a + b], iv=n)
         dg = d.generate(start=-3, size=5, overlap=3)
         assert next(dg) == [0, 0, 0, a, b]
         assert next(dg) == [0, a, b, a * b, a + b]
@@ -1061,22 +1066,22 @@ class Test_Data(object):
 
     def test_Data_misc(self):
 
-        s = ds.Data([1, 2, 3], periodic=True, iv=ds.n)
+        s = ds.DataSignal([1, 2, 3], periodic=True, iv=ds.n)
         assert s.support == sp.S.Integers
         assert s.duration == None
         assert not s.is_causal
 
-        s = ds.Data([1, 2, 3, 4], start=10, periodic=True, iv=ds.n)
+        s = ds.DataSignal([1, 2, 3, 4], start=10, periodic=True, iv=ds.n)
         assert s.support == sp.S.Integers
         assert s.duration == None
         assert not s.is_causal
 
-        s = ds.Data([1, 2, 3], start=10, periodic=False, iv=ds.n)
+        s = ds.DataSignal([1, 2, 3], start=10, periodic=False, iv=ds.n)
         assert s.support == sp.Range(10, 13)
         assert s.duration == 13
         assert s.is_causal
 
-        s = ds.Data([1, 2, 3], periodic=True, iv=ds.n)
+        s = ds.DataSignal([1, 2, 3], periodic=True, iv=ds.n)
         f = sp.lambdify(s.iv, s.amplitude)
         assert f(0) == 1
         assert f(1) == 2
@@ -1352,7 +1357,7 @@ class Test_Sinusoid(object):
         assert d.real_part == x * sp.cos(sp.S.Pi * ds.n / 4 + sp.S.Pi / 12)
         assert d.imag_part == 0
         assert d.real == ds.DiscreteSignal.from_formula(
-            x * sp.cos(sp.S.Pi * ds.n / 4 + sp.S.Pi / 12), ds.n
+            x * sp.cos(sp.S.Pi * ds.n / 4 + sp.S.Pi / 12), iv=ds.n
         )
         assert d.imag == ds.Constant(0)
         assert d.support == sp.S.Integers
@@ -1821,6 +1826,11 @@ class Test_Undefined(object):
         with pytest.raises(ValueError):
             ds.Undefined("x", ds.n, period=10, duration=100)
 
+    def test_Undefined_factories(self):
+        x = sp.Function("x")
+        s = DiscreteSignal.from_formula(x(ds.n), codomain=sp.S.Reals)
+        assert s == ds.Undefined("x", codomain=sp.S.Reals)
+
     def test_Undefined_eval(self):
         x = sp.Function("x", nargs=1)
         d = ds.Undefined("x")
@@ -1899,13 +1909,9 @@ class Test_Undefined(object):
         x = sp.Function("x", nargs=1)
         assert d.amplitude == x(ds.n)
         assert d.real_part == sp.re(x(ds.n))
-        assert d.real == ds.DiscreteSignal(
-            sp.re(x(ds.n)), ds.n, None, sp.S.Reals
-        )
+        assert d.real == ds.DiscreteSignal(sp.re(x(ds.n)), ds.n, None, sp.S.Reals)
         assert d.imag_part == sp.im(x(ds.n))
-        assert d.imag == ds.DiscreteSignal(
-            sp.im(x(ds.n)), ds.n, None, sp.S.Reals
-        )
+        assert d.imag == ds.DiscreteSignal(sp.im(x(ds.n)), ds.n, None, sp.S.Reals)
         assert d.is_periodic == False
         assert d.period == None
         assert d.support == sp.S.Integers
@@ -1915,13 +1921,9 @@ class Test_Undefined(object):
         d = ds.Undefined("x", period=10)
         assert d.amplitude == x(ds.n)
         assert d.real_part == sp.re(x(ds.n))
-        assert d.real == ds.DiscreteSignal(
-            sp.re(x(ds.n)), ds.n, None, sp.S.Reals
-        )
+        assert d.real == ds.DiscreteSignal(sp.re(x(ds.n)), ds.n, None, sp.S.Reals)
         assert d.imag_part == sp.im(x(ds.n))
-        assert d.imag == ds.DiscreteSignal(
-            sp.im(x(ds.n)), ds.n, None, sp.S.Reals
-        )
+        assert d.imag == ds.DiscreteSignal(sp.im(x(ds.n)), ds.n, None, sp.S.Reals)
         assert d.is_periodic == True
         assert d.period == 10
         assert d.support == sp.S.Integers
@@ -1930,13 +1932,9 @@ class Test_Undefined(object):
         d = ds.Undefined("x", duration=10)
         assert d.amplitude == x(ds.n)
         assert d.real_part == sp.re(x(ds.n))
-        assert d.real == ds.DiscreteSignal(
-            sp.re(x(ds.n)), ds.n, None, sp.S.Reals
-        )
+        assert d.real == ds.DiscreteSignal(sp.re(x(ds.n)), ds.n, None, sp.S.Reals)
         assert d.imag_part == sp.im(x(ds.n))
-        assert d.imag == ds.DiscreteSignal(
-            sp.im(x(ds.n)), ds.n, None, sp.S.Reals
-        )
+        assert d.imag == ds.DiscreteSignal(sp.im(x(ds.n)), ds.n, None, sp.S.Reals)
         assert d.is_periodic == False
         assert d.period == None
         assert d.support == sp.Range(0, 10)

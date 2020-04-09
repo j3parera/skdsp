@@ -1,7 +1,9 @@
 import re
+import sys
 
 import numpy as np
 import sympy as sp
+from sympy.core.function import AppliedUndef
 
 from skdsp.signal.functions import UnitDelta, UnitDeltaTrain, UnitRamp, UnitStep
 from skdsp.signal.signal import Signal
@@ -13,6 +15,26 @@ n, m, k = sp.symbols("n, m, k", integer=True)
 
 
 class DiscreteSignal(Signal):
+    @classmethod
+    def _all_subclasses(cls):
+        subclasses = set()
+        for s in cls.__subclasses__():
+            sub = s.__subclasses__()
+            if len(sub) == 0:
+                subclasses.add(s)
+            else:
+                subclasses.update(s._all_subclasses())
+        return subclasses
+
+    @classmethod
+    def _try_subclass(cls, expr, **kwargs):
+        subclasses = cls._all_subclasses()
+        for s in subclasses:
+            obj = s._match_expression(expr, **kwargs)
+            if obj is not None:
+                return obj
+        return None
+
     @classmethod
     def _transmute_renew(cls, obj):
         tcls, d, A, k, omg, phi, N, s = cls._transmute(obj, False)
@@ -92,16 +114,27 @@ class DiscreteSignal(Signal):
         return obj
 
     @classmethod
-    def from_formula(cls, amp, iv=None, codomain=sp.S.Reals):
-        amp = sp.S(amp)
-        obj = cls(amp, iv, None, codomain)
-        done, obj = cls._transmute_renew(obj)
-        if not done:
-            Signal.__init__(obj)
+    def from_formula(cls, expr, **kwargs):
+        expr = sp.S(expr)
+        obj = cls._try_subclass(expr, **kwargs)
+        if obj is None:
+            iv = kwargs.pop("iv", None)
+            codomain = kwargs.pop("codomain", None)
+            period = kwargs.pop("period", None)
+            obj = cls(expr, iv=iv, period=period, codomain=codomain, **kwargs)
         return obj
 
     @staticmethod
     def _transmute(obj, apply=True):
+        # is DataSignal?
+        atoms = obj.amplitude.atoms(sp.Function)
+        if len(atoms) > 1:
+            if all(isinstance(a, UnitDelta) for a in list(atoms)):
+                if apply:
+                    obj.__class__ = DataSignal
+                    return None, None, None, None, None, None, None, None
+                else:
+                    return DataSignal, None, None, None, None, None, None, None
         A = sp.Wild("A")
         k = sp.Wild("k")
         s = sp.Wild("s")
@@ -140,6 +173,8 @@ class DiscreteSignal(Signal):
                 try:
                     if d[A].is_constant(obj.iv):
                         if apply:
+                            # TODO cuando pattern[1] es Exponential o Sinusoid
+                            # hay que crear los campos que no son args.
                             obj.__class__ = pattern[1]
                             break
                         else:
@@ -286,11 +321,21 @@ class DiscreteSignal(Signal):
         return S
 
     def energy(self, Nmax=sp.S.Infinity):
+        # Los límites dan muchos problemas
+        # NO fiarse
         ie = self.square_abs
+        if isinstance(ie, DataSignal):
+            if Nmax.is_number:
+                sup = ie.support
+                m = max(-Nmax, sup.inf)
+                M = min(Nmax, sup.sup)
+                E = sum(ie[m : M + 1])
+            return E
         if Nmax == sp.S.Infinity:
             try:
                 N = sp.Dummy("N", integer=True, positive=True)
-                E = sp.limit(ie.sum(-N, N), N, Nmax)
+                S = ie.sum(-N, N)
+                E = sp.limit(S, N, Nmax)
             except:
                 E = None
         else:
@@ -320,12 +365,38 @@ class DiscreteSignal(Signal):
 
     @property
     def is_abs_summable(self):
-        s = sp.Sum(sp.Abs(self.amplitude), (self.iv, sp.S.NegativeInfinity, sp.S.Infinity)).doit()
+        s = sp.Sum(
+            sp.Abs(self.amplitude), (self.iv, sp.S.NegativeInfinity, sp.S.Infinity)
+        ).doit()
         return s.is_finite
 
 
 class Undefined(DiscreteSignal):
-    def __new__(cls, name, iv=None, period=None, duration=None, codomain=sp.S.Reals):
+    @staticmethod
+    def _match_expression(expr, **kwargs):
+        expr = sp.S(expr)
+        A = sp.Wild("A", nargs=1)
+        f = sp.Wild("f")
+        m = expr.match(A * f)
+        if m and isinstance(m[f], AppliedUndef):
+            name = m[f].name
+            iv = kwargs.pop("iv", m[f].args[0])
+            period = kwargs.pop("period", 0)
+            duration = kwargs.pop("duration", None)
+            codomain = kwargs.pop("codomain", sp.S.Reals)
+            return m[A] * Undefined(
+                name,
+                iv=iv,
+                period=period,
+                duration=duration,
+                codomain=codomain,
+                **kwargs
+            )
+        return None
+
+    def __new__(
+        cls, name, iv=None, period=None, duration=None, codomain=sp.S.Reals, **_kwargs
+    ):
         iv = sp.sympify(iv) if iv is not None else n
         if not isinstance(name, str):
             raise ValueError("Name must be a string.")
@@ -339,7 +410,7 @@ class Undefined(DiscreteSignal):
         elif hasattr(undef, "duration"):
             del undef.duration
         # pylint: disable-msg=too-many-function-args
-        return Signal.__new__(cls, undef, iv, sp.S.Integers, codomain, None)
+        return Signal.__new__(cls, undef, iv, sp.S.Integers, codomain, None, **_kwargs)
         # pylint: enable-msg=too-many-function-args
 
     @property
@@ -352,6 +423,10 @@ class Constant(DiscreteSignal):
     Discrete constant signal. Not a degenerate case for constant functions
     such as `A*cos(0)`, `A*sin(pi/2)`, `A*exp(0*n)`, althought it could be.
     """
+
+    @classmethod
+    def _match_expression(cls, expr, **_kwargs):
+        return None
 
     is_finite = True
 
@@ -378,6 +453,9 @@ class Constant(DiscreteSignal):
 
 
 class Delta(DiscreteSignal):
+    @classmethod
+    def _match_expression(cls, expr, **_kwargs):
+        return None
 
     is_finite = True
     is_integer = True
@@ -405,7 +483,7 @@ class Delta(DiscreteSignal):
 
     @property
     def support(self):
-        inf = self._solve_iv(UnitDelta, 0)
+        inf = self._solve_func_arg(UnitDelta, 0)
         return sp.Range(inf, inf + 1)
 
     def __repr__(self):
@@ -413,6 +491,9 @@ class Delta(DiscreteSignal):
 
 
 class Step(DiscreteSignal):
+    @classmethod
+    def _match_expression(cls, expr, **_kwargs):
+        return None
 
     is_finite = True
     is_integer = True
@@ -431,7 +512,7 @@ class Step(DiscreteSignal):
 
     @property
     def support(self):
-        inf = self._solve_iv(UnitStep, 0)
+        inf = self._solve_func_arg(UnitStep, 0)
         return sp.Range(inf, sp.S.Infinity)
 
     def __repr__(self):
@@ -439,6 +520,9 @@ class Step(DiscreteSignal):
 
 
 class Ramp(DiscreteSignal):
+    @classmethod
+    def _match_expression(cls, expr, **_kwargs):
+        return None
 
     is_finite = True
     is_integer = True
@@ -457,7 +541,7 @@ class Ramp(DiscreteSignal):
 
     @property
     def support(self):
-        inf = self._solve_iv(UnitRamp, 0)
+        inf = self._solve_func_arg(UnitRamp, 0)
         return sp.Range(inf + 1, sp.S.Infinity)
 
     def __repr__(self):
@@ -468,6 +552,10 @@ class DeltaTrain(DiscreteSignal):
     """
     Discrete delta train signal.
     """
+
+    @classmethod
+    def _match_expression(cls, expr, **_kwargs):
+        return None
 
     is_finite = True
     is_integer = True
@@ -495,7 +583,10 @@ class DeltaTrain(DiscreteSignal):
         return "DeltaTrain({0}, {1})".format(self.iv, self.period)
 
 
-class Data(DiscreteSignal):
+class DataSignal(DiscreteSignal):
+    @classmethod
+    def _match_expression(cls, expr, **_kwargs):
+        return None
 
     is_finite = True
 
@@ -559,6 +650,17 @@ class Data(DiscreteSignal):
             obj = DiscreteSignal.__new__(cls, expr, iv, period, codomain)
             # pylint: enable-msg=too-many-function-args
         return obj
+
+    @property
+    def support(self):
+        if self.is_periodic:
+            return sp.S.Integers
+        atoms = self.amplitude.atoms(UnitDelta)
+        v = []
+        for a in list(atoms):
+            k = sp.solve_linear(a.func_arg, 0, [self.iv])[1]
+            v.append(k)
+        return sp.Range(min(v), max(v) + 1)
 
 
 class _TrigonometricDiscreteSignal(DiscreteSignal):
@@ -633,6 +735,9 @@ class _TrigonometricDiscreteSignal(DiscreteSignal):
 
 
 class Sinusoid(_TrigonometricDiscreteSignal):
+    @classmethod
+    def _match_expression(cls, expr, **_kwargs):
+        return None
 
     is_finite = True
 
@@ -690,6 +795,9 @@ class Sinusoid(_TrigonometricDiscreteSignal):
 
 
 class Exponential(_TrigonometricDiscreteSignal):
+    @classmethod
+    def _match_expression(cls, expr, **_kwargs):
+        return None
 
     # TODO Trigonometric? Quizás derivar ComplexExponential que sí
 

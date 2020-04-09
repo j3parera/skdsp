@@ -333,6 +333,33 @@ class Test_Discrete_Other(object):
         s1 = s1.subs({sp.Eq(a, 1): False})
         assert sp.simplify((s1 - expected).amplitude) == sp.S.Zero
 
+    def test_Discrete_correlate(self):
+        # x = ds.DataSignal([2, -1, 3, 7, 1, 2, -3], start=-4)
+        # y = ds.DataSignal([1, -1, 2, -2, 4, 1, -2, 5], start=-4)
+        # z = x.correlate(y)
+        # # TODO
+        # assert z
+        # z = x.cross_correlate(y)
+        # # TODO
+        # assert z
+        # z = y.correlate(x)
+        # # TODO
+        # assert z
+        # z = x.auto_correlate()
+        # # TODO
+        # assert z
+        # z = x.auto_correlate(normalized=True)
+        # # TODO
+        # assert z
+
+        # TODO Los límites fallan y más cuando hay símbolos a los que no se pueden
+        # poner restricciones (assumptions) como 0 < a < 1
+        a = sp.Symbol('a', real=True, positive=True)
+        # x1 = ds.Exponential(alpha=a, iv=ds.n)
+        # x2 = ds.Step(ds.n)
+        x = ds.DiscreteSignal.from_formula(a**ds.n*UnitStep(ds.n), iv=ds.n)
+        rxx = x.auto_correlate()
+        assert rxx
 
 class Test_Discrete_factories(object):
     def test_Discrete_from_sampling(self):
@@ -353,7 +380,7 @@ class Test_Discrete_factories(object):
         d = ds.Sinusoid(50, sp.Rational(3, 20), 3 * sp.S.Pi / 4, n)
         assert s == d
 
-    # TODO
+    # TODO test_Discrete_from_formula
     # def test_Discrete_from_formula(self):
 
 
