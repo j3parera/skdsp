@@ -852,7 +852,9 @@ class Test_Data(object):
         )
         assert s.codomain == sp.S.Reals
 
-        s = ds.DataSignal({1: 4, 0: 3 * sp.I, -2: "cos(w*k)"}, iv=n, codomain=sp.S.Reals)
+        s = ds.DataSignal(
+            {1: 4, 0: 3 * sp.I, -2: "cos(w*k)"}, iv=n, codomain=sp.S.Reals
+        )
         assert s.amplitude == (
             sp.cos(sp.Symbol("w") * sp.Symbol("k")) * UnitDelta(n + 2)
             + 3 * sp.I * UnitDelta(n)
@@ -1115,6 +1117,23 @@ class Test_Sinusoid(object):
 
         with pytest.raises(ValueError):
             ds.Sinusoid(omega=1, iv=sp.Symbol("z", real=True))
+
+    def test_Sinusoid_factories(self):
+        t = sp.Symbol("t", real=True)
+        n = sp.Symbol("n", integer=True)
+        fs = 8e3
+        cs = 50 * sp.cos(2 * sp.S.Pi * 1200 * t + sp.S.Pi / 4)
+        s = ds.DiscreteSignal.from_sampling(cs, t, n, fs)
+        d = ds.Sinusoid(50, 3 * sp.S.Pi / 10, sp.S.Pi / 4, n)
+        assert s == d
+        cs = 50 * sp.cos(1200 * t + sp.S.Pi / 4)
+        s = ds.DiscreteSignal.from_sampling(cs, t, n, fs)
+        d = ds.Sinusoid(50, sp.Rational(3, 20), sp.S.Pi / 4, n)
+        assert s == d
+        cs = 50 * sp.sin(1200 * t + sp.S.Pi / 4)
+        s = ds.DiscreteSignal.from_sampling(cs, t, n, fs)
+        d = ds.Sinusoid(50, sp.Rational(3, 20), 3 * sp.S.Pi / 4, n)
+        assert s == d
 
     def test_Sinusoid_eval(self):
 
@@ -1828,8 +1847,18 @@ class Test_Undefined(object):
 
     def test_Undefined_factories(self):
         x = sp.Function("x")
-        s = DiscreteSignal.from_formula(x(ds.n), codomain=sp.S.Reals)
+        n = sp.Symbol("n", integer=True)
+        s = DiscreteSignal.from_formula(x(n), codomain=sp.S.Reals)
         assert s == ds.Undefined("x", codomain=sp.S.Reals)
+
+        s = DiscreteSignal.from_formula(x(n), period=10, codomain=sp.S.Reals)
+        assert s == ds.Undefined("x", period=10, codomain=sp.S.Reals)
+        assert s.is_periodic
+
+        y = sp.Function("y")
+        t = sp.Symbol("t", real=True)
+        s = DiscreteSignal.from_sampling(y(t), t, n, fs=1000, codomain=sp.S.Reals)
+        assert s == ds.Undefined("y", codomain=sp.S.Reals)
 
     def test_Undefined_eval(self):
         x = sp.Function("x", nargs=1)
