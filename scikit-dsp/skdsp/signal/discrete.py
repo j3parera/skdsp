@@ -4,8 +4,9 @@ import sys
 import numpy as np
 import sympy as sp
 from sympy.core.function import AppliedUndef
-
-from skdsp.signal.functions import UnitDelta, UnitDeltaTrain, UnitRamp, UnitStep
+from sympy.utilities.iterables import flatten, is_sequence
+from skdsp.signal.functions import (UnitDelta, UnitDeltaTrain, UnitRamp,
+                                    UnitStep)
 from skdsp.signal.signal import Signal
 from skdsp.util.util import as_coeff_polar, ipystem
 
@@ -31,6 +32,9 @@ class DiscreteSignal(Signal):
         subclasses = cls._all_subclasses()
         for s in subclasses:
             obj = s._match_expression(expr, **kwargs)
+            if obj == NotImplementedError:
+                # TODO
+                obj = None
             if obj is not None:
                 return obj
         return None
@@ -450,13 +454,13 @@ class Undefined(DiscreteSignal):
 
 class Constant(DiscreteSignal):
     """
-    Discrete constant signal. Not a degenerate case for constant functions
-    such as `A*cos(0)`, `A*sin(pi/2)`, `A*exp(0*n)`, althought it could be.
+    Discrete constant signal.
     """
 
-    @classmethod
-    def _match_expression(cls, expr, **_kwargs):
-        return None
+    @staticmethod
+    def _match_expression(expr, **_kwargs):
+        # TODO
+        return NotImplementedError
 
     is_finite = True
 
@@ -483,9 +487,10 @@ class Constant(DiscreteSignal):
 
 
 class Delta(DiscreteSignal):
-    @classmethod
-    def _match_expression(cls, expr, **_kwargs):
-        return None
+    @staticmethod
+    def _match_expression(expr, **_kwargs):
+        # TODO
+        return NotImplementedError
 
     is_finite = True
     is_integer = True
@@ -521,9 +526,10 @@ class Delta(DiscreteSignal):
 
 
 class Step(DiscreteSignal):
-    @classmethod
-    def _match_expression(cls, expr, **_kwargs):
-        return None
+    @staticmethod
+    def _match_expression(expr, **_kwargs):
+        # TODO
+        return NotImplementedError
 
     is_finite = True
     is_integer = True
@@ -550,9 +556,10 @@ class Step(DiscreteSignal):
 
 
 class Ramp(DiscreteSignal):
-    @classmethod
-    def _match_expression(cls, expr, **_kwargs):
-        return None
+    @staticmethod
+    def _match_expression(expr, **_kwargs):
+        # TODO
+        return NotImplementedError
 
     is_finite = True
     is_integer = True
@@ -583,9 +590,10 @@ class DeltaTrain(DiscreteSignal):
     Discrete delta train signal.
     """
 
-    @classmethod
-    def _match_expression(cls, expr, **_kwargs):
-        return None
+    @staticmethod
+    def _match_expression(expr, **_kwargs):
+        # TODO
+        return NotImplementedError
 
     is_finite = True
     is_integer = True
@@ -614,71 +622,84 @@ class DeltaTrain(DiscreteSignal):
 
 
 class DataSignal(DiscreteSignal):
-    @classmethod
-    def _match_expression(cls, expr, **_kwargs):
-        return None
 
     is_finite = True
 
-    def __new__(cls, data, start=0, periodic=None, iv=None, codomain=None):
-        from sympy.utilities.iterables import flatten, is_sequence
+    @staticmethod
+    def _match_expression(expr, **kwargs):
+        atoms = expr.atoms(sp.Function)
+        if len(atoms) > 1 and all(isinstance(a, UnitDelta) for a in list(atoms)):
+            iv = kwargs.pop("iv", None)
+            start = kwargs.pop("start", None)
+            periodic = kwargs.pop("periodic", None)
+            codomain = kwargs.pop("codomain", sp.S.Reals)
+            sg = DataSignal(expr, start, periodic, iv, codomain, isexpr=True, **kwargs)
+            return sg
+        return None
 
-        data = sp.sympify(data)
-        if isinstance(data, sp.Dict):
-            # si es un diccionario asegurar claves enteras y expandir como lista
-            keys = data.keys()
-            for key in data.keys():
-                if not key.is_integer:
-                    raise TypeError("All keys in dict must be integer")
-            start = min(keys)
-            end = max(keys)
-            y = [0] * (end - start + 1)
-            for k, v in data.items():
-                y[k - start] = v
-            data = sp.sympify(y)
-        if is_sequence(data):
-            # las sequencias deben ser unidimensionales
-            data = list(flatten(data))
-        # iv
-        if iv is None:
-            free = set()
-            for v in data:
-                free.update(v.free_symbols)
-            if len(free) > 1:
-                raise ValueError("The independent variable must be supplied explicitly")
-            elif len(free) == 0:
-                iv = n
+    def __new__(cls, data, start=0, periodic=None, iv=None, codomain=None, **kwargs):
+        isexpr = kwargs.pop("isexpr", False)
+        if not isexpr: 
+            data = sp.sympify(data)
+            if isinstance(data, sp.Dict):
+                # si es un diccionario asegurar claves enteras y expandir como lista
+                keys = data.keys()
+                for key in data.keys():
+                    if not key.is_integer:
+                        raise TypeError("All keys in dict must be integer")
+                start = min(keys)
+                end = max(keys)
+                y = [0] * (end - start + 1)
+                for k, v in data.items():
+                    y[k - start] = v
+                data = sp.sympify(y)
+            if is_sequence(data):
+                # las sequencias deben ser unidimensionales
+                data = list(flatten(data))
+            # iv
+            if iv is None:
+                free = set()
+                for v in data:
+                    free.update(v.free_symbols)
+                if len(free) > 1:
+                    raise ValueError("The independent variable must be supplied explicitly")
+                elif len(free) == 0:
+                    iv = n
+                else:
+                    iv = free.pop()
             else:
-                iv = free.pop()
-        else:
-            if not isinstance(iv, sp.Symbol):
-                raise ValueError("The independent variable is not a valid symbol")
-        # ajustar duracion
-        if not periodic:
-            while start < 0 and data[0] == 0:
-                start += 1
-                data = data[1:]
-            while len(data) > 0 and data[-1] == 0:
-                data = data[:-1]
-            if len(data) == 0:
-                # this is a constant 0
-                return Constant(0, iv)
-        # codomain
-        if codomain is None:
-            codomain = (
-                sp.S.Complexes
-                if any([sp.sympify(x).as_real_imag()[1] for x in data])
-                else sp.S.Reals
-            )
+                if not isinstance(iv, sp.Symbol):
+                    raise ValueError("The independent variable is not a valid symbol")
+            # ajustar duracion
+            if not periodic:
+                while start < 0 and data[0] == 0:
+                    start += 1
+                    data = data[1:]
+                while len(data) > 0 and data[-1] == 0:
+                    data = data[:-1]
+                if len(data) == 0:
+                    # this is a constant 0
+                    return Constant(0, iv)
+            # codomain
+            if codomain is None:
+                codomain = (
+                    sp.S.Complexes
+                    if any([sp.sympify(x).as_real_imag()[1] for x in data])
+                    else sp.S.Reals
+                )
         # deltificar
-        if len(data) == 1 and not periodic:
-            obj = Delta(iv - start)
+        if isexpr:
+            expr = data
+            period = sp.S.Zero
         else:
-            expr = DiscreteSignal._deltify(data, start, iv, periodic)
-            period = len(data) if periodic else sp.S.Zero
-            # pylint: disable-msg=too-many-function-args
-            obj = DiscreteSignal.__new__(cls, expr, iv, period, codomain)
-            # pylint: enable-msg=too-many-function-args
+            if len(data) == 1 and not periodic:
+                return Delta(iv - start)
+            else:
+                expr = DiscreteSignal._deltify(data, start, iv, periodic)
+                period = len(data) if periodic else sp.S.Zero
+        # pylint: disable-msg=too-many-function-args
+        obj = DiscreteSignal.__new__(cls, expr, iv, period, codomain, **kwargs)
+        # pylint: enable-msg=too-many-function-args
         return obj
 
     @property
@@ -842,9 +863,10 @@ class Sinusoid(_TrigonometricDiscreteSignal):
 
 
 class Exponential(_TrigonometricDiscreteSignal):
-    @classmethod
-    def _match_expression(cls, expr, **_kwargs):
-        return None
+    @staticmethod
+    def _match_expression(expr, **_kwargs):
+        # TODO
+        return NotImplementedError
 
     # TODO Trigonometric? Quizás derivar ComplexExponential que sí
 

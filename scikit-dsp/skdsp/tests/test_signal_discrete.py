@@ -913,6 +913,13 @@ class Test_Data(object):
         with pytest.raises(TypeError):
             s = ds.DataSignal({"1": 4, "c": 3, -2: 27}, iv=n)
 
+
+    def test_DataSignal_factories(self):
+        n = sp.Symbol('n', integer=True)
+        expr = UnitDelta(n) - UnitDelta(n - 1)
+        s = DiscreteSignal.from_formula(expr, iv=n)
+        assert s == ds.DataSignal([1, -1], iv=n)
+
     def test_Data_periodic(self):
         s = ds.DataSignal([1, 2, 3], periodic=True, iv=ds.n)
         assert s.is_periodic == True
