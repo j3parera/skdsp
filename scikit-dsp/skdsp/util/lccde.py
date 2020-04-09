@@ -1,6 +1,6 @@
 from collections import defaultdict
 from itertools import product
-from numbers import Number
+from numbers import Integral, Number
 
 import sympy as sp
 from sympy.solvers.ode import get_numbered_constants, iter_numbered_constants
@@ -11,7 +11,7 @@ from skdsp.signal.functions import UnitDelta, UnitRamp, UnitStep, stepsimp
 
 class LCCDE(sp.Basic):
     @classmethod
-    def from_expression(cls, f, x, y):
+    def from_formula(cls, f, x, y):
         if isinstance(f, sp.Equality):
             f = f.lhs - f.rhs
         n = y.args[0]
@@ -211,41 +211,91 @@ class LCCDE(sp.Basic):
         y = self.as_backward_recursion(fin)
         return self._recur(y, span, False)
 
-    def _process_aux_conditions(self, ac="initial_rest"):
-        n = self.iv
-        N = self.order
+    def _check_dict_auxiliary_conditions(self, ac):
+        # ac as dict of discrete points, i.e. {-1: 0, 0: 1, 1: 2} 
+        if len(ac.keys()) != self.order:
+            raise ValueError(
+                "The number of auxiliary conditions is not equal to the LCDDE order."
+            )
+        if all(isinstance(k, Number) for k in ac.keys()):
+            # check that all keys are contiguous if numeric
+            # if symbolic suppose they are correct
+            if sorted(ac.keys()) != list(
+                range(min(ac.keys()), max(ac.keys()) + 1)
+            ):
+                raise ValueError("Auxiliary conditions must be contiguous.")
+        return True
+
+    def _process_auxiliary_conditions(self, ac):
         if isinstance(ac, dict):
-            if len(ac.keys()) != N:
-                raise ValueError(
-                    "The number of auxiliary conditions is not equal to the LCDDE order."
-                )
-            if all(isinstance(k, Number) for k in ac.keys()):
-                if sorted(ac.keys()) != list(
-                    range(min(ac.keys()), max(ac.keys()) + 1)
-                ):
-                    raise ValueError("Auxiliary conditions must be contiguous.")
-        elif isinstance(ac, str):
-            if str in ["initial_rest", "causal"]:
-                ac = dict(zip(range(-1, -N - 1, -1), [0] * N))
-            if str in ["final_rest", "anticausal"]:
-                ac = dict(zip(range(0, self.order), [0] * self.order))
+            self._check_dict_auxiliary_conditions(ac)
+            zidx = None
+            zones = None
+        elif isinstance(ac, (Integral, str)):
+            # set of ordered abs roots
+            sroots = sorted(set([sp.Abs(r) for r in self.y_roots.keys()]))
+            zonemax = len(sroots)
+            zones = []
+            for k in range(zonemax):
+                zones.append(sp.Interval.Ropen(0, sroots[k]))
+            zones.append(sp.Reals)
+            if isinstance(ac, Integral):
+                zidx = int(ac)
+                if zidx == -1:
+                    zidx = zonemax
+                if zidx > zonemax or zidx < 0:
+                    raise ValueError("Invalid auxiliary condition zone.")
+            elif isinstance(ac, str):
+                if ac in ["initial_rest", "causal"]:
+                    zidx = zonemax
+                elif ac in ["final_rest", "anticausal"]:
+                    zidx = 0
+                elif ac == "stable":
+                    for k, z in enumerate(zones):
+                        if z.contains(1):
+                            zidx = k
+                            break
+                    else:
+                        raise ValueError("No zone results stable.")
+                else:
+                    raise ValueError("Invalid auxiliary conditions predicate.")
         else:
             raise ValueError("Invalid auxiliary conditions.")
-        return ac
+        return zidx, zones
 
     def as_piecewise(self, fin=None, ac="initial_rest"):
-        pac = self._process_aux_conditions(ac)
         n = self.iv
-        N = self.order
-        if ac in ["initial_rest", "causal"]:
-            y = sp.Piecewise((self.as_forward_recursion(fin), n >= 0), (0, True))
-        elif ac in ["final_rest", "anticausal"]:
-            y = sp.Piecewise((self.as_backward_recursion(fin), n <= -1), (0, True))
-        else:
+        y = None
+        if isinstance(ac, str):
+            if ac in ["initial_rest", "causal"]:
+                y = sp.Piecewise((self.as_forward_recursion(fin), n >= 0), (0, True))
+            elif ac in ["final_rest", "anticausal"]:
+                y = sp.Piecewise((self.as_backward_recursion(fin), n <= -1), (0, True))
+            elif ac == "stable":
+                y = sp.Piecewise(
+                    (self.as_forward_recursion(fin), n >= 0),
+                    (self.as_backward_recursion(fin), n < 0)
+                )
+        elif isinstance(ac, dict):
+            self._check_dict_auxiliary_conditions(ac)
             y = sp.Piecewise(
-                (self.as_forward_recursion(fin), n > max(pac.keys())),
-                *[(ac[n0], sp.Eq(n, n0)) for n0 in pac.keys()],
-                (self.as_backward_recursion(fin), n < min(pac.keys()))
+                (self.as_forward_recursion(fin), n > max(ac.keys())),
+                *[(ac[n0], sp.Eq(n, n0)) for n0 in ac.keys()],
+                (self.as_backward_recursion(fin), n < min(ac.keys()))
+            )
+        else:
+            # generic
+            # ac = dict()
+            # for k in range(-self.order, self.order):
+            #     ac[k] = self.y(k)
+            # y = sp.Piecewise(
+            #     (self.as_forward_recursion(fin), n > self.order),
+            #     *[(ac[n0], sp.Eq(n, n0)) for n0 in ac.keys()],
+            #     (self.as_backward_recursion(fin), n < -self.order)
+            # )
+            y = sp.Piecewise(
+                (self.as_forward_recursion(fin), n >= 0),
+                (self.as_backward_recursion(fin), n < 0)
             )
         return y
 
@@ -283,10 +333,10 @@ class LCCDE(sp.Basic):
             roots[root] += 1
         return roots
 
-    def solve_homogeneous(self):
+    def solve_homogeneous(self, classic=True, zone=None):
         n = self.iv
         roots = self.y_roots
-        gensols = []
+        gensols = [] # lists of pairs (gensol, root)
         done = False
         if len(roots) == 2:
             lroots = list(roots)
@@ -295,8 +345,8 @@ class LCCDE(sp.Basic):
             m1 = lroots[0].match(r * sp.exp(sp.I * theta))
             m2 = lroots[1].match(r * sp.exp(sp.I * theta))
             if (m1 and m2) and (m1[r] == m2[r]) and (m1[theta] == -m2[theta]):
-                gensols.append(m1[r] ** n * sp.cos(m1[theta] * n))
-                gensols.append(m1[r] ** n * sp.sin(m1[theta] * n) * sp.I)
+                gensols.append((m1[r] ** n * sp.cos(m1[theta] * n), m1[r] * sp.exp(sp.I * m1[theta])))
+                gensols.append((m1[r] ** n * sp.sin(m1[theta] * n) * sp.I, m1[r] * sp.exp(-sp.I * m1[theta])))
                 done = True
         # Characteristic polynomial
         if not done:
@@ -311,29 +361,53 @@ class LCCDE(sp.Basic):
                 multiplicity = roots.pop(root)
                 for i in range(multiplicity):
                     if chareq_is_complex:
-                        gensols.append(n ** i * root ** n)
+                        gensols.append((n ** i * root ** n, root))
                         continue
                     absroot = sp.Abs(root)
                     angleroot = sp.arg(root)
                     if angleroot.has(sp.atan2):
                         # Remove this condition when arg stop returning circular atan2 usages.
-                        gensols.append(n ** i * root ** n)
+                        gensols.append((n ** i * root ** n, root))
                     else:
                         if root in conjugate_roots:
                             continue
-                        if angleroot == 0:
-                            gensols.append(n ** i * absroot ** n)
+                        if angleroot == 0 or angleroot == sp.S.Pi:
+                            gensols.append((n ** i * root ** n, root))
                             continue
-                        conjugate_roots.append(sp.conjugate(root))
-                        gensols.append(n ** i * absroot ** n * sp.cos(angleroot * n))
-                        gensols.append(
-                            n ** i * absroot ** n * sp.sin(angleroot * n) * sp.I
-                        )
-        # Constants
-        const_gen = iter_numbered_constants(sp.Add(*self.A), start=1, prefix="C")
-        consts = [next(const_gen) for i in range(len(gensols))]
-        yh = sp.Add(*[c * g for c, g in zip(consts, gensols)])
-        return yh, consts[: self.order]
+                        croot = sp.conjugate(root)
+                        conjugate_roots.append(croot)
+                        gensols.append((n ** i * absroot ** n * sp.cos(angleroot * n), root))
+                        gensols.append((n ** i * absroot ** n * sp.sin(angleroot * n) * sp.I, croot))
+        # Constants and limits
+        cgen = iter_numbered_constants(sp.Add(*self.A), start=1, prefix="C")
+        consts = []
+        if classic:
+            # JUST one equation
+            yh = sp.S.Zero
+            for gen in [g[0] for g in gensols]:
+                consts.append(next(cgen))
+                yh += consts[-1] * gen
+            return yh, consts
+        # solutions of solutions
+        gens = []
+        for root in list(self.y_roots):
+            eqs = [g[0] for g in gensols if g[1] == root]
+            gen = sp.S.Zero
+            for eq in eqs:
+                consts.append(next(cgen))
+                gen += consts[-1] * eq
+            if zone is None:
+                gens.append([gen * UnitStep(n), -gen * UnitStep(-n - 1)])
+            else:
+                if zone.contains(sp.Abs(root)):
+                    gens.append(gen * UnitStep(n))
+                else:
+                    gens.append(-gen * UnitStep(-n - 1))
+        if zone is None:
+            yhs = product(*gens)
+        else:
+            yhs = [gens]
+        return yhs, consts
 
     def solve_free(self, ac):
         # homogeneous solution
@@ -373,7 +447,7 @@ class LCCDE(sp.Basic):
                 new_x_part = (
                     sp.Add(*[bk * self.x(n - k) for k, bk in enumerate(B)]) - yk
                 )
-                lccde = LCCDE.from_expression(
+                lccde = LCCDE.from_formula(
                     sp.Eq(self.y_part(), new_x_part), self.x(), self.y()
                 )
         else:
@@ -470,45 +544,23 @@ class LCCDE(sp.Basic):
     def solve(self, fin, ac):
         # partial solutions: extract solutions up to N < M and reduced lccde
         partial_sols, lccde = self.solve_partial(fin)
+        # preprocess auxiliary conditions
+        zidx, zones = self._process_auxiliary_conditions(ac)
         # homogeneous and particular
-        yh, consts = self.solve_homogeneous()
+        zone = zidx if zidx is None else zones[zidx]
+        yhs, consts = self.solve_homogeneous(classic=False, zone=zone)
         yp = lccde.solve_particular(fin)
-        # auxiliary conditions
         n = self.iv
-        if isinstance(ac, str):
-            zone = None
-            try:
-                zone = int(ac)
-            except:
-                pass
-            if zone == 0 or ac == "initial_rest" or ac == "causal":
-                span = range(0, len(consts))
-                yhs = [[yh * UnitStep(n)]]
-            elif zone == -1 or ac == "final_rest" or ac == "anticausal":
-                span = range(-1, -len(consts) - 1, -1)
-                yhs = [[yh * UnitStep(-n - 1)]]
-            else:
-                pass
-        else:
+        # difference equation
+        yeq = self.as_piecewise(fin, ac)
+        # try to solve for any yh
+        if zidx == None:
             m = min(ac.keys())
             M = max(ac.keys())
             span = list(range(M + 1, M + 1 + len(consts)))
             span += list(range(m - 1, m - 1 - len(consts), -1))
-            # span = range(m, M + 1)
-            roots = self.y_roots
-            gens = []
-            k = 0
-            for r in roots:
-                multiplicity = roots[r]
-                rterm = sp.S.Zero
-                for m in range(multiplicity):
-                    rterm += consts[k] * (n ** m) * (r ** n)
-                    k += 1
-                gens.append([rterm * UnitStep(n), rterm * UnitStep(-n - 1)])
-            yhs = product(*gens)
-        # difference equation
-        yeq = self.as_piecewise(fin, ac)
-        # try to solve for any yh
+        else:
+            span = range(-len(consts), len(consts))
         for yh in yhs:
             ysol = sp.Add(*yh) + yp
             eqs = [sp.Eq(ysol.subs(n, k), yeq.subs(n, k)) for k in span]
@@ -526,7 +578,10 @@ class LCCDE(sp.Basic):
                     a = list(s.atoms(self.y()))
                     if len(a) == 0:
                         break
-                    s = s.subs(a[0], yeq.subs(n, a[0].args[0]))
+                    yrep = ysol.subs(n, a[0].args[0])
+                    if not yrep.is_constant(*consts):
+                        yrep = yeq.subs(n, a[0].args[0])
+                    s = s.subs(a[0], yrep)
                 if s == 0:
                     snull = True
                     break
@@ -541,7 +596,10 @@ class LCCDE(sp.Basic):
                 a = list(ysol.atoms(self.y()))
                 if len(a) == 0:
                     break
-                ysol = ysol.subs(a[0], yeq.subs(n, a[0].args[0]))
+                yrep = ysol.subs(n, a[0].args[0])
+                if yrep.has(*a):
+                    yrep = yeq.subs(n, a[0].args[0])
+                ysol = ysol.subs(a[0], yrep)
             # add partial solutions
             ysol += sp.Add(*partial_sols)
             ysol = stepsimp(ysol)

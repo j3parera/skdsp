@@ -27,7 +27,7 @@ class Test_LCCDE(object):
             y(n) - sp.S(3) / 4 * y(n - 1) + sp.S(1) / 8 * y(n - 2),
             2 * x(n) - sp.S(3) / 4 * x(n - 1),
         )
-        lccde = LCCDE.from_expression(ed, x(n), y(n))
+        lccde = LCCDE.from_formula(ed, x(n), y(n))
         assert lccde.A == [1, -sp.S(3) / 4, sp.S(1) / 8]
         assert lccde.B == [2, -sp.S(3) / 4]
         ed2 = lccde.as_expression
@@ -411,7 +411,7 @@ class Test_LCCDE(object):
         A = [1, -sp.Rational(5, 6), sp.Rational(1, 6)]
         lccde = LCCDE(B, A)
         yp = lccde.solve_particular(2 ** n * UnitStep(n))
-        assert yp == 8 * 2**n * UnitStep(n) / 5 
+        assert yp == 8 * 2 ** n * UnitStep(n) / 5
 
     def test_LCCDE_solve_forced(self):
         a = sp.Symbol("a", real=True)
@@ -441,7 +441,10 @@ class Test_LCCDE(object):
         lccde = LCCDE(B, A)
         n = lccde.iv
         yzs = lccde.solve_forced(UnitDelta(n), ac="initial_rest")
-        assert sp.simplify(yzs - (4 ** (-n) / 2 + 2 ** (-n) / 2) * UnitStep(n)) == sp.S.Zero
+        assert (
+            sp.simplify(yzs - (4 ** (-n) / 2 + 2 ** (-n) / 2) * UnitStep(n))
+            == sp.S.Zero
+        )
         yt, yss = lccde.solve_transient_and_steady_state(UnitStep(n))
         assert yss == sp.Rational(5, 3)
         yt, yss = lccde.solve_transient_and_steady_state(UnitDelta(n))
@@ -449,20 +452,150 @@ class Test_LCCDE(object):
         assert yt == 2 ** (-3 * n) * (2 ** n + 4 ** n) * UnitStep(n) / 2
 
     def test_LCCDE_solve(self):
-        # B = [1, 2]
-        # A = [1, -3, -4]
-        # lccde = LCCDE(B, A)
-        # n = lccde.iv
-        # x = 4 ** n * UnitStep(n)
-        # y = lccde.solve(x, "initial_rest")
-        # expected = (-(-1) ** n / 25 + 26 * 4 ** n / 25 + 6 * 4 ** n * n / 5) * UnitStep(n)
-        # assert sp.simplify(y - expected) == sp.S.Zero
+        B = [2]
+        A = [1, -sp.S.Half]
+        lccde = LCCDE(B, A)
+        n = lccde.iv
+        x = UnitDelta(n)
+        y = lccde.solve(x, "final_rest")
+        expected = (-2 * (sp.S.Half) ** n) * UnitStep(-n - 1)
+        assert sp.simplify(y - expected) == sp.S.Zero
+
+        y = lccde.solve(x, ac=0)
+        expected = (-2 * (sp.S.Half) ** n) * UnitStep(-n - 1)
+        assert sp.simplify(y - expected) == sp.S.Zero
+
+        B = [1, 2]
+        A = [1, -3, -4]
+        lccde = LCCDE(B, A)
+        n = lccde.iv
+        x = 4 ** n * UnitStep(n)
+        y = lccde.solve(x, "initial_rest")
+        expected = (-(-1) ** n / 25 + 26 * 4 ** n / 25 + 6 * 4 ** n * n / 5) * UnitStep(n)
+        assert sp.simplify(y - expected) == sp.S.Zero
 
         B = [1]
-        # A = [1, -sp.Rational(7, 2), sp.Rational(7, 2), -1]
         A = [1, -2, sp.Rational(5, 4), -sp.Rational(1, 4)]
         lccde = LCCDE(B, A)
         n = lccde.iv
-        # yzs = lccde.solve(UnitDelta(n), ac="final_rest")
-        yzs = lccde.solve(UnitDelta(n), ac={-1: 0, 0: 0, 1: 0})
-        assert yzs
+        y = lccde.solve(UnitDelta(n), ac="final_rest")
+        expected = (-4 + n * sp.Rational(1, 2) ** n + 3 * sp.Rational(1, 2) ** n) * UnitStep(-n - 1)
+        assert sp.simplify(y - expected) == sp.S.Zero
+
+        y = lccde.solve(UnitDelta(n), ac={-1: 0, 0: 0, 1: 0})
+        assert sp.simplify(y - expected) == sp.S.Zero
+
+        z = sp.Symbol("z")
+        f1 = z - sp.Rational(1, 4)
+        f2 = z - sp.Rational(1, 2)
+        f3 = z - 2
+        H = 1 / f1 + 1 / f2 + 1 / f3
+        num, den = H.as_numer_denom()
+        B = list(num.as_poly(z).all_coeffs())
+        A = list(den.as_poly(z).all_coeffs())
+        lccde = LCCDE(B, A)
+        n = lccde.iv
+        f1c = sp.Rational(1, 4) ** n * UnitStep(n)
+        f2c = sp.Rational(1, 2) ** n * UnitStep(n)
+        f3c = 2 ** n * UnitStep(n)
+        f1a = -(sp.Rational(1, 4) ** n) * UnitStep(-n - 1)
+        f2a = -(sp.Rational(1, 2) ** n) * UnitStep(-n - 1)
+        f3a = -(2 ** n) * UnitStep(-n - 1)
+
+        y = lccde.solve(UnitDelta(n), 0)
+        expected = stepsimp(f1a + f2a + f3a)
+        assert sp.simplify(y - expected) == sp.S.Zero
+
+        # TODO
+        # y = lccde.solve(UnitDelta(n), 1)
+        # expected = stepsimp(f1c + f2a + f3a)
+        # assert sp.simplify(y - expected) == sp.S.Zero
+
+        # TODO
+        # y = lccde.solve(UnitDelta(n), 2)
+        # expected = stepsimp(f1c + f2c + f3a)
+        # assert sp.simplify(y - expected) == sp.S.Zero
+
+        y = lccde.solve(UnitDelta(n), 3)
+        expected = stepsimp(f1c + f2c + f3c)
+        assert sp.simplify(y - expected) == sp.S.Zero
+
+    def test_LCCDE__process_auxiliary_conditions(self):
+        z = sp.Symbol("z")
+        f1 = z - sp.Rational(1, 4)
+        f2 = z - sp.Rational(1, 2)
+        f3 = z - 2
+        H = 1 / f1 + 1 / f2 + 1 / f3
+        num, den = H.as_numer_denom()
+        B = list(num.as_poly(z).all_coeffs())
+        A = list(den.as_poly(z).all_coeffs())
+        lccde = LCCDE(B, A)
+        n = lccde.iv
+        f1c = sp.Rational(1, 4) ** n * UnitStep(n)
+        f2c = sp.Rational(1, 2) ** n * UnitStep(n)
+        f3c = 2 ** n * UnitStep(n)
+        f1a = -(sp.Rational(1, 4) ** n) * UnitStep(-n - 1)
+        f2a = -(sp.Rational(1, 2) ** n) * UnitStep(-n - 1)
+        f3a = -(2 ** n) * UnitStep(-n - 1)
+        expected_zones = [
+            sp.Interval.Ropen(0, sp.Rational(1, 4)),
+            sp.Interval.Ropen(0, sp.Rational(1, 2)),
+            sp.Interval.Ropen(0, 2),
+            sp.Reals
+        ]
+
+        with pytest.raises(ValueError):
+            lccde._process_auxiliary_conditions({-1: 0, -2: 0})
+
+        with pytest.raises(ValueError):
+            lccde._process_auxiliary_conditions({-1: 0, 3: 0, 5: 0})
+
+        zone, zones = lccde._process_auxiliary_conditions({-1: 0, 0: 0, 1: 0})
+        assert zone is None
+        assert zones is None
+
+        with pytest.raises(ValueError):
+            lccde._process_auxiliary_conditions(-2)
+
+        zone, zones = lccde._process_auxiliary_conditions(0)
+        assert zone == 0
+        assert zones == expected_zones
+
+        zone, zones = lccde._process_auxiliary_conditions(1)
+        assert zone == 1
+        assert zones == expected_zones
+
+        zone, zones = lccde._process_auxiliary_conditions(2)
+        assert zone == 2
+        assert zones == expected_zones
+
+        zone, zones = lccde._process_auxiliary_conditions(3)
+        assert zone == 3
+        assert zones == expected_zones
+
+        zone, zones = lccde._process_auxiliary_conditions(-1)
+        assert zone == 3
+        assert zones == expected_zones
+
+        with pytest.raises(ValueError):
+            lccde._process_auxiliary_conditions(10)
+
+        zone, zones = lccde._process_auxiliary_conditions("initial_rest")
+        assert zone == 3
+        assert zones == expected_zones
+
+        zone, zones = lccde._process_auxiliary_conditions("causal")
+        assert zone == 3
+        assert zones == expected_zones
+
+        zone, zones = lccde._process_auxiliary_conditions("final_rest")
+        assert zone == 0
+        assert zones == expected_zones
+
+        zone, zones = lccde._process_auxiliary_conditions("anticausal")
+        assert zone == 0
+        assert zones == expected_zones
+
+        zone, zones = lccde._process_auxiliary_conditions("stable")
+        assert zone == 2
+        assert zones == expected_zones
