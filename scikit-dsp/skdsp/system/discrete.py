@@ -36,7 +36,7 @@ class DiscreteSystem(System):
     def as_lccde(self):
         try:
             eq = sp.Eq(self.output_, self.mapping)
-            return LCCDE.from_expression(eq, self.input_, self.output_)
+            return LCCDE.from_formula(eq, self.input_, self.output_)
         except:
             return None
 
@@ -63,7 +63,7 @@ class DiscreteSystem(System):
         lccde = self.as_lccde
         if lccde is not None and force_lti:
             he = lccde.solve(sin.amplitude, ac=select)
-            return DiscreteSignal.from_formula(he, lccde.iv)
+            return DiscreteSignal.from_formula(he, iv=lccde.iv)
         return None
 
     def impulse_response(self, force_lti=False, select="causal"):
