@@ -9,7 +9,7 @@ from sympy.core.evaluate import global_evaluate
 from sympy.core.function import AppliedUndef, UndefinedFunction
 from sympy.utilities.iterables import flatten, is_sequence, iterable
 
-from skdsp.signal.functions import UnitDelta, stepsimp
+from skdsp.signal.functions import UnitDelta, deltasimp, stepsimp
 
 
 class Signal(sp.Basic):
@@ -219,9 +219,9 @@ class Signal(sp.Basic):
     def iv(self):
         return self.args[1]
 
-    def _solve_iv(self, func, value):
+    def _solve_func_arg(self, func, value):
         f = list(self.amplitude.atoms(func))[0]
-        iv = f.iv
+        iv = f.func_arg
         sols = sp.solve_linear(iv, value, [self.iv])
         return sols[1]
 
@@ -582,7 +582,7 @@ class Signal(sp.Basic):
             if self.iv != other.iv:
                 return NotImplemented, None, None
             if other.amplitude - identity == 0:
-                return None, None, None
+                return None, self._period, self.codomain
             return (other, self._join_period(other), self._join_codomain(other))
         if isinstance(other, (Number, sp.Expr)):
             if other - identity == 0:
@@ -691,20 +691,24 @@ class Signal(sp.Basic):
             return other
         if self.is_discrete:
             k = sp.Symbol('k', integer=True)
-            s = self.amplitude.subs({self.iv: k}) * other.amplitude.subs({other.iv: self.iv - k})
+            amp = self.amplitude.subs({self.iv: k}) * other.amplitude.subs({other.iv: self.iv - k})
             if period is not None:
                 # TODO periodic convolution
                 raise NotImplementedError
-            amp = stepsimp(s)
+            amp = stepsimp(amp)
             if isinstance(amp, sp.Piecewise):
                 cond = amp.args[0].cond
                 expr = amp.args[0].expr
                 sy = self.clone(None, expr, iv=k, period=None, codomain=codomain)
                 amp = sp.Piecewise((sy.sum(), cond), *amp.args[1:])
-                amp = stepsimp(amp)
+            else:
+                sy = self.clone(None, amp, iv=k, period=None, codomain=codomain)
+                amp = sy.sum()
         else:
             # TODO continuous
             raise NotImplementedError
+        amp = stepsimp(amp)
+        amp = deltasimp(amp, self.iv)
         obj = self.clone(None, amp, period=None, codomain=codomain)
         return obj
 
@@ -717,3 +721,16 @@ class Signal(sp.Basic):
 
     __imatmul__ = __matmul__
 
+    def correlate(self, other, normalized=False):
+        # if not self.is_energy or not other.is_energy:
+        #     raise ValueError("Cannot correlate infinite energy signals.")
+        rso = self.convolve(other.flip())
+        if normalized:
+            rso = rso / sp.sqrt(self.energy() * other.energy())
+        return rso
+
+    def auto_correlate(self, normalized=False):
+        return self.correlate(self, normalized)
+
+    def cross_correlate(self, other, normalized=False):
+        return self.correlate(other, normalized)
