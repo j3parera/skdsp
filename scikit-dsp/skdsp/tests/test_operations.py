@@ -361,29 +361,6 @@ class Test_Discrete_Other(object):
         rxx = x.auto_correlate()
         assert rxx
 
-class Test_Discrete_factories(object):
-    def test_Discrete_from_sampling(self):
-        # TODO Otros muestreos
-        t = sp.Symbol("t", real=True)
-        n = sp.Symbol("n", integer=True)
-        fs = 8e3
-        cs = 50 * sp.cos(2 * sp.S.Pi * 1200 * t + sp.S.Pi / 4)
-        s = ds.DiscreteSignal.from_sampling(cs, t, n, fs)
-        d = ds.Sinusoid(50, 3 * sp.S.Pi / 10, sp.S.Pi / 4, n)
-        assert s == d
-        cs = 50 * sp.cos(1200 * t + sp.S.Pi / 4)
-        s = ds.DiscreteSignal.from_sampling(cs, t, n, fs)
-        d = ds.Sinusoid(50, sp.Rational(3, 20), sp.S.Pi / 4, n)
-        assert s == d
-        cs = 50 * sp.sin(1200 * t + sp.S.Pi / 4)
-        s = ds.DiscreteSignal.from_sampling(cs, t, n, fs)
-        d = ds.Sinusoid(50, sp.Rational(3, 20), 3 * sp.S.Pi / 4, n)
-        assert s == d
-
-    # TODO test_Discrete_from_formula
-    # def test_Discrete_from_formula(self):
-
-
 class Test_Print(object):
     def test_Latex(self):
         x = 0.9 * ds.Delta().shift(5)
