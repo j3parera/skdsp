@@ -35,6 +35,36 @@ class DiscreteSignal(Signal):
                 return obj
         return None
 
+    @staticmethod
+    def _match_iv_transform(expr, iv):
+        k = sp.Wild("k", integer=True)
+        s = sp.Wild("s", properties=[lambda s: abs(s) == 1])
+        n = sp.Wild("n", integer=True) if iv is None else iv
+        m = expr.match(s * n - k)
+        if m:
+            return m[n] if iv is None else iv, m[k], m[s] == -1
+        return iv, 0, False
+
+    @staticmethod
+    def _match_trig_args(expr, iv):
+        k = sp.Wild("k", integer=True)
+        omega = sp.Wild("omega")
+        phi = sp.Wild("phi")
+        n = sp.Wild("n", integer=True) if iv is None else iv
+        m = expr.match(omega * (n - k) + phi)
+        if m:
+            return m[n] if iv is None else iv, m[k], m[omega], m[phi]
+        return iv, 0, 1, 0
+
+    @staticmethod
+    def _apply_iv_transform(sg, delay, flip):
+        if delay:
+            d = delay if not flip else -delay
+            sg = sg.delay(d)
+        if flip:
+            sg = sg.flip()
+        return sg
+
     @classmethod
     def _transmute_renew(cls, obj):
         tcls, d, A, k, omg, phi, N, s = cls._transmute(obj, False)
@@ -94,23 +124,25 @@ class DiscreteSignal(Signal):
         return super()._periodicity(amp, iv, domain)
 
     @classmethod
-    def from_period(cls, amp, iv, period, codomain=sp.S.Reals):
-        amp = sp.S(amp)
-        amp = amp.subs({iv: sp.Mod(iv, period)})
-        obj = cls(amp, iv, period, codomain)
-        done, obj = cls._transmute_renew(obj)
-        if not done:
-            Signal.__init__(obj)
+    def from_period(cls, expr, iv, period, **kwargs):
+        expr = sp.S(expr)
+        expr = expr.subs({iv: sp.Mod(iv, period)})
+        obj = cls._try_subclass(expr, iv=iv, **kwargs)
+        if obj is None:
+            codomain = kwargs.pop("codomain", None)
+            obj = cls(expr, iv=iv, period=period, codomain=codomain, **kwargs)
         return obj
 
     @classmethod
-    def from_sampling(cls, camp, civ, div, fs, codomain=sp.S.Reals):
-        camp = sp.S(camp)
-        amp = camp.subs({civ: div / fs})
-        obj = cls(amp, div, None, codomain)
-        done, obj = cls._transmute_renew(obj)
-        if not done:
-            Signal.__init__(obj)
+    def from_sampling(cls, expr, civ, div, fs, **kwargs):
+        expr = sp.S(expr)
+        expr = expr.subs({civ: div / fs})
+        obj = cls._try_subclass(expr, iv=div, **kwargs)
+        if obj is None:
+            iv = div
+            codomain = kwargs.pop("codomain", None)
+            period = kwargs.pop("period", None)
+            obj = cls(expr, iv=iv, period=period, codomain=codomain, **kwargs)
         return obj
 
     @classmethod
@@ -375,23 +407,21 @@ class Undefined(DiscreteSignal):
     @staticmethod
     def _match_expression(expr, **kwargs):
         expr = sp.S(expr)
-        A = sp.Wild("A", nargs=1)
-        f = sp.Wild("f")
+        A = sp.Wild("A")
+        f = sp.WildFunction("f", nargs=1)
         m = expr.match(A * f)
         if m and isinstance(m[f], AppliedUndef):
             name = m[f].name
-            iv = kwargs.pop("iv", m[f].args[0])
+            iv = kwargs.pop("iv", None)
+            iv, delay, flip = DiscreteSignal._match_iv_transform(m[f].args[0], iv)
             period = kwargs.pop("period", 0)
             duration = kwargs.pop("duration", None)
             codomain = kwargs.pop("codomain", sp.S.Reals)
-            return m[A] * Undefined(
-                name,
-                iv=iv,
-                period=period,
-                duration=duration,
-                codomain=codomain,
-                **kwargs
-            )
+            sg = Undefined(name, iv, period, duration, codomain, **kwargs)
+            if m[A] != sp.S.One:
+                sg = m[A] * sg
+            sg = DiscreteSignal._apply_iv_transform(sg, delay, flip)
+            return sg
         return None
 
     def __new__(
@@ -735,11 +765,28 @@ class _TrigonometricDiscreteSignal(DiscreteSignal):
 
 
 class Sinusoid(_TrigonometricDiscreteSignal):
-    @classmethod
-    def _match_expression(cls, expr, **_kwargs):
-        return None
 
     is_finite = True
+
+    @staticmethod
+    def _match_expression(expr, **kwargs):
+        expr = sp.S(expr)
+        A = sp.Wild("A")
+        f = sp.WildFunction("f", nargs=1)
+        m = expr.match(A * f)
+        if m and m[f].func in [sp.cos, sp.sin]:
+            iv = kwargs.pop("iv", None)
+            iv, delay, omega, phi = DiscreteSignal._match_trig_args(m[f].args[0], iv)
+            om, pio = omega.as_independent(sp.S.Pi)
+            ph, pip = phi.as_independent(sp.S.Pi)
+            if m[f].func == sp.sin:
+                ph += sp.S.Half
+            sg = Sinusoid(
+                m[A], sp.Rational(sp.sstr(om)) * pio, sp.Rational(sp.sstr(ph)) * pip, iv
+            )
+            sg = DiscreteSignal._apply_iv_transform(sg, delay, False)
+            return sg
+        return None
 
     def __new__(cls, A=1, omega=None, phi=0, iv=None):
         A = sp.sympify(A)
