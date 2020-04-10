@@ -458,9 +458,13 @@ class Constant(DiscreteSignal):
     """
 
     @staticmethod
-    def _match_expression(expr, **_kwargs):
-        # TODO
-        return NotImplementedError
+    def _match_expression(expr, **kwargs):
+        expr = sp.S(expr)
+        iv = kwargs.pop("iv", None)
+        if expr.is_constant(iv):
+            sg = Constant(expr, iv, **kwargs)
+            return sg
+        return None
 
     is_finite = True
 

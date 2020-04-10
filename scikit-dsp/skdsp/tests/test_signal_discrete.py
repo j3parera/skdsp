@@ -28,6 +28,18 @@ class Test_Constant(object):
         with pytest.raises(ValueError):
             ds.Constant(ds.n ** 2)
 
+    def test_Constant_factories(self):
+        t = sp.Symbol("t", real=True)
+        n = sp.Symbol("n", integer=True)
+        fs = 8e3
+        cs = 50 * sp.cos(sp.S.Pi / 4)
+        s = ds.DiscreteSignal.from_sampling(cs, t, n, fs)
+        assert s.amplitude == cs
+        s = ds.DiscreteSignal.from_formula(cs, iv=n)
+        assert s.amplitude == cs
+        s = ds.DiscreteSignal.from_formula(cs)
+        assert s.amplitude == cs
+
     def test_Constant_eval(self):
         d = ds.Constant(3)
 
