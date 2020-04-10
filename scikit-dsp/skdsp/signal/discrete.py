@@ -131,7 +131,7 @@ class DiscreteSignal(Signal):
     def from_period(cls, expr, iv, period, **kwargs):
         expr = sp.S(expr)
         expr = expr.subs({iv: sp.Mod(iv, period)})
-        obj = cls._try_subclass(expr, iv=iv, **kwargs)
+        obj = cls._try_subclass(expr, iv=iv, period=period, **kwargs)
         if obj is None:
             codomain = kwargs.pop("codomain", None)
             obj = cls(expr, iv=iv, period=period, codomain=codomain, **kwargs)
@@ -154,7 +154,7 @@ class DiscreteSignal(Signal):
         expr = sp.S(expr)
         obj = cls._try_subclass(expr, **kwargs)
         if obj is None:
-            iv = kwargs.pop("iv", None)
+            iv = kwargs.pop("iv", n)
             codomain = kwargs.pop("codomain", None)
             period = kwargs.pop("period", None)
             obj = cls(expr, iv=iv, period=period, codomain=codomain, **kwargs)
@@ -416,7 +416,7 @@ class Undefined(DiscreteSignal):
         m = expr.match(A * f)
         if m and isinstance(m[f], AppliedUndef):
             name = m[f].name
-            iv = kwargs.pop("iv", None)
+            iv = kwargs.pop("iv", n)
             iv, delay, flip = DiscreteSignal._match_iv_transform(m[f].args[0], iv)
             period = kwargs.pop("period", 0)
             duration = kwargs.pop("duration", None)
@@ -457,16 +457,16 @@ class Constant(DiscreteSignal):
     Discrete constant signal.
     """
 
+    is_finite = True
+
     @staticmethod
     def _match_expression(expr, **kwargs):
         expr = sp.S(expr)
-        iv = kwargs.pop("iv", None)
-        if expr.is_constant(iv):
+        iv = kwargs.pop("iv", n)
+        if expr.is_constant(iv, simplify=False):
             sg = Constant(expr, iv, **kwargs)
             return sg
         return None
-
-    is_finite = True
 
     def __new__(cls, const, iv=None):
         const = sp.sympify(const)
@@ -491,29 +491,47 @@ class Constant(DiscreteSignal):
 
 
 class Delta(DiscreteSignal):
-    @staticmethod
-    def _match_expression(expr, **_kwargs):
-        # TODO
-        return NotImplementedError
 
     is_finite = True
     is_integer = True
     is_nonnegative = True
 
-    def __new__(cls, iv=None):
+    @staticmethod
+    def _match_expression(expr, **kwargs):
+        # expr = sp.S(expr)
+        # A = sp.Wild("A")
+        # f = sp.WildFunction("f", nargs=(1, 2))
+        # m = expr.match(A * f)
+        # if m and m[f].func in [sp.KroneckerDelta, Delta]:
+        #     name = m[f].name
+        #     iv = kwargs.pop("iv", n)
+        #     arg = m[f].args[1] if m[f].func == sp.KroneckerDelta else m[f].args[0]
+        #     iv, delay, flip = DiscreteSignal._match_iv_transform(arg, iv)
+        #     period = kwargs.pop("period", 0)
+        #     duration = kwargs.pop("duration", None)
+        #     codomain = kwargs.pop("codomain", sp.S.Reals)
+        #     sg = Delta(name, iv, **kwargs)
+        #     if m[A] != sp.S.One:
+        #         sg = m[A] * sg
+        #     sg = DiscreteSignal._apply_iv_transform(sg, delay, flip)
+        #     return sg
+        # return None
+        return None
+
+    def __new__(cls, iv=None, **kwargs):
         iv = sp.sympify(iv) if iv is not None else n
         # pylint: disable-msg=too-many-function-args
-        obj = DiscreteSignal.__new__(cls, UnitDelta(iv), iv, sp.S.Zero, sp.S.Reals)
+        obj = DiscreteSignal.__new__(cls, UnitDelta(iv), iv, sp.S.Zero, sp.S.Reals, **kwargs)
         # pylint: enable-msg=too-many-function-args
-        obj.amplitude.__class__ = UnitDelta
+        # obj.amplitude.__class__ = UnitDelta
         return obj
 
     def _clone_extra(self, obj):
-        if isinstance(obj.amplitude, sp.KroneckerDelta):
-            obj.amplitude.__class__ = UnitDelta
-        for arg in obj.amplitude.args:
-            if isinstance(arg, sp.KroneckerDelta):
-                arg.__class__ = UnitDelta
+        # if isinstance(obj.amplitude, sp.KroneckerDelta):
+        #     obj.amplitude.__class__ = UnitDelta
+        # for arg in obj.amplitude.args:
+        #     if isinstance(arg, sp.KroneckerDelta):
+        #         arg.__class__ = UnitDelta
         return obj
 
     @property
@@ -633,7 +651,7 @@ class DataSignal(DiscreteSignal):
     def _match_expression(expr, **kwargs):
         atoms = expr.atoms(sp.Function)
         if len(atoms) > 1 and all(isinstance(a, UnitDelta) for a in list(atoms)):
-            iv = kwargs.pop("iv", None)
+            iv = kwargs.pop("iv", n)
             start = kwargs.pop("start", None)
             periodic = kwargs.pop("periodic", None)
             codomain = kwargs.pop("codomain", sp.S.Reals)
@@ -800,7 +818,7 @@ class Sinusoid(_TrigonometricDiscreteSignal):
         f = sp.WildFunction("f", nargs=1)
         m = expr.match(A * f)
         if m and m[f].func in [sp.cos, sp.sin]:
-            iv = kwargs.pop("iv", None)
+            iv = kwargs.pop("iv", n)
             iv, delay, omega, phi = DiscreteSignal._match_trig_args(m[f].args[0], iv)
             om, pio = omega.as_independent(sp.S.Pi)
             ph, pip = phi.as_independent(sp.S.Pi)

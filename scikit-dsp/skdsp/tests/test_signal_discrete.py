@@ -824,8 +824,8 @@ class Test_DeltaTrain(object):
         np.testing.assert_array_equal(x, [0, 1, 0])
 
 
-class Test_Data(object):
-    def test_Data_constructor(self):
+class Test_DataSignal(object):
+    def test_DataSignal_constructor(self):
         from numpy import array
 
         n = sp.Symbol("n", integer=True)
@@ -932,7 +932,7 @@ class Test_Data(object):
         s = DiscreteSignal.from_formula(expr, iv=n)
         assert s == ds.DataSignal([1, -1], iv=n)
 
-    def test_Data_periodic(self):
+    def test_DataSignal_periodic(self):
         s = ds.DataSignal([1, 2, 3], periodic=True, iv=ds.n)
         assert s.is_periodic == True
         assert s.period == 3
@@ -980,7 +980,7 @@ class Test_Data(object):
         assert s[3:9] == [0, 0, 0, 0, 1, 1]
         assert s[-3:3] == [0, 0, 0, 0, 1, 1]
 
-    def test_Data_eval(self):
+    def test_DataSignal_eval(self):
         n = sp.Symbol("n", integer=True)
         a = sp.Symbol("a", integer=True)
         b = sp.Symbol("b", real=True)
@@ -1064,7 +1064,7 @@ class Test_Data(object):
         assert s.eval((1, -1)) == [0, 0]
         assert s[-1:2] == [0, 1, 0]
 
-    def test_Delta_generator(self):
+    def test_DataSignal_generator(self):
         n = sp.Symbol("n", integer=True)
         a = sp.Symbol("a", integer=True)
         b = sp.Symbol("b", real=True)
@@ -1085,7 +1085,7 @@ class Test_Data(object):
         assert next(dg) == [0, a, b, a * b, a + b]
         assert next(dg) == [b, a * b, a + b, 0, 0]
 
-    def test_Data_misc(self):
+    def test_DataSignal_misc(self):
 
         s = ds.DataSignal([1, 2, 3], periodic=True, iv=ds.n)
         assert s.support == sp.S.Integers
