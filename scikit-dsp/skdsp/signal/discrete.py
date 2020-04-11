@@ -179,7 +179,7 @@ class DiscreteSignal(Signal):
         N = sp.Wild("N", exclude=(sp.Piecewise,))
         if obj.amplitude.has(UnitDelta, UnitDeltaTrain, sp.KroneckerDelta):
             patterns = [
-                (A * sp.KroneckerDelta(0, obj.iv - k), Delta),
+                # (A * sp.KroneckerDelta(0, obj.iv - k), Delta),
                 (A * UnitDelta(obj.iv - k), Delta),
                 (A * UnitDeltaTrain((obj.iv - k), N), DeltaTrain),
             ]

@@ -2,13 +2,12 @@ import inspect
 
 import numpy as np
 import sympy as sp
-from sympy.core.logic import fuzzy_not
 
 __all__ = [s for s in dir() if not s.startswith("_")]
 
 # functions
 # note: plot looks for a callable expression, it should be repr but uses str
-class UnitDelta(sp.KroneckerDelta):
+class UnitDelta(sp.Function):
 
     nargs = 1
     is_finite = True
@@ -18,9 +17,7 @@ class UnitDelta(sp.KroneckerDelta):
     @classmethod
     def eval(cls, arg):
         arg = sp.sympify(arg)
-        # pylint: disable-msg=no-member
         if arg.is_zero:
-            # pylint: enable-msg=no-member
             return sp.S.One
         if arg.is_negative or arg.is_positive:
             return sp.S.Zero
@@ -38,12 +35,6 @@ class UnitDelta(sp.KroneckerDelta):
         if self.func_arg.has(old):
             return UnitDelta(self.func_arg.subs(old, new))
 
-    def __new__(cls, iv):
-        obj = super().__new__(sp.KroneckerDelta, sp.S.Zero, iv)
-        if isinstance(obj, sp.KroneckerDelta):
-            obj.__class__ = UnitDelta
-        return obj
-
     def _eval_rewrite_as_UnitStep(self, *_args, **_kwargs):
         return UnitStep(self.func_arg) - UnitStep(self.func_arg - 1)
 
@@ -51,22 +42,25 @@ class UnitDelta(sp.KroneckerDelta):
         return sp.Piecewise((1, sp.Eq(self.func_arg, 0)), (0, True))
 
     @property
-    def func(self):
-        callers = ["lambdify"]
-        stack = inspect.stack()
-        for frame in stack:
-            if frame.function in callers:
-                return UnitDelta
-        return sp.KroneckerDelta
-
-    @property
     def func_arg(self):
-        return self.args[1]
+        return self.args[0]
 
     @staticmethod
-    # zero is the first arg of the KroneckerDelta but not used
-    def _imp_(_zero, n):
+    def _imp_(n):
         return np.equal(n, 0).astype(np.float_)
+
+    def doit(self, **kwargs):
+        callers = ["Sum"]
+        frame = inspect.currentframe().f_back
+        try:
+            caller = frame.f_locals['self']
+        except KeyError:
+            # not a class but a function
+            return self
+        if caller.__class__.__name__ in callers:
+            # disguise as sympy KroneckerDelta for summations
+            return sp.KroneckerDelta(sp.S.Zero, self.func_arg)
+        return self
 
     def __str__(self):
         return "UnitDelta({0})".format(self.func_arg)
@@ -80,10 +74,7 @@ class UnitDelta(sp.KroneckerDelta):
     def _latex(self, printer=None):
         return r"\delta\left[{0}\right]".format(printer.doprint(self.func_arg))
 
-
 class UnitStep(sp.Function):
-
-    # TODO Derivar de sp.Heaviside(n, 1)
 
     nargs = 1
     is_finite = True
