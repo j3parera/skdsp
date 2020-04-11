@@ -5,8 +5,7 @@ import numpy as np
 import sympy as sp
 from sympy.core.function import AppliedUndef
 from sympy.utilities.iterables import flatten, is_sequence
-from skdsp.signal.functions import (UnitDelta, UnitDeltaTrain, UnitRamp,
-                                    UnitStep)
+from skdsp.signal.functions import UnitDelta, UnitDeltaTrain, UnitRamp, UnitStep, deltasimp
 from skdsp.signal.signal import Signal
 from skdsp.util.util import as_coeff_polar, ipystem
 
@@ -63,8 +62,7 @@ class DiscreteSignal(Signal):
     @staticmethod
     def _apply_iv_transform(sg, delay, flip):
         if delay:
-            d = delay if not flip else -delay
-            sg = sg.delay(d)
+            sg = sg.delay(delay)
         if flip:
             sg = sg.flip()
         return sg
@@ -140,6 +138,8 @@ class DiscreteSignal(Signal):
     @classmethod
     def from_sampling(cls, expr, civ, div, fs, **kwargs):
         expr = sp.S(expr)
+        if expr.has(sp.DiracDelta):
+            raise ValueError("Dirac delta cannot be sampled.")
         expr = expr.subs({civ: div / fs})
         obj = cls._try_subclass(expr, iv=div, **kwargs)
         if obj is None:
@@ -179,7 +179,6 @@ class DiscreteSignal(Signal):
         N = sp.Wild("N", exclude=(sp.Piecewise,))
         if obj.amplitude.has(UnitDelta, UnitDeltaTrain, sp.KroneckerDelta):
             patterns = [
-                # (A * sp.KroneckerDelta(0, obj.iv - k), Delta),
                 (A * UnitDelta(obj.iv - k), Delta),
                 (A * UnitDeltaTrain((obj.iv - k), N), DeltaTrain),
             ]
@@ -498,24 +497,23 @@ class Delta(DiscreteSignal):
 
     @staticmethod
     def _match_expression(expr, **kwargs):
-        # expr = sp.S(expr)
-        # A = sp.Wild("A")
-        # f = sp.WildFunction("f", nargs=(1, 2))
-        # m = expr.match(A * f)
-        # if m and m[f].func in [sp.KroneckerDelta, Delta]:
-        #     name = m[f].name
-        #     iv = kwargs.pop("iv", n)
-        #     arg = m[f].args[1] if m[f].func == sp.KroneckerDelta else m[f].args[0]
-        #     iv, delay, flip = DiscreteSignal._match_iv_transform(arg, iv)
-        #     period = kwargs.pop("period", 0)
-        #     duration = kwargs.pop("duration", None)
-        #     codomain = kwargs.pop("codomain", sp.S.Reals)
-        #     sg = Delta(name, iv, **kwargs)
-        #     if m[A] != sp.S.One:
-        #         sg = m[A] * sg
-        #     sg = DiscreteSignal._apply_iv_transform(sg, delay, flip)
-        #     return sg
-        # return None
+        expr = sp.S(expr)
+        A = sp.Wild("A")
+        f = sp.WildFunction("f", nargs=(1, 2))
+        m = expr.match(A * f)
+        if m and m[f].func == UnitDelta:
+            iv = kwargs.pop("iv", n)
+            expr = deltasimp(expr, iv)
+            arg = m[f].args[0]
+            iv, delay, flip = DiscreteSignal._match_iv_transform(arg, iv)
+            period = kwargs.pop("period", 0)
+            duration = kwargs.pop("duration", None)
+            codomain = kwargs.pop("codomain", sp.S.Reals)
+            sg = Delta(iv, **kwargs)
+            if m[A] != sp.S.One:
+                sg = m[A] * sg
+            sg = DiscreteSignal._apply_iv_transform(sg, delay, flip)
+            return sg
         return None
 
     def __new__(cls, iv=None, **kwargs):
