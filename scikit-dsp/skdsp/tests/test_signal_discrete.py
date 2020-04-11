@@ -608,6 +608,36 @@ class Test_Ramp(object):
         with pytest.raises(ValueError):
             ds.Ramp(sp.Symbol("z", real=True))
 
+    def test_Ramp_factories(self):
+        n = sp.Symbol("n", integer=True)
+        fs = sp.Rational(8000, 1)
+        T = sp.Rational(1, fs)
+
+        cs = 50 * ds.UnitRamp(n)
+        s = ds.DiscreteSignal.from_formula(cs)
+        assert isinstance(s, ds.Ramp)
+        assert s.amplitude == cs
+
+        cs = 50 * ds.UnitRamp(n - 1)
+        s = ds.DiscreteSignal.from_formula(cs)
+        assert isinstance(s, ds.Ramp)
+        assert s.amplitude == cs
+
+        cs = 50 * ds.UnitRamp(-n)
+        s = ds.DiscreteSignal.from_formula(cs)
+        assert isinstance(s, ds.Ramp)
+        assert s.amplitude == cs
+
+        cs = 50 * ds.UnitRamp(-n - 1)
+        s = ds.DiscreteSignal.from_formula(cs)
+        assert isinstance(s, ds.Ramp)
+        assert s.amplitude == cs
+
+        cs = 50 * ds.UnitRamp(-n + 1)
+        s = ds.DiscreteSignal.from_formula(cs)
+        assert isinstance(s, ds.Ramp)
+        assert s.amplitude == cs
+
     def test_Ramp_eval(self):
         d = ds.Ramp()
 

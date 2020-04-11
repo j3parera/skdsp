@@ -512,9 +512,6 @@ class Delta(DiscreteSignal):
             expr = deltasimp(expr, iv)
             arg = m[f].args[0]
             iv, delay, flip = DiscreteSignal._match_iv_transform(arg, iv)
-            period = kwargs.pop("period", 0)
-            duration = kwargs.pop("duration", None)
-            codomain = kwargs.pop("codomain", sp.S.Reals)
             sg = Delta(iv, **kwargs)
             if m[A] != sp.S.One:
                 sg = m[A] * sg
@@ -556,9 +553,6 @@ class Step(DiscreteSignal):
             iv = kwargs.pop("iv", n)
             arg = m[f].args[0]
             iv, delay, flip = DiscreteSignal._match_iv_transform(arg, iv)
-            period = kwargs.pop("period", 0)
-            duration = kwargs.pop("duration", None)
-            codomain = kwargs.pop("codomain", sp.S.Reals)
             sg = Step(iv, **kwargs)
             if m[A] != sp.S.One:
                 sg = m[A] * sg
@@ -587,14 +581,27 @@ class Step(DiscreteSignal):
 
 
 class Ramp(DiscreteSignal):
-    @staticmethod
-    def _match_expression(expr, **_kwargs):
-        # TODO
-        return NotImplementedError
 
     is_finite = True
     is_integer = True
     is_nonnegative = True
+
+    @staticmethod
+    def _match_expression(expr, **kwargs):
+        expr = sp.S(expr)
+        A = sp.Wild("A")
+        f = sp.WildFunction("f", nargs=1)
+        m = expr.match(A * f)
+        if m and m[f].func == UnitRamp:
+            iv = kwargs.pop("iv", n)
+            arg = m[f].args[0]
+            iv, delay, flip = DiscreteSignal._match_iv_transform(arg, iv)
+            sg = Ramp(iv, **kwargs)
+            if m[A] != sp.S.One:
+                sg = m[A] * sg
+            sg = DiscreteSignal._apply_iv_transform(sg, delay, flip)
+            return sg
+        return None
 
     def __new__(cls, iv=None):
         iv = sp.sympify(iv) if iv is not None else n
