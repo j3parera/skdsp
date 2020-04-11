@@ -221,22 +221,22 @@ class Test_Delta(object):
         s = ds.DiscreteSignal.from_formula(cs)
         assert isinstance(s, ds.Delta)
         assert s.amplitude == cs
-        
+
         cs = 50 * ds.UnitDelta(-n)
         s = ds.DiscreteSignal.from_formula(cs)
         assert isinstance(s, ds.Delta)
         assert s.amplitude == cs
-        
+
         cs = 50 * ds.UnitDelta(-n - 1)
         s = ds.DiscreteSignal.from_formula(cs)
         assert isinstance(s, ds.Delta)
         assert s.amplitude == cs
-        
+
         cs = 50 * ds.UnitDelta(-n + 1)
         s = ds.DiscreteSignal.from_formula(cs)
         assert isinstance(s, ds.Delta)
         assert s.amplitude == cs
-        
+
     def test_Delta_eval(self):
         d = ds.Delta()
 
@@ -402,6 +402,41 @@ class Test_Step(object):
 
         with pytest.raises(ValueError):
             ds.Delta(sp.Symbol("z", real=True))
+
+    def test_Step_factories(self):
+        t = sp.Symbol("t", real=True)
+        n = sp.Symbol("n", integer=True)
+        fs = sp.Rational(8000, 1)
+        T = sp.Rational(1, fs)
+        cs = 50 * sp.Heaviside(t - 3 * T, 1)
+        s = ds.DiscreteSignal.from_sampling(cs, t, n, fs)
+        assert isinstance(s, ds.Step)
+        assert s.amplitude == 50 * UnitStep(n - 3)
+
+        cs = 50 * ds.UnitStep(n)
+        s = ds.DiscreteSignal.from_formula(cs)
+        assert isinstance(s, ds.Step)
+        assert s.amplitude == cs
+
+        cs = 50 * ds.UnitStep(n - 1)
+        s = ds.DiscreteSignal.from_formula(cs)
+        assert isinstance(s, ds.Step)
+        assert s.amplitude == cs
+
+        cs = 50 * ds.UnitStep(-n)
+        s = ds.DiscreteSignal.from_formula(cs)
+        assert isinstance(s, ds.Step)
+        assert s.amplitude == cs
+
+        cs = 50 * ds.UnitStep(-n - 1)
+        s = ds.DiscreteSignal.from_formula(cs)
+        assert isinstance(s, ds.Step)
+        assert s.amplitude == cs
+
+        cs = 50 * ds.UnitStep(-n + 1)
+        s = ds.DiscreteSignal.from_formula(cs)
+        assert isinstance(s, ds.Step)
+        assert s.amplitude == cs
 
     def test_Step_eval(self):
         d = ds.Step()
@@ -957,9 +992,8 @@ class Test_DataSignal(object):
         with pytest.raises(TypeError):
             s = ds.DataSignal({"1": 4, "c": 3, -2: 27}, iv=n)
 
-
     def test_DataSignal_factories(self):
-        n = sp.Symbol('n', integer=True)
+        n = sp.Symbol("n", integer=True)
         expr = UnitDelta(n) - UnitDelta(n - 1)
         s = DiscreteSignal.from_formula(expr, iv=n)
         assert s == ds.DataSignal([1, -1], iv=n)

@@ -141,6 +141,12 @@ class DiscreteSignal(Signal):
         if expr.has(sp.DiracDelta):
             raise ValueError("Dirac delta cannot be sampled.")
         expr = expr.subs({civ: div / fs})
+        if expr.has(sp.Heaviside):
+            hvsds = list(expr.atoms(sp.Heaviside))
+            for h in hvsds:
+                n0 = list(sp.solveset(h.args[0], n))[0]
+                if n0.is_integer:
+                    expr = expr.replace(sp.Heaviside(h.args[0], h.args[1]), UnitStep(n - n0))
         obj = cls._try_subclass(expr, iv=div, **kwargs)
         if obj is None:
             iv = div
@@ -499,7 +505,7 @@ class Delta(DiscreteSignal):
     def _match_expression(expr, **kwargs):
         expr = sp.S(expr)
         A = sp.Wild("A")
-        f = sp.WildFunction("f", nargs=(1, 2))
+        f = sp.WildFunction("f", nargs=1)
         m = expr.match(A * f)
         if m and m[f].func == UnitDelta:
             iv = kwargs.pop("iv", n)
@@ -518,18 +524,7 @@ class Delta(DiscreteSignal):
 
     def __new__(cls, iv=None, **kwargs):
         iv = sp.sympify(iv) if iv is not None else n
-        # pylint: disable-msg=too-many-function-args
         obj = DiscreteSignal.__new__(cls, UnitDelta(iv), iv, sp.S.Zero, sp.S.Reals, **kwargs)
-        # pylint: enable-msg=too-many-function-args
-        # obj.amplitude.__class__ = UnitDelta
-        return obj
-
-    def _clone_extra(self, obj):
-        # if isinstance(obj.amplitude, sp.KroneckerDelta):
-        #     obj.amplitude.__class__ = UnitDelta
-        # for arg in obj.amplitude.args:
-        #     if isinstance(arg, sp.KroneckerDelta):
-        #         arg.__class__ = UnitDelta
         return obj
 
     @property
@@ -546,14 +541,30 @@ class Delta(DiscreteSignal):
 
 
 class Step(DiscreteSignal):
-    @staticmethod
-    def _match_expression(expr, **_kwargs):
-        # TODO
-        return NotImplementedError
 
     is_finite = True
     is_integer = True
     is_nonnegative = True
+
+    @staticmethod
+    def _match_expression(expr, **kwargs):
+        expr = sp.S(expr)
+        A = sp.Wild("A")
+        f = sp.WildFunction("f", nargs=1)
+        m = expr.match(A * f)
+        if m and m[f].func == UnitStep:
+            iv = kwargs.pop("iv", n)
+            arg = m[f].args[0]
+            iv, delay, flip = DiscreteSignal._match_iv_transform(arg, iv)
+            period = kwargs.pop("period", 0)
+            duration = kwargs.pop("duration", None)
+            codomain = kwargs.pop("codomain", sp.S.Reals)
+            sg = Step(iv, **kwargs)
+            if m[A] != sp.S.One:
+                sg = m[A] * sg
+            sg = DiscreteSignal._apply_iv_transform(sg, delay, flip)
+            return sg
+        return None
 
     def __new__(cls, iv=None):
         iv = sp.sympify(iv) if iv is not None else n
