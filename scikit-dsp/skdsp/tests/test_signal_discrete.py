@@ -166,7 +166,6 @@ class Test_Delta(object):
         assert f(-1) == 0
         assert f(1) == 0
 
-        # it should but KnoneckerDelta doesn't checks for integer
         # with pytest.raises(ValueError):
         #    f(0.5)
 
@@ -205,6 +204,39 @@ class Test_Delta(object):
         with pytest.raises(ValueError):
             ds.Delta(sp.Symbol("z", real=True))
 
+    def test_Delta_factories(self):
+        t = sp.Symbol("t", real=True)
+        n = sp.Symbol("n", integer=True)
+        fs = 8e3
+        cs = 50 * sp.DiracDelta(t)
+        with pytest.raises(ValueError):
+            ds.DiscreteSignal.from_sampling(cs, t, n, fs)
+
+        cs = 50 * ds.UnitDelta(n)
+        s = ds.DiscreteSignal.from_formula(cs)
+        assert isinstance(s, ds.Delta)
+        assert s.amplitude == cs
+
+        cs = 50 * ds.UnitDelta(n - 1)
+        s = ds.DiscreteSignal.from_formula(cs)
+        assert isinstance(s, ds.Delta)
+        assert s.amplitude == cs
+        
+        cs = 50 * ds.UnitDelta(-n)
+        s = ds.DiscreteSignal.from_formula(cs)
+        assert isinstance(s, ds.Delta)
+        assert s.amplitude == cs
+        
+        cs = 50 * ds.UnitDelta(-n - 1)
+        s = ds.DiscreteSignal.from_formula(cs)
+        assert isinstance(s, ds.Delta)
+        assert s.amplitude == cs
+        
+        cs = 50 * ds.UnitDelta(-n + 1)
+        s = ds.DiscreteSignal.from_formula(cs)
+        assert isinstance(s, ds.Delta)
+        assert s.amplitude == cs
+        
     def test_Delta_eval(self):
         d = ds.Delta()
 
