@@ -1227,6 +1227,9 @@ class Test_Sinusoid(object):
         s = ds.Sinusoid(omega=1, iv=ds.m)
         assert s is not None
 
+        s = s.copy()
+        assert s is not None
+
         with pytest.raises(ValueError):
             ds.Sinusoid(sp.Symbol("x", complex=True), 1)
 

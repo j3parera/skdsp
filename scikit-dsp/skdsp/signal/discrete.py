@@ -811,7 +811,9 @@ class Sinusoid(_TrigonometricDiscreteSignal):
         iv = sp.sympify(iv) if iv is not None else n
         expr = A * sp.cos(omega * iv + phi)
         period = _TrigonometricDiscreteSignal._period(omega)
-        obj = DiscreteSignal.__new__(cls, expr, iv, period, sp.S.Reals, **kwargs)
+        obj = DiscreteSignal.__new__(
+            cls, expr, iv, period, sp.S.Reals, A=A, omega=omega, phi=phi, **kwargs
+        )
         obj.A = A
         obj.omega = omega
         obj.phi = phi
