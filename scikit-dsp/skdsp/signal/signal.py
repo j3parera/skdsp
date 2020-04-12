@@ -68,19 +68,6 @@ class Signal(sp.Basic):
         obj._period = period
         return obj
 
-    def __init__(self, *args, **kwargs):
-        # TODO cambiar por objetos con esto dentro
-        # self.sys_transform = sp.summation(
-        #     self.amplitude * z ** (-self.iv),
-        #     (self.iv, sp.S.NegativeInfinity, sp.S.Infinity),
-        # )
-        # self.fourier_transform = sp.summation(
-        #     self.amplitude * sp.exp(-1 * sp.S.ImaginaryUnit * omega * (-self.iv)),
-        #     (self.iv, sp.S.NegativeInfinity, sp.S.Infinity),
-        # )
-        self.sys_transform = None
-        self.fourier_transform = None
-
     @staticmethod
     def _domain_periodicity(amp, period, domain):
         if domain == sp.S.Integers:
@@ -159,8 +146,6 @@ class Signal(sp.Basic):
 
     def copy(self):
         obj = copy.copy(self)
-        obj.sys_transform = self.sys_transform
-        obj.fourier_transform = self.fourier_transform
         return obj
 
     def clone(self, cls, amplitude, **kwargs):
@@ -177,10 +162,6 @@ class Signal(sp.Basic):
         # pylint: disable-msg=redundant-keyword-arg
         obj = Signal.__new__(cls, amplitude, **args)
         # pylint: enable-msg=redundant-keyword-arg
-        Signal.__init__(obj)
-        # TODO
-        # obj.sys_transform = self.sys_transform
-        # obj.fourier_transform = self.fourier_transform
         # pylint: disable-msg=no-member
         if hasattr(cls, "_transmute"):
             cls._transmute(obj)
