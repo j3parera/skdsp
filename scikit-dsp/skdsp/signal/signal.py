@@ -144,10 +144,6 @@ class Signal(sp.Basic):
         idx = mro.index(Signal)
         return mro[idx - 1]
 
-    def copy(self):
-        obj = copy.copy(self)
-        return obj
-
     def clone(self, cls, amplitude, **kwargs):
         if cls == None:
             cls = self._upclass()

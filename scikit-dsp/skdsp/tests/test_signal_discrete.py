@@ -6,6 +6,7 @@ import skdsp.signal.discrete as ds
 from skdsp.signal.functions import UnitDelta, UnitDeltaTrain, UnitRamp, UnitStep
 from skdsp.util.util import stem
 from skdsp.signal.discrete import DiscreteSignal
+from copy import copy
 
 
 class Test_Constant(object):
@@ -1226,9 +1227,7 @@ class Test_Sinusoid(object):
 
         s = ds.Sinusoid(omega=1, iv=ds.m)
         assert s is not None
-
-        s = s.copy()
-        assert s is not None
+        assert s == copy(s)
 
         with pytest.raises(ValueError):
             ds.Sinusoid(sp.Symbol("x", complex=True), 1)
