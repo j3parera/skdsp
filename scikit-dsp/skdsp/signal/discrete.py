@@ -194,12 +194,10 @@ class DiscreteSignal(Signal):
                 expr += d * UnitDelta(iv - start - k)
         return expr
 
-    def __new__(cls, amp, iv, period, codomain):
+    def __new__(cls, amp, iv, period, codomain, **kwargs):
         if iv is not None and (not iv.is_symbol or not iv.is_integer):
             raise ValueError("Invalid independent variable.")
-        # pylint: disable-msg=too-many-function-args
-        return Signal.__new__(cls, amp, iv, sp.S.Integers, codomain, period)
-        # pylint: enable-msg=too-many-function-args
+        return Signal.__new__(cls, amp, iv, sp.S.Integers, codomain, period, **kwargs)
 
     def __str__(self, *_args, **_kwargs):
         return sp.sstr(self.amplitude)
@@ -518,11 +516,11 @@ class Step(DiscreteSignal):
             return sg
         return None
 
-    def __new__(cls, iv=None):
+    def __new__(cls, iv=None, **kwargs):
         iv = sp.sympify(iv) if iv is not None else n
-        # pylint: disable-msg=too-many-function-args
-        obj = DiscreteSignal.__new__(cls, UnitStep(iv), iv, sp.S.Zero, sp.S.Reals)
-        # pylint: enable-msg=too-many-function-args
+        obj = DiscreteSignal.__new__(
+            cls, UnitStep(iv), iv, sp.S.Zero, sp.S.Reals, **kwargs
+        )
         return obj
 
     @property
@@ -561,10 +559,12 @@ class Ramp(DiscreteSignal):
             return sg
         return None
 
-    def __new__(cls, iv=None):
+    def __new__(cls, iv=None, **kwargs):
         iv = sp.sympify(iv) if iv is not None else n
         # pylint: disable-msg=too-many-function-args
-        obj = DiscreteSignal.__new__(cls, UnitRamp(iv), iv, sp.S.Zero, sp.S.Reals)
+        obj = DiscreteSignal.__new__(
+            cls, UnitRamp(iv), iv, sp.S.Zero, sp.S.Reals, **kwargs
+        )
         # pylint: enable-msg=too-many-function-args
         return obj
 
@@ -590,19 +590,14 @@ class DeltaTrain(DiscreteSignal):
     is_integer = True
     is_nonnegative = True
 
-    # @staticmethod
-    # def _match_expression(expr, **_kwargs):
-    #     # TODO
-    #     return NotImplementedError
-
-    def __new__(cls, iv=None, N=0):
+    def __new__(cls, iv=None, N=0, **kwargs):
         N = sp.sympify(N)
         if not N.is_integer or not N.is_positive:
             raise ValueError("N must be an integer greater than 0.")
         iv = sp.sympify(iv) if iv is not None else n
-        # pylint: disable-msg=too-many-function-args
-        obj = DiscreteSignal.__new__(cls, UnitDeltaTrain(iv, N), iv, N, sp.S.Reals)
-        # pylint: enable-msg=too-many-function-args
+        obj = DiscreteSignal.__new__(
+            cls, UnitDeltaTrain(iv, N), iv, N, sp.S.Reals, **kwargs
+        )
         return obj
 
     @property
@@ -695,9 +690,7 @@ class DataSignal(DiscreteSignal):
             else:
                 expr = DiscreteSignal._deltify(data, start, iv, periodic)
                 period = len(data) if periodic else sp.S.Zero
-        # pylint: disable-msg=too-many-function-args
         obj = DiscreteSignal.__new__(cls, expr, iv, period, codomain, **kwargs)
-        # pylint: enable-msg=too-many-function-args
         return obj
 
     @property
@@ -807,7 +800,7 @@ class Sinusoid(_TrigonometricDiscreteSignal):
             return sg
         return None
 
-    def __new__(cls, A=1, omega=None, phi=0, iv=None):
+    def __new__(cls, A=1, omega=None, phi=0, iv=None, **kwargs):
         A = sp.sympify(A)
         if omega is None:
             raise ValueError("Frequency must be provided.")
@@ -818,9 +811,7 @@ class Sinusoid(_TrigonometricDiscreteSignal):
         iv = sp.sympify(iv) if iv is not None else n
         expr = A * sp.cos(omega * iv + phi)
         period = _TrigonometricDiscreteSignal._period(omega)
-        # pylint: disable-msg=too-many-function-args
-        obj = DiscreteSignal.__new__(cls, expr, iv, period, sp.S.Reals)
-        # pylint: enable-msg=too-many-function-args
+        obj = DiscreteSignal.__new__(cls, expr, iv, period, sp.S.Reals, **kwargs)
         obj.A = A
         obj.omega = omega
         obj.phi = phi
@@ -909,7 +900,7 @@ class Exponential(_TrigonometricDiscreteSignal):
             return sg
         return None
 
-    def __new__(cls, C=1, alpha=None, iv=None):
+    def __new__(cls, C=1, alpha=None, iv=None, **kwargs):
         if alpha is None:
             raise ValueError("The exponential base must be supplied")
         C = sp.S(C)
@@ -941,9 +932,7 @@ class Exponential(_TrigonometricDiscreteSignal):
                 )
             period = 0
         amp = sp.powsimp(amp)
-        # pylint: disable-msg=too-many-function-args
-        obj = DiscreteSignal.__new__(cls, amp, iv, period, None)
-        # pylint: enable-msg=too-many-function-args
+        obj = DiscreteSignal.__new__(cls, amp, iv, period, None, **kwargs)
         c, phi = as_coeff_polar(C)
         A = c * sp.Pow(r, iv)
         obj.A = A
