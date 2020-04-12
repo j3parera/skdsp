@@ -73,57 +73,6 @@ class DiscreteSignal(Signal):
         return sg
 
     @classmethod
-    def _transmute_renew(cls, obj):
-        tcls, d, A, k, omg, phi, N, s = cls._transmute(obj, False)
-        delay = 0
-        done = False
-        if tcls is not None:
-            delay = d.get(k, 0)
-            if tcls == Sinusoid:
-                om, pio = d[omg].as_independent(sp.S.Pi)
-                ph, pip = d[phi].as_independent(sp.S.Pi)
-                if d.get(N) is not None:
-                    # it's a sine
-                    delay = d.get(N)
-                    ph += sp.Rational(1, 2)
-                obj = tcls(
-                    d[A],
-                    sp.Rational(sp.sstr(om)) * pio,
-                    sp.Rational(sp.sstr(ph)) * pip,
-                    obj.iv,
-                )
-                done = True
-            elif tcls == Exponential:
-                if d.get(N) is None:
-                    om, pio = d[omg].as_independent(sp.S.Pi)
-                    obj = tcls(
-                        d[A],
-                        sp.exp(sp.I * sp.Rational(sp.sstr(om))) * pio,
-                        d[s] * obj.iv,
-                    )
-                elif d.get(omg) is None:
-                    obj = tcls(d[A], d[N], obj.iv)
-                else:
-                    om, pio = d[omg].as_independent(sp.S.Pi)
-                    ph, pip = d[phi].as_independent(sp.S.Pi)
-                    obj = tcls(
-                        d[A] * sp.exp(sp.I * sp.Rational(sp.sstr(ph)) * pip),
-                        sp.exp(sp.I * sp.Rational(sp.sstr(om)) * pio),
-                        obj.iv,
-                    )
-                done = True
-            elif tcls == Constant:
-                obj = tcls(d[A], obj.iv)
-                done = True
-            elif tcls == Delta:
-                obj = d[A] * tcls(obj.iv)
-                done = True
-            # TODO otros casos
-            if delay != 0:
-                obj = obj.shift(delay)
-        return done, obj
-
-    @classmethod
     def _periodicity(cls, amp, iv, domain):
         if amp.has(UnitDeltaTrain):
             a, b = amp.as_independent(UnitDeltaTrain)
