@@ -170,9 +170,6 @@ class Signal(sp.Basic):
         # pylint: enable-msg=no-member
         return obj
 
-    def __getnewargs__(self):
-        return (*self.args, self._period)
-
     def _hashable_content(self):
         return sp.Basic._hashable_content(self)
 

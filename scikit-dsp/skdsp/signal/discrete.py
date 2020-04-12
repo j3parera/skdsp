@@ -812,18 +812,21 @@ class Sinusoid(_TrigonometricDiscreteSignal):
         expr = A * sp.cos(omega * iv + phi)
         period = _TrigonometricDiscreteSignal._period(omega)
         obj = DiscreteSignal.__new__(
-            cls, expr, iv, period, sp.S.Reals, A=A, omega=omega, phi=phi, **kwargs
+            cls, expr, iv, period, sp.S.Reals, **kwargs
         )
         obj.A = A
         obj.omega = omega
         obj.phi = phi
         return obj
 
+    def __getnewargs__(self):
+        return (self.A, self.omega, self.phi, self.iv)
+
     def _eval_extra(self, vals, params):
         if self.gain in params.keys():
             g = sp.S(params[self.gain])
             if not g.is_real:
-                raise ValueError("Aplitude must be real.")
+                raise ValueError("Amplitude must be real.")
 
     @property
     def in_phase(self):
@@ -943,6 +946,9 @@ class Exponential(_TrigonometricDiscreteSignal):
         obj.C = C
         obj.alpha = alpha
         return obj
+
+    def __getnewargs__(self):
+        return (self.C, self.alpha, self.iv)
 
     def _hashable_content(self):
         return (self.C, self.alpha) + super()._hashable_content(self)
