@@ -5,7 +5,13 @@ import numpy as np
 import sympy as sp
 from sympy.core.function import AppliedUndef
 from sympy.utilities.iterables import flatten, is_sequence
-from skdsp.signal.functions import UnitDelta, UnitDeltaTrain, UnitRamp, UnitStep, deltasimp
+from skdsp.signal.functions import (
+    UnitDelta,
+    UnitDeltaTrain,
+    UnitRamp,
+    UnitStep,
+    deltasimp,
+)
 from skdsp.signal.signal import Signal
 from skdsp.util.util import as_coeff_polar, ipystem
 
@@ -16,36 +22,36 @@ n, m, k = sp.symbols("n, m, k", integer=True)
 
 class DiscreteSignal(Signal):
     @classmethod
-    def _all_subclasses(cls):
+    def _all_subclasses(cls, exclude=set()):
         subclasses = set()
         for s in cls.__subclasses__():
             sub = s.__subclasses__()
             if len(sub) == 0:
                 subclasses.add(s)
             else:
-                subclasses.update(s._all_subclasses())
-        return subclasses
+                if not s in exclude:
+                    subclasses.update(s._all_subclasses())
+        return subclasses - exclude
 
     @classmethod
     def _try_subclass(cls, expr, **kwargs):
-        subclasses = cls._all_subclasses()
+        subclasses = cls._all_subclasses(exclude=set())
         for s in subclasses:
-            obj = s._match_expression(expr, **kwargs)
-            if obj == NotImplementedError:
-                # TODO
-                obj = None
-            if obj is not None:
-                return obj
+            f = getattr(s, "_match_expression", None)
+            if callable(f):
+                obj = f(expr, **kwargs)
+                if obj is not None:
+                    return obj
         return None
 
     @staticmethod
     def _match_iv_transform(expr, iv):
         k = sp.Wild("k", integer=True)
-        s = sp.Wild("s", properties=[lambda s: abs(s) == 1])
-        n = sp.Wild("n", integer=True) if iv is None else iv
-        m = expr.match(s * n - k)
+        s = sp.Wild("s")
+        m = expr.match(s * iv - k)
         if m:
-            return m[n] if iv is None else iv, m[k], m[s] == -1
+            flip = m[s] == -1
+            return m[k], flip, m[s]
         return iv, 0, False
 
     @staticmethod
@@ -53,11 +59,10 @@ class DiscreteSignal(Signal):
         k = sp.Wild("k", integer=True)
         omega = sp.Wild("omega")
         phi = sp.Wild("phi")
-        n = sp.Wild("n", integer=True) if iv is None else iv
         m = expr.match(omega * (n - k) + phi)
         if m:
-            return m[n] if iv is None else iv, m[k], m[omega], m[phi]
-        return iv, 0, 1, 0
+            return m[k], m[omega], m[phi]
+        return 0, 1, 0
 
     @staticmethod
     def _apply_iv_transform(sg, delay, flip):
@@ -146,7 +151,9 @@ class DiscreteSignal(Signal):
             for h in hvsds:
                 n0 = list(sp.solveset(h.args[0], n))[0]
                 if n0.is_integer:
-                    expr = expr.replace(sp.Heaviside(h.args[0], h.args[1]), UnitStep(n - n0))
+                    expr = expr.replace(
+                        sp.Heaviside(h.args[0], h.args[1]), UnitStep(n - n0)
+                    )
         obj = cls._try_subclass(expr, iv=div, **kwargs)
         if obj is None:
             iv = div
@@ -422,7 +429,7 @@ class Undefined(DiscreteSignal):
         if m and isinstance(m[f], AppliedUndef):
             name = m[f].name
             iv = kwargs.pop("iv", n)
-            iv, delay, flip = DiscreteSignal._match_iv_transform(m[f].args[0], iv)
+            delay, flip, _ = DiscreteSignal._match_iv_transform(m[f].args[0], iv)
             period = kwargs.pop("period", 0)
             duration = kwargs.pop("duration", None)
             codomain = kwargs.pop("codomain", sp.S.Reals)
@@ -504,14 +511,14 @@ class Delta(DiscreteSignal):
     @staticmethod
     def _match_expression(expr, **kwargs):
         expr = sp.S(expr)
+        iv = kwargs.pop("iv", n)
+        expr = deltasimp(expr, iv)
         A = sp.Wild("A")
         f = sp.WildFunction("f", nargs=1)
         m = expr.match(A * f)
         if m and m[f].func == UnitDelta:
-            iv = kwargs.pop("iv", n)
-            expr = deltasimp(expr, iv)
             arg = m[f].args[0]
-            iv, delay, flip = DiscreteSignal._match_iv_transform(arg, iv)
+            delay, flip, _ = DiscreteSignal._match_iv_transform(arg, iv)
             sg = Delta(iv, **kwargs)
             if m[A] != sp.S.One:
                 sg = m[A] * sg
@@ -521,7 +528,9 @@ class Delta(DiscreteSignal):
 
     def __new__(cls, iv=None, **kwargs):
         iv = sp.sympify(iv) if iv is not None else n
-        obj = DiscreteSignal.__new__(cls, UnitDelta(iv), iv, sp.S.Zero, sp.S.Reals, **kwargs)
+        obj = DiscreteSignal.__new__(
+            cls, UnitDelta(iv), iv, sp.S.Zero, sp.S.Reals, **kwargs
+        )
         return obj
 
     @property
@@ -552,7 +561,7 @@ class Step(DiscreteSignal):
         if m and m[f].func == UnitStep:
             iv = kwargs.pop("iv", n)
             arg = m[f].args[0]
-            iv, delay, flip = DiscreteSignal._match_iv_transform(arg, iv)
+            delay, flip, _ = DiscreteSignal._match_iv_transform(arg, iv)
             sg = Step(iv, **kwargs)
             if m[A] != sp.S.One:
                 sg = m[A] * sg
@@ -595,7 +604,7 @@ class Ramp(DiscreteSignal):
         if m and m[f].func == UnitRamp:
             iv = kwargs.pop("iv", n)
             arg = m[f].args[0]
-            iv, delay, flip = DiscreteSignal._match_iv_transform(arg, iv)
+            delay, flip, _ = DiscreteSignal._match_iv_transform(arg, iv)
             sg = Ramp(iv, **kwargs)
             if m[A] != sp.S.One:
                 sg = m[A] * sg
@@ -628,14 +637,14 @@ class DeltaTrain(DiscreteSignal):
     Discrete delta train signal.
     """
 
-    @staticmethod
-    def _match_expression(expr, **_kwargs):
-        # TODO
-        return NotImplementedError
-
     is_finite = True
     is_integer = True
     is_nonnegative = True
+
+    # @staticmethod
+    # def _match_expression(expr, **_kwargs):
+    #     # TODO
+    #     return NotImplementedError
 
     def __new__(cls, iv=None, N=0):
         N = sp.sympify(N)
@@ -677,7 +686,7 @@ class DataSignal(DiscreteSignal):
 
     def __new__(cls, data, start=0, periodic=None, iv=None, codomain=None, **kwargs):
         isexpr = kwargs.pop("isexpr", False)
-        if not isexpr: 
+        if not isexpr:
             data = sp.sympify(data)
             if isinstance(data, sp.Dict):
                 # si es un diccionario asegurar claves enteras y expandir como lista
@@ -700,7 +709,9 @@ class DataSignal(DiscreteSignal):
                 for v in data:
                     free.update(v.free_symbols)
                 if len(free) > 1:
-                    raise ValueError("The independent variable must be supplied explicitly")
+                    raise ValueError(
+                        "The independent variable must be supplied explicitly"
+                    )
                 elif len(free) == 0:
                     iv = n
                 else:
@@ -835,7 +846,7 @@ class Sinusoid(_TrigonometricDiscreteSignal):
         m = expr.match(A * f)
         if m and m[f].func in [sp.cos, sp.sin]:
             iv = kwargs.pop("iv", n)
-            iv, delay, omega, phi = DiscreteSignal._match_trig_args(m[f].args[0], iv)
+            delay, omega, phi = DiscreteSignal._match_trig_args(m[f].args[0], iv)
             om, pio = omega.as_independent(sp.S.Pi)
             ph, pip = phi.as_independent(sp.S.Pi)
             if m[f].func == sp.sin:
@@ -901,12 +912,53 @@ class Sinusoid(_TrigonometricDiscreteSignal):
 
 
 class Exponential(_TrigonometricDiscreteSignal):
-    @staticmethod
-    def _match_expression(expr, **_kwargs):
-        # TODO
-        return NotImplementedError
 
     # TODO Trigonometric? Quizás derivar ComplexExponential que sí
+
+    @staticmethod
+    def _match_expression(expr, **kwargs):
+        expr = sp.S(expr)
+        iv = kwargs.pop("iv", n)
+        A = sp.Wild("A", properties=[lambda a: a.is_constant(iv)])
+        r = sp.Wild("alpha", properties=[lambda a: a.is_constant(iv)], exclude=(sp.E,))
+        e = sp.Wild("e", properties=[lambda a: a.has(iv)])
+        psi = sp.Wild("psi")
+        # 1) A * r ** (n*N - k)
+        m = expr.match(A * r ** e)
+        if m:
+            delay, flip, N = DiscreteSignal._match_iv_transform(m[e], iv)
+            sg = Exponential(m[A], m[r] ** N, iv)
+            sg = DiscreteSignal._apply_iv_transform(sg, delay, flip)
+            return sg
+        # 2) A * sp.exp(sp.I * (omg * (nN - k)))
+        m = expr.match(A * sp.exp(sp.I * psi))
+        if m:
+            delay, omega, phi = DiscreteSignal._match_trig_args(m[psi], iv)
+            om, pio = omega.as_independent(sp.S.Pi)
+            ph, pip = phi.as_independent(sp.S.Pi)
+            sg = Exponential(
+                m[A] * sp.exp(sp.I * sp.Rational(sp.sstr(ph)) * pip),
+                sp.exp(sp.I * sp.Rational(sp.sstr(om)) * pio),
+                iv,
+            )
+            sg = DiscreteSignal._apply_iv_transform(sg, delay, False)
+            return sg
+        # 3) A * r ** (nN - k) * sp.exp(sp.I * (omg * (nN - k) + phi))
+        m = expr.match(A * r ** e * sp.exp(sp.I * psi))
+        if m:
+            delay1, omega, phi = DiscreteSignal._match_trig_args(m[psi], iv)
+            delay2, flip, r = DiscreteSignal._match_iv_transform(m[e], iv)
+            om, pio = omega.as_independent(sp.S.Pi)
+            ph, pip = phi.as_independent(sp.S.Pi)
+            sg = Exponential(
+                m[A] * sp.exp(sp.I * sp.Rational(sp.sstr(ph)) * pip),
+                m[r] * sp.exp(sp.I * sp.Rational(sp.sstr(om)) * pio),
+                iv,
+            )
+            assert delay1 == delay2
+            sg = DiscreteSignal._apply_iv_transform(sg, delay1, False)
+            return sg
+        return None
 
     def __new__(cls, C=1, alpha=None, iv=None):
         if alpha is None:

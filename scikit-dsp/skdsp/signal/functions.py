@@ -295,6 +295,10 @@ def stepsimp(expr):
 
 def deltasimp(expr, iv):
     # prefer d[n-1] to d[-n+1]
-    k = sp.Wild("k")
-    newexpr = expr.replace(UnitDelta(-iv + k), UnitDelta(iv - k))
-    return newexpr
+    deltas = expr.atoms(UnitDelta)
+    for d in deltas:
+        arg = d.func_arg
+        if not arg.has(sp.Mod):
+            k = sp.solve(arg, iv)[0]
+            expr = expr.replace(d, UnitDelta(iv - k))
+    return expr

@@ -31,7 +31,7 @@ class Test_Constant(object):
     def test_Constant_factories(self):
         t = sp.Symbol("t", real=True)
         n = sp.Symbol("n", integer=True)
-        fs = 8e3
+        fs = sp.Integer(8000)
         cs = 50 * sp.cos(sp.S.Pi / 4)
         s = ds.DiscreteSignal.from_sampling(cs, t, n, fs)
         assert s.amplitude == cs
@@ -225,17 +225,17 @@ class Test_Delta(object):
         cs = 50 * ds.UnitDelta(-n)
         s = ds.DiscreteSignal.from_formula(cs)
         assert isinstance(s, ds.Delta)
-        assert s.amplitude == cs
+        assert s.amplitude == 50 * ds.UnitDelta(n)
 
         cs = 50 * ds.UnitDelta(-n - 1)
         s = ds.DiscreteSignal.from_formula(cs)
         assert isinstance(s, ds.Delta)
-        assert s.amplitude == cs
+        assert s.amplitude == 50 * ds.UnitDelta(n + 1)
 
         cs = 50 * ds.UnitDelta(-n + 1)
         s = ds.DiscreteSignal.from_formula(cs)
         assert isinstance(s, ds.Delta)
-        assert s.amplitude == cs
+        assert s.amplitude == 50 * ds.UnitDelta(n - 1)
 
     def test_Delta_eval(self):
         d = ds.Delta()
@@ -1597,6 +1597,33 @@ class Test_Exponential(object):
 
         with pytest.raises(ValueError):
             ds.Exponential(alpha=ds.n)
+
+    def test_Exponential_factories(self):
+        t = sp.Symbol("t", real=True)
+        n = sp.Symbol("n", integer=True)
+        fs = sp.Integer(8000)
+        cs = 50 * sp.Rational(1, 2) ** t
+        s = ds.DiscreteSignal.from_sampling(cs, t, n, fs)
+        assert isinstance(s, ds.Exponential)
+        expected = 50 * sp.Rational(1, 2) ** (n / fs)
+        assert sp.simplify(s.amplitude - expected) == sp.S.Zero
+
+        cs = 50 * sp.exp(sp.I * (sp.S.Pi * 1200 * t - sp.S.Pi / 3))
+        s = ds.DiscreteSignal.from_sampling(cs, t, n, fs)
+        assert isinstance(s, ds.Exponential)
+        expected = 50 * sp.exp(-sp.I * sp.S.Pi / 3) * sp.exp(sp.I * 3 * sp.S.Pi * n / 20)
+        assert sp.simplify(s.amplitude - expected) == sp.S.Zero
+        
+        # TODO
+        
+        # cs = 50 * sp.cos(1200 * t + sp.S.Pi / 4)
+        # s = ds.DiscreteSignal.from_sampling(cs, t, n, fs)
+        # d = ds.Exponential(50, sp.Rational(3, 20), sp.S.Pi / 4, n)
+        # assert s == d
+        # cs = 50 * sp.sin(1200 * t + sp.S.Pi / 4)
+        # s = ds.DiscreteSignal.from_sampling(cs, t, n, fs)
+        # d = ds.Exponential(50, sp.Rational(3, 20), 3 * sp.S.Pi / 4, n)
+        # assert s == d
 
     def test_Exponential_eval(self):
         s = ds.Exponential(C=2, alpha=1)
