@@ -18,7 +18,7 @@ class Signal(sp.Basic):
     is_conmutative = True
 
     def __new__(
-        cls, amplitude, iv=None, domain=None, codomain=None, period=None, **_kwargs
+        cls, amplitude, iv=None, domain=None, codomain=None, period=None, **kwargs
     ):
         # amplitude
         amplitude = sp.sympify(amplitude)
@@ -56,8 +56,11 @@ class Signal(sp.Basic):
         if isinstance(amplitude, AppliedUndef):
             if hasattr(amplitude, "period") and hasattr(amplitude, "duration"):
                 raise ValueError("Period and Duration are incompatible fetures.")
-        # objeto
-        obj = sp.Basic.__new__(cls, amplitude, iv, domain, codomain, *_kwargs)
+        # object
+        # TODO what to do with kwargs?
+        # 1) pass as args, 2) Create attributes and populate __getstate__
+        # and __setstate__ to deal with them?, 3) Comsume as with period? ...
+        obj = sp.Basic.__new__(cls, amplitude, iv, domain, codomain, *kwargs)
         if period is not None:
             period = sp.sympify(period)
             # known to be non periodic
