@@ -198,7 +198,9 @@ class DiscreteSignal(Signal):
     def __new__(cls, amp, iv, period, codomain, **kwargs):
         if iv is not None and (not iv.is_symbol or not iv.is_integer):
             raise ValueError("Invalid independent variable.")
-        return Signal.__new__(cls, amp, iv, sp.S.Integers, codomain, period, **kwargs)
+        return Signal.__new__(
+            cls, amp, iv, sp.S.Integers, codomain, period=period, **kwargs
+        )
 
     def __str__(self, *_args, **_kwargs):
         return sp.sstr(self.amplitude)
@@ -389,7 +391,7 @@ class Undefined(DiscreteSignal):
         return None
 
     def __new__(
-        cls, name, iv=None, period=None, duration=None, codomain=sp.S.Reals, **_kwargs
+        cls, name, iv=None, period=None, duration=None, codomain=sp.S.Reals, **kwargs
     ):
         iv = sp.sympify(iv) if iv is not None else n
         if not isinstance(name, str):
@@ -403,9 +405,9 @@ class Undefined(DiscreteSignal):
             undef.duration = duration
         elif hasattr(undef, "duration"):
             del undef.duration
-        # pylint: disable-msg=too-many-function-args
-        return Signal.__new__(cls, undef, iv, sp.S.Integers, codomain, None, **_kwargs)
-        # pylint: enable-msg=too-many-function-args
+        return Signal.__new__(
+            cls, undef, iv, sp.S.Integers, codomain, period=None, **kwargs
+        )
 
     @property
     def is_causal(self):
@@ -428,15 +430,15 @@ class Constant(DiscreteSignal):
             return sg
         return None
 
-    def __new__(cls, const, iv=None):
+    def __new__(cls, const, iv=None, **kwargs):
         const = sp.sympify(const)
         iv = sp.sympify(iv) if iv is not None else n
         if not const.is_constant(iv):
             raise ValueError("const value is not constant")
         codomain = sp.S.Reals if const in sp.S.Reals else sp.S.Complexes
-        # pylint: disable-msg=too-many-function-args
-        return Signal.__new__(cls, const, iv, sp.S.Integers, codomain, sp.S.One)
-        # pylint: enable-msg=too-many-function-args
+        return Signal.__new__(
+            cls, const, iv, sp.S.Integers, codomain, period=sp.S.One, **kwargs
+        )
 
     @property
     def support(self):
@@ -867,7 +869,9 @@ class Exponential(_TrigonometricDiscreteSignal):
         alpha = sp.Wild(
             "alpha", properties=[lambda a: a.is_constant(iv)], exclude=(sp.E,)
         )
-        exp = sp.Wild("exp", properties=[lambda a: not (a.is_Add or a.is_Pow) and a.has(iv)])
+        exp = sp.Wild(
+            "exp", properties=[lambda a: not (a.is_Add or a.is_Pow) and a.has(iv)]
+        )
         psi = sp.Wild("psi")
         # 1) C * alpha ** (nT)
         m = expr.match(C * alpha ** exp)

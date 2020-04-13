@@ -18,7 +18,7 @@ class Signal(sp.Basic):
     is_conmutative = True
 
     def __new__(
-        cls, amplitude, iv=None, domain=None, codomain=None, period=None, **kwargs
+        cls, amplitude, iv=None, domain=None, codomain=None, **kwargs
     ):
         # amplitude
         amplitude = sp.sympify(amplitude)
@@ -61,6 +61,7 @@ class Signal(sp.Basic):
         # 1) pass as args, 2) Create attributes and populate __getstate__
         # and __setstate__ to deal with them?, 3) Comsume as with period? ...
         obj = sp.Basic.__new__(cls, amplitude, iv, domain, codomain, *kwargs)
+        period = kwargs.get("period", None)
         if period is not None:
             period = sp.sympify(period)
             # known to be non periodic
@@ -567,7 +568,7 @@ class Signal(sp.Basic):
             # pylint: disable-msg=too-many-function-args
             cls = self._upclass()
             other = Signal.__new__(
-                cls, other, self.iv, self.domain, self.codomain, None
+                cls, other, self.iv, self.domain, self.codomain, period=None
             )
             return (other, self._join_period(other), self._join_codomain(other))
             # pylint: enable-msg=too-many-function-args
