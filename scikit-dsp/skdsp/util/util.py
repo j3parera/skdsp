@@ -136,6 +136,9 @@ def as_coeff_polar(z):
     om = sp.Wild("om")
     phi = sp.Wild("phi")
     d = z.match(r * sp.exp(sp.I * om + phi))
-    if d is None or d[r] == sp.S.Zero:
-        return (sp.S.Zero, None)
-    return (sp.Abs(d[r]) * sp.exp(d[phi]), sp.arg(d[r]) + d[om])
+    if d is not None:
+        if d[r] == sp.S.Zero:
+            return (sp.S.Zero, None)
+        else:
+            return (sp.Abs(d[r]) * sp.exp(d[phi]), sp.arg(d[r]) + d[om])
+    return (sp.Abs(z), sp.arg(z))
