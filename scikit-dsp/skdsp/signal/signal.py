@@ -56,12 +56,8 @@ class Signal(sp.Basic):
         if isinstance(amplitude, AppliedUndef):
             if hasattr(amplitude, "period") and hasattr(amplitude, "duration"):
                 raise ValueError("Period and Duration are incompatible fetures.")
-        # object
-        # TODO what to do with kwargs?
-        # 1) pass as args, 2) Create attributes and populate __getstate__
-        # and __setstate__ to deal with them?, 3) Comsume as with period? ...
-        obj = sp.Basic.__new__(cls, amplitude, iv, domain, codomain, *kwargs)
-        period = kwargs.get("period", None)
+        # period
+        period = kwargs.pop("period", None)
         if period is not None:
             period = sp.sympify(period)
             # known to be non periodic
@@ -69,7 +65,15 @@ class Signal(sp.Basic):
                 period = None
         else:
             period = Ellipsis
+        # assumptions
+        assumptions = kwargs.pop("assume", None)
+        # create basic object (NO kwargs)
+        if kwargs:
+            raise ValueError("Unrecognized keyword argument(s): {0}".format(*kwargs))
+        obj = sp.Basic.__new__(cls, amplitude, iv, domain, codomain)
+        # other attributes
         obj._period = period
+        obj._assumptions = assumptions
         return obj
 
     @staticmethod
@@ -140,6 +144,9 @@ class Signal(sp.Basic):
             return sp.S(2)
         # TODO 6.- sympy also fails with delta[((n-k))M] and maybe other modulus
         return period
+
+    def __getstate__(self):
+        return {'_assumptions': self._assumptions}
 
     def _upclass(self):
         if self.__class__ == Signal:
