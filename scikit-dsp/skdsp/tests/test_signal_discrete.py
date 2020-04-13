@@ -1623,7 +1623,25 @@ class Test_Exponential(object):
         s = ds.DiscreteSignal.from_formula(expr, iv=n)
         assert isinstance(s, ds.Exponential)
 
-        # TODO seguir aquí
+        expr = 3 * sp.Rational(1, 2) ** n
+        s = ds.DiscreteSignal.from_formula(expr, iv=n)
+        assert isinstance(s, ds.Exponential)
+
+        expr = sp.I * sp.Rational(1, 2) ** n
+        s = ds.DiscreteSignal.from_formula(expr, iv=n)
+        assert isinstance(s, ds.Exponential)
+
+        expr = 2 * sp.exp(sp.I * 3 * sp.S.Pi * n / 4)
+        s = ds.DiscreteSignal.from_formula(expr, iv=n)
+        assert isinstance(s, ds.Exponential)
+
+        expr = (1 - sp.I) * (1 + sp.I) ** n
+        s = ds.DiscreteSignal.from_formula(expr, iv=n)
+        assert isinstance(s, ds.Exponential)
+        
+        expr = -2 * sp.exp(sp.I * sp.S.Pi / 10) * sp.exp(sp.I * sp.S.Pi * n/ 4) 
+        s = ds.DiscreteSignal.from_formula(expr, iv=n)
+        assert isinstance(s, ds.Exponential)
 
     def test_Exponential_eval(self):
         s = ds.Exponential(C=2, alpha=1)
