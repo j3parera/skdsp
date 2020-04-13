@@ -59,9 +59,10 @@ class DiscreteSignal(Signal):
         k = sp.Wild("k", integer=True)
         omega = sp.Wild("omega")
         phi = sp.Wild("phi")
-        m = expr.match(omega * (n - k) + phi)
+        s = sp.Wild("s")
+        m = expr.match(omega * (s * iv - k) + phi)
         if m:
-            return m[k], m[omega], m[phi]
+            return m[k], m[omega], m[phi], m[s]
         return 0, 1, 0
 
     @staticmethod
@@ -83,7 +84,7 @@ class DiscreteSignal(Signal):
     def from_period(cls, expr, iv, period, **kwargs):
         expr = sp.S(expr)
         expr = expr.subs({iv: sp.Mod(iv, period)})
-        obj = cls._try_subclass(expr, iv=iv, period=period, **kwargs)
+        obj = cls._try_subclass(expr, iv=iv, period=period, periodic=True, **kwargs)
         if obj is None:
             codomain = kwargs.pop("codomain", None)
             obj = cls(expr, iv=iv, period=period, codomain=codomain, **kwargs)
@@ -788,15 +789,18 @@ class Sinusoid(_TrigonometricDiscreteSignal):
         m = expr.match(A * f)
         if m and m[f].func in [sp.cos, sp.sin]:
             iv = kwargs.pop("iv", n)
-            delay, omega, phi = DiscreteSignal._match_trig_args(m[f].args[0], iv)
+            delay, omega, phi, N = DiscreteSignal._match_trig_args(m[f].args[0], iv)
             om, pio = omega.as_independent(sp.S.Pi)
             ph, pip = phi.as_independent(sp.S.Pi)
             if m[f].func == sp.sin:
                 ph += sp.S.Half
             sg = Sinusoid(
-                m[A], sp.Rational(sp.sstr(om)) * pio, sp.Rational(sp.sstr(ph)) * pip, iv
+                m[A],
+                sp.Rational(sp.sstr(om)) * pio * N,
+                sp.Rational(sp.sstr(ph)) * pip,
+                iv,
             )
-            sg = DiscreteSignal._apply_iv_transform(sg, delay, False)
+            sg = DiscreteSignal._apply_iv_transform(sg, delay / N, False)
             return sg
         return None
 
@@ -811,9 +815,7 @@ class Sinusoid(_TrigonometricDiscreteSignal):
         iv = sp.sympify(iv) if iv is not None else n
         expr = A * sp.cos(omega * iv + phi)
         period = _TrigonometricDiscreteSignal._period(omega)
-        obj = DiscreteSignal.__new__(
-            cls, expr, iv, period, sp.S.Reals, **kwargs
-        )
+        obj = DiscreteSignal.__new__(cls, expr, iv, period, sp.S.Reals, **kwargs)
         obj.A = A
         obj.omega = omega
         obj.phi = phi
@@ -857,59 +859,58 @@ class Sinusoid(_TrigonometricDiscreteSignal):
 
 
 class Exponential(_TrigonometricDiscreteSignal):
-
-    # TODO Trigonometric? Quizás derivar ComplexExponential que sí
-
     @staticmethod
     def _match_expression(expr, **kwargs):
         expr = sp.S(expr)
         iv = kwargs.pop("iv", n)
-        A = sp.Wild("A", properties=[lambda a: a.is_constant(iv)])
-        r = sp.Wild("alpha", properties=[lambda a: a.is_constant(iv)], exclude=(sp.E,))
-        e = sp.Wild("e", properties=[lambda a: a.has(iv)])
+        C = sp.Wild("C", properties=[lambda a: a.is_constant(iv)])
+        alpha = sp.Wild(
+            "alpha", properties=[lambda a: a.is_constant(iv)], exclude=(sp.E,)
+        )
+        exp = sp.Wild("exp", properties=[lambda a: not (a.is_Add or a.is_Pow) and a.has(iv)])
         psi = sp.Wild("psi")
-        # 1) A * r ** (n*N - k)
-        m = expr.match(A * r ** e)
+        # 1) C * alpha ** (nT)
+        m = expr.match(C * alpha ** exp)
         if m:
-            delay, flip, N = DiscreteSignal._match_iv_transform(m[e], iv)
-            sg = Exponential(m[A], m[r] ** N, iv)
-            sg = DiscreteSignal._apply_iv_transform(sg, delay, flip)
+            T = m[exp].as_coefficient(iv)
+            sg = Exponential(m[C], m[alpha] ** T, iv)
             return sg
-        # 2) A * sp.exp(sp.I * (omg * (nN - k)))
-        m = expr.match(A * sp.exp(sp.I * psi))
+        # 2) C * sp.exp(sp.I * (omg * (nT - k)))
+        m = expr.match(C * sp.exp(sp.I * psi))
         if m:
-            delay, omega, phi = DiscreteSignal._match_trig_args(m[psi], iv)
+            delay, omega, phi, T = DiscreteSignal._match_trig_args(m[psi], iv)
             om, pio = omega.as_independent(sp.S.Pi)
             ph, pip = phi.as_independent(sp.S.Pi)
             sg = Exponential(
-                m[A] * sp.exp(sp.I * sp.Rational(sp.sstr(ph)) * pip),
-                sp.exp(sp.I * sp.Rational(sp.sstr(om)) * pio),
+                m[C] * sp.exp(sp.I * sp.Rational(sp.sstr(ph)) * pip),
+                sp.exp(sp.I * sp.Rational(sp.sstr(om)) * pio * T),
                 iv,
             )
-            sg = DiscreteSignal._apply_iv_transform(sg, delay, False)
+            sg = DiscreteSignal._apply_iv_transform(sg, delay / T, False)
             return sg
-        # 3) A * r ** (nN - k) * sp.exp(sp.I * (omg * (nN - k) + phi))
-        m = expr.match(A * r ** e * sp.exp(sp.I * psi))
+        # 3) C * alpha ** nT1 * sp.exp(sp.I * (omg * (nT2 - k) + phi))
+        m = expr.match(C * alpha ** exp * sp.exp(sp.I * psi))
         if m:
-            delay1, omega, phi = DiscreteSignal._match_trig_args(m[psi], iv)
-            delay2, flip, r = DiscreteSignal._match_iv_transform(m[e], iv)
+            T1 = m[exp].as_coefficient(iv)
+            delay, omega, phi, T2 = DiscreteSignal._match_trig_args(m[psi], iv)
             om, pio = omega.as_independent(sp.S.Pi)
             ph, pip = phi.as_independent(sp.S.Pi)
             sg = Exponential(
-                m[A] * sp.exp(sp.I * sp.Rational(sp.sstr(ph)) * pip),
-                m[r] * sp.exp(sp.I * sp.Rational(sp.sstr(om)) * pio),
+                m[C] * sp.exp(sp.I * sp.Rational(sp.sstr(ph)) * pip),
+                m[alpha] ** T1 * sp.exp(sp.I * sp.Rational(sp.sstr(om)) * pio * T2),
                 iv,
             )
-            assert delay1 == delay2
-            sg = DiscreteSignal._apply_iv_transform(sg, delay1, False)
+            sg = DiscreteSignal._apply_iv_transform(sg, delay / T2, False)
             return sg
         return None
 
     def __new__(cls, C=1, alpha=None, iv=None, **kwargs):
-        if alpha is None:
-            raise ValueError("The exponential base must be supplied")
-        C = sp.S(C)
         alpha = sp.S(alpha)
+        if alpha is None:
+            raise ValueError("The exponential base must be supplied.")
+        if alpha == sp.S.Zero:
+            raise ValueError("The exponential base cannot be 0.")
+        C = sp.S(C)
         iv = sp.sympify(iv) if iv is not None else n
         if not C.is_constant(iv) or not alpha.is_constant(iv):
             raise ValueError(

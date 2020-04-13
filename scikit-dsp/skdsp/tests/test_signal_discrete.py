@@ -1613,19 +1613,17 @@ class Test_Exponential(object):
         cs = 50 * sp.exp(sp.I * (sp.S.Pi * 1200 * t - sp.S.Pi / 3))
         s = ds.DiscreteSignal.from_sampling(cs, t, n, fs)
         assert isinstance(s, ds.Exponential)
-        expected = 50 * sp.exp(-sp.I * sp.S.Pi / 3) * sp.exp(sp.I * 3 * sp.S.Pi * n / 20)
+        expected = (
+            50 * sp.exp(-sp.I * sp.S.Pi / 3) * sp.exp(sp.I * 3 * sp.S.Pi * n / 20)
+        )
         assert sp.simplify(s.amplitude - expected) == sp.S.Zero
-        
-        # TODO
-        
-        # cs = 50 * sp.cos(1200 * t + sp.S.Pi / 4)
-        # s = ds.DiscreteSignal.from_sampling(cs, t, n, fs)
-        # d = ds.Exponential(50, sp.Rational(3, 20), sp.S.Pi / 4, n)
-        # assert s == d
-        # cs = 50 * sp.sin(1200 * t + sp.S.Pi / 4)
-        # s = ds.DiscreteSignal.from_sampling(cs, t, n, fs)
-        # d = ds.Exponential(50, sp.Rational(3, 20), 3 * sp.S.Pi / 4, n)
-        # assert s == d
+
+        a = sp.Symbol("a")
+        expr = a ** n
+        s = ds.DiscreteSignal.from_formula(expr, iv=n)
+        assert isinstance(s, ds.Exponential)
+
+        # TODO seguir aquí
 
     def test_Exponential_eval(self):
         s = ds.Exponential(C=2, alpha=1)
@@ -1753,6 +1751,14 @@ class Test_Exponential(object):
             -1,
             -sp.exp(-sp.I * 3 * sp.S.Pi / 8) / 4,
         ]
+
+    def test_Exponential_assumptions(self):
+        # TODO assumptions en general
+        a = sp.Symbol("a")
+        n = sp.Symbol("n", integer=True)
+        assumption = sp.Q.is_true(a > 0) & sp.Q.is_true(a < 1)
+        s = ds.Exponential(1, a, iv=n, assume=assumption)
+        assert isinstance(s, ds.Exponential)
 
     def test_Exponential_iv(self):
         s = ds.Exponential(alpha=1)
