@@ -1238,7 +1238,7 @@ class Test_Sinusoid(object):
     def test_Sinusoid_factories(self):
         t = sp.Symbol("t", real=True)
         n = sp.Symbol("n", integer=True)
-        fs = 8e3
+        fs = sp.Integer(8000)
         cs = 50 * sp.cos(2 * sp.S.Pi * 1200 * t + sp.S.Pi / 4)
         s = ds.DiscreteSignal.from_sampling(cs, t, n, fs)
         d = ds.Sinusoid(50, 3 * sp.S.Pi / 10, sp.S.Pi / 4, n)
@@ -1249,7 +1249,7 @@ class Test_Sinusoid(object):
         assert s == d
         cs = 50 * sp.sin(1200 * t + sp.S.Pi / 4)
         s = ds.DiscreteSignal.from_sampling(cs, t, n, fs)
-        d = ds.Sinusoid(50, sp.Rational(3, 20), 3 * sp.S.Pi / 4, n)
+        d = ds.Sinusoid(50, sp.Rational(3, 20), -sp.S.Pi / 4, n)
         assert s == d
 
     def test_Sinusoid_eval(self):
@@ -1457,7 +1457,8 @@ class Test_Sinusoid(object):
         assert d.amplitude == 2 * sp.cos(sp.S.Pi * ds.n / 6 + 3 * sp.S.Pi / 5)
         assert d.real_part == 2 * sp.cos(sp.S.Pi * ds.n / 6 + 3 * sp.S.Pi / 5)
         assert d.imag_part == 0
-        assert d.real == ds.Sinusoid(2, sp.S.Pi / 6, 3 * sp.S.Pi / 5)
+        x = d.real
+        assert x == d
         assert d.imag == ds.Constant(0)
         assert d.support == sp.S.Integers
         assert d.duration == None
@@ -1610,11 +1611,11 @@ class Test_Exponential(object):
         expected = 50 * sp.Rational(1, 2) ** (n / fs)
         assert sp.simplify(s.amplitude - expected) == sp.S.Zero
 
-        cs = 50 * sp.exp(sp.I * (sp.S.Pi * 1200 * t - sp.S.Pi / 3))
+        cs = 50 * sp.exp(sp.I * (sp.S.Pi * 1200 * t))
         s = ds.DiscreteSignal.from_sampling(cs, t, n, fs)
         assert isinstance(s, ds.Exponential)
         expected = (
-            50 * sp.exp(-sp.I * sp.S.Pi / 3) * sp.exp(sp.I * 3 * sp.S.Pi * n / 20)
+            50 * sp.exp(sp.I * 3 * sp.S.Pi * n / 20)
         )
         assert sp.simplify(s.amplitude - expected) == sp.S.Zero
 
@@ -2019,8 +2020,8 @@ class Test_Undefined(object):
         s = DiscreteSignal.from_formula(x(n), codomain=sp.S.Reals)
         assert s == ds.Undefined("x", codomain=sp.S.Reals)
 
-        s = DiscreteSignal.from_formula(x(n), period=10, codomain=sp.S.Reals)
-        assert s == ds.Undefined("x", period=10, codomain=sp.S.Reals)
+        s = DiscreteSignal.from_formula(3*x(n), period=10, codomain=sp.S.Reals)
+        assert s == 3*ds.Undefined("x", period=10, codomain=sp.S.Reals)
         assert s.is_periodic
 
         y = sp.Function("y")

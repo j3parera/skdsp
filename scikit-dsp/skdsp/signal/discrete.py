@@ -46,7 +46,7 @@ class DiscreteSignal(Signal):
 
     @staticmethod
     def _match_iv_transform(expr, iv):
-        k = sp.Wild("k", integer=True)
+        k = sp.Wild("k", integer=True, properties=[lambda k: k.is_constant(iv)])
         s = sp.Wild("s")
         m = expr.match(s * iv - k)
         if m:
@@ -66,11 +66,14 @@ class DiscreteSignal(Signal):
         return 0, 1, 0
 
     @staticmethod
-    def _apply_iv_transform(sg, delay, flip):
+    def _apply_gain_and_iv_transform(sg, gain, delay, flip):
+        iv = sg.iv
+        amp = gain * sg.amplitude
         if delay:
-            sg = sg.delay(delay)
+            amp = amp.subs(iv, iv - delay)
         if flip:
-            sg = sg.flip()
+            amp = amp.subs(iv, -iv)
+        sg._replace_arg(amplitude=amp)
         return sg
 
     @classmethod
@@ -120,66 +123,10 @@ class DiscreteSignal(Signal):
             iv = kwargs.pop("iv", n)
             codomain = kwargs.pop("codomain", None)
             period = kwargs.pop("period", None)
+            # strip known data if they exist
+            kwargs.pop("domain", None)
             obj = cls(expr, iv=iv, period=period, codomain=codomain, **kwargs)
         return obj
-
-    @staticmethod
-    def _transmute(obj, apply=True):
-        # is DataSignal?
-        atoms = obj.amplitude.atoms(sp.Function)
-        if len(atoms) > 1:
-            if all(isinstance(a, UnitDelta) for a in list(atoms)):
-                if apply:
-                    obj.__class__ = DataSignal
-                    return None, None, None, None, None, None, None, None
-                else:
-                    return DataSignal, None, None, None, None, None, None, None
-        A = sp.Wild("A")
-        k = sp.Wild("k")
-        s = sp.Wild("s")
-        omg = sp.Wild("omega")
-        phi = sp.Wild("phi")
-        N = sp.Wild("N", exclude=(sp.Piecewise,))
-        if obj.amplitude.has(UnitDelta, UnitDeltaTrain, sp.KroneckerDelta):
-            patterns = [
-                (A * UnitDelta(obj.iv - k), Delta),
-                (A * UnitDeltaTrain((obj.iv - k), N), DeltaTrain),
-            ]
-        elif obj.amplitude.has(UnitStep):
-            patterns = [(A * UnitStep(s * obj.iv - k), Step)]
-        elif obj.amplitude.has(UnitRamp):
-            patterns = [(A * UnitRamp(s * obj.iv - k), Ramp)]
-        elif obj.amplitude.has(sp.cos, sp.sin):
-            patterns = [
-                (A * sp.cos(omg * (obj.iv - k) + phi), Sinusoid),
-                (A * sp.sin(omg * (obj.iv - N) + phi), Sinusoid),
-            ]
-        elif obj.amplitude.has(sp.exp, sp.Pow):
-            patterns = [
-                (A * N ** (obj.iv - k), Exponential),
-                (A * sp.exp(sp.I * (omg * (obj.iv - k))), Exponential),
-                (
-                    A * N ** (obj.iv - k) * sp.exp(sp.I * (omg * (obj.iv - k) + phi)),
-                    Exponential,
-                ),
-            ]
-        else:
-            patterns = [(A, Constant)]
-        for pattern in patterns:
-            d = obj.amplitude.match(pattern[0])
-            if d is not None:
-                try:
-                    if d[A].is_constant(obj.iv):
-                        if apply:
-                            # TODO cuando pattern[1] es Exponential o Sinusoid
-                            # hay que crear los campos que no son args.
-                            obj.__class__ = pattern[1]
-                            break
-                        else:
-                            return (pattern[1], d, A, k, omg, phi, N, s)
-                except:
-                    pass
-        return None, None, None, None, None, None, None, None
 
     @staticmethod
     def _deltify(data, start, iv, periodic):
@@ -373,20 +320,20 @@ class Undefined(DiscreteSignal):
     @staticmethod
     def _match_expression(expr, **kwargs):
         expr = sp.S(expr)
-        A = sp.Wild("A")
-        f = sp.WildFunction("f", nargs=1)
+        if not expr.has(AppliedUndef):
+            return None
+        iv = kwargs.pop("iv", n)
+        A = sp.Wild("A", properties=[lambda a: a.is_constant(iv)])
+        f = sp.Wild("f", properties=[lambda a: isinstance(a, AppliedUndef)])
         m = expr.match(A * f)
-        if m and isinstance(m[f], AppliedUndef):
+        if m and f in m.keys() and isinstance(m[f], AppliedUndef):
             name = m[f].name
-            iv = kwargs.pop("iv", n)
             delay, flip, _ = DiscreteSignal._match_iv_transform(m[f].args[0], iv)
             period = kwargs.pop("period", 0)
             duration = kwargs.pop("duration", None)
             codomain = kwargs.pop("codomain", sp.S.Reals)
             sg = Undefined(name, iv, period, duration, codomain, **kwargs)
-            if m[A] != sp.S.One:
-                sg = m[A] * sg
-            sg = DiscreteSignal._apply_iv_transform(sg, delay, flip)
+            sg = DiscreteSignal._apply_gain_and_iv_transform(sg, m[A], delay, flip)
             return sg
         return None
 
@@ -397,16 +344,15 @@ class Undefined(DiscreteSignal):
         if not isinstance(name, str):
             raise ValueError("Name must be a string.")
         undef = sp.Function(name, nargs=1)(iv)
-        if period is not None:
-            undef.period = period
-        elif hasattr(undef, "period"):
-            del undef.period
-        if duration is not None:
-            undef.duration = duration
-        elif hasattr(undef, "duration"):
-            del undef.duration
         return Signal.__new__(
-            cls, undef, iv, sp.S.Integers, codomain, period=None, **kwargs
+            cls,
+            undef,
+            iv,
+            sp.S.Integers,
+            codomain,
+            period=period,
+            duration=duration,
+            **kwargs
         )
 
     @property
@@ -436,6 +382,10 @@ class Constant(DiscreteSignal):
         if not const.is_constant(iv):
             raise ValueError("const value is not constant")
         codomain = sp.S.Reals if const in sp.S.Reals else sp.S.Complexes
+        # strip known data if they exist
+        kwargs.pop("period", None)
+        kwargs.pop("domain", None)
+        kwargs.pop("codomain", None)
         return Signal.__new__(
             cls, const, iv, sp.S.Integers, codomain, period=sp.S.One, **kwargs
         )
@@ -463,21 +413,22 @@ class Delta(DiscreteSignal):
         expr = sp.S(expr)
         iv = kwargs.pop("iv", n)
         expr = deltasimp(expr, iv)
-        A = sp.Wild("A")
-        f = sp.WildFunction("f", nargs=1)
-        m = expr.match(A * f)
-        if m and m[f].func == UnitDelta:
-            arg = m[f].args[0]
-            delay, flip, _ = DiscreteSignal._match_iv_transform(arg, iv)
+        A = sp.Wild("A", properties=[lambda a: a.is_constant(iv)])
+        tiv = sp.Wild("tiv")
+        m = expr.match(A * UnitDelta(tiv))
+        if m and tiv in m.keys():
+            delay, flip, _ = DiscreteSignal._match_iv_transform(m[tiv], iv)
             sg = Delta(iv, **kwargs)
-            if m[A] != sp.S.One:
-                sg = m[A] * sg
-            sg = DiscreteSignal._apply_iv_transform(sg, delay, flip)
+            sg = DiscreteSignal._apply_gain_and_iv_transform(sg, m[A], delay, flip)
             return sg
         return None
 
     def __new__(cls, iv=None, **kwargs):
         iv = sp.sympify(iv) if iv is not None else n
+        # strip known data if exist
+        kwargs.pop("domain", None)
+        kwargs.pop("codomain", None)
+        kwargs.pop("period", None)
         obj = DiscreteSignal.__new__(
             cls, UnitDelta(iv), iv, sp.S.Zero, sp.S.Reals, **kwargs
         )
@@ -505,22 +456,23 @@ class Step(DiscreteSignal):
     @staticmethod
     def _match_expression(expr, **kwargs):
         expr = sp.S(expr)
-        A = sp.Wild("A")
-        f = sp.WildFunction("f", nargs=1)
-        m = expr.match(A * f)
-        if m and m[f].func == UnitStep:
-            iv = kwargs.pop("iv", n)
-            arg = m[f].args[0]
-            delay, flip, _ = DiscreteSignal._match_iv_transform(arg, iv)
+        iv = kwargs.pop("iv", n)
+        A = sp.Wild("A", properties=[lambda a: a.is_constant(iv)])
+        tiv = sp.Wild("tiv")
+        m = expr.match(A * UnitStep(tiv))
+        if m and tiv in m.keys():
+            delay, flip, _ = DiscreteSignal._match_iv_transform(m[tiv], iv)
             sg = Step(iv, **kwargs)
-            if m[A] != sp.S.One:
-                sg = m[A] * sg
-            sg = DiscreteSignal._apply_iv_transform(sg, delay, flip)
+            sg = DiscreteSignal._apply_gain_and_iv_transform(sg, m[A], delay, flip)
             return sg
         return None
 
     def __new__(cls, iv=None, **kwargs):
         iv = sp.sympify(iv) if iv is not None else n
+        # strip known data if they exist
+        kwargs.pop("period", None)
+        kwargs.pop("domain", None)
+        kwargs.pop("codomain", None)
         obj = DiscreteSignal.__new__(
             cls, UnitStep(iv), iv, sp.S.Zero, sp.S.Reals, **kwargs
         )
@@ -548,27 +500,26 @@ class Ramp(DiscreteSignal):
     @staticmethod
     def _match_expression(expr, **kwargs):
         expr = sp.S(expr)
-        A = sp.Wild("A")
-        f = sp.WildFunction("f", nargs=1)
-        m = expr.match(A * f)
-        if m and m[f].func == UnitRamp:
-            iv = kwargs.pop("iv", n)
-            arg = m[f].args[0]
-            delay, flip, _ = DiscreteSignal._match_iv_transform(arg, iv)
+        iv = kwargs.pop("iv", n)
+        A = sp.Wild("A", properties=[lambda a: a.is_constant(iv)])
+        tiv = sp.Wild("tiv")
+        m = expr.match(A * UnitRamp(tiv))
+        if m and tiv in m.keys():
+            delay, flip, _ = DiscreteSignal._match_iv_transform(m[tiv], iv)
             sg = Ramp(iv, **kwargs)
-            if m[A] != sp.S.One:
-                sg = m[A] * sg
-            sg = DiscreteSignal._apply_iv_transform(sg, delay, flip)
+            sg = DiscreteSignal._apply_gain_and_iv_transform(sg, m[A], delay, flip)
             return sg
         return None
 
     def __new__(cls, iv=None, **kwargs):
         iv = sp.sympify(iv) if iv is not None else n
-        # pylint: disable-msg=too-many-function-args
+        # strip known data if they exist
+        kwargs.pop("period", None)
+        kwargs.pop("domain", None)
+        kwargs.pop("codomain", None)
         obj = DiscreteSignal.__new__(
             cls, UnitRamp(iv), iv, sp.S.Zero, sp.S.Reals, **kwargs
         )
-        # pylint: enable-msg=too-many-function-args
         return obj
 
     @property
@@ -693,6 +644,10 @@ class DataSignal(DiscreteSignal):
             else:
                 expr = DiscreteSignal._deltify(data, start, iv, periodic)
                 period = len(data) if periodic else sp.S.Zero
+        # strip known data if they exist
+        kwargs.pop("period", None)
+        kwargs.pop("domain", None)
+        kwargs.pop("codomain", None)
         obj = DiscreteSignal.__new__(cls, expr, iv, period, codomain, **kwargs)
         return obj
 
@@ -786,23 +741,24 @@ class Sinusoid(_TrigonometricDiscreteSignal):
     @staticmethod
     def _match_expression(expr, **kwargs):
         expr = sp.S(expr)
-        A = sp.Wild("A")
-        f = sp.WildFunction("f", nargs=1)
-        m = expr.match(A * f)
-        if m and m[f].func in [sp.cos, sp.sin]:
-            iv = kwargs.pop("iv", n)
-            delay, omega, phi, N = DiscreteSignal._match_trig_args(m[f].args[0], iv)
+        expr = expr.rewrite(sp.cos)
+        iv = kwargs.pop("iv", n)
+        A = sp.Wild("A", properties=[lambda a: a.is_constant(iv)])
+        psi = sp.Wild("psi")
+        m = expr.match(A * sp.cos(psi))
+        if m and psi in m.keys():
+            delay, omega, phi, N = DiscreteSignal._match_trig_args(m[psi], iv)
             om, pio = omega.as_independent(sp.S.Pi)
             ph, pip = phi.as_independent(sp.S.Pi)
-            if m[f].func == sp.sin:
-                ph += sp.S.Half
             sg = Sinusoid(
                 m[A],
                 sp.Rational(sp.sstr(om)) * pio * N,
                 sp.Rational(sp.sstr(ph)) * pip,
                 iv,
             )
-            sg = DiscreteSignal._apply_iv_transform(sg, delay / N, False)
+            sg = DiscreteSignal._apply_gain_and_iv_transform(
+                sg, sp.S.One, delay / N, False
+            )
             return sg
         return None
 
@@ -875,13 +831,13 @@ class Exponential(_TrigonometricDiscreteSignal):
         psi = sp.Wild("psi")
         # 1) C * alpha ** (nT)
         m = expr.match(C * alpha ** exp)
-        if m:
+        if m and exp in m.keys():
             T = m[exp].as_coefficient(iv)
             sg = Exponential(m[C], m[alpha] ** T, iv)
             return sg
         # 2) C * sp.exp(sp.I * (omg * (nT - k)))
         m = expr.match(C * sp.exp(sp.I * psi))
-        if m:
+        if m and psi in m.keys():
             delay, omega, phi, T = DiscreteSignal._match_trig_args(m[psi], iv)
             om, pio = omega.as_independent(sp.S.Pi)
             ph, pip = phi.as_independent(sp.S.Pi)
@@ -890,11 +846,13 @@ class Exponential(_TrigonometricDiscreteSignal):
                 sp.exp(sp.I * sp.Rational(sp.sstr(om)) * pio * T),
                 iv,
             )
-            sg = DiscreteSignal._apply_iv_transform(sg, delay / T, False)
+            sg = DiscreteSignal._apply_gain_and_iv_transform(
+                sg, sp.S.One, delay / T, False
+            )
             return sg
         # 3) C * alpha ** nT1 * sp.exp(sp.I * (omg * (nT2 - k) + phi))
         m = expr.match(C * alpha ** exp * sp.exp(sp.I * psi))
-        if m:
+        if m and exp in m.keys() and psi in m.keys():
             T1 = m[exp].as_coefficient(iv)
             delay, omega, phi, T2 = DiscreteSignal._match_trig_args(m[psi], iv)
             om, pio = omega.as_independent(sp.S.Pi)
@@ -904,7 +862,9 @@ class Exponential(_TrigonometricDiscreteSignal):
                 m[alpha] ** T1 * sp.exp(sp.I * sp.Rational(sp.sstr(om)) * pio * T2),
                 iv,
             )
-            sg = DiscreteSignal._apply_iv_transform(sg, delay / T2, False)
+            sg = DiscreteSignal._apply_gain_and_iv_transform(
+                sg, sp.S.One, delay / T2, False
+            )
             return sg
         return None
 

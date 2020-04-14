@@ -952,21 +952,21 @@ class Test_Signal(object):
 
         # pylint: disable-msg=not-callable
         with pytest.raises(ValueError):
-            s = Signal(sp.Function("r", duration=T, period=N)(n))
+            Signal(sp.Function("r")(n), duration=T, period=N)
 
-        s = Signal(sp.Function("r", duration=T)(x))
+        s = Signal(sp.Function("r")(x), duration=T)
         assert s.support == sp.Interval(0, T)
         assert s.duration == T
 
-        s = Signal(sp.Function("r", duration=N)(n))
+        s = Signal(sp.Function("r")(n), duration=N)
         assert s.support == sp.Range(0, N)
         assert s.duration == N
 
-        s = Signal(sp.Function("w", period=T)(t))
+        s = Signal(sp.Function("w")(t), period=T)
         assert s.support == sp.S.Reals
         assert s.duration == None
 
-        s = Signal(sp.Function("X", duration=2.5)(omega))
+        s = Signal(sp.Function("X")(omega), duration=2.5)
         assert s.support == sp.Interval(0, 2.5)
         assert s.duration == 2.5
         # pylint: enable-msg=not-callable

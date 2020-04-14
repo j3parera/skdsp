@@ -52,10 +52,6 @@ class Signal(sp.Basic):
             codomain = sp.sympify(codomain)
             if codomain not in [sp.S.Reals, sp.S.Complexes]:
                 raise ValueError("The codomain is not valid")
-        # undefs
-        if isinstance(amplitude, AppliedUndef):
-            if hasattr(amplitude, "period") and hasattr(amplitude, "duration"):
-                raise ValueError("Period and Duration are incompatible fetures.")
         # period
         period = kwargs.pop("period", None)
         if period is not None:
@@ -65,6 +61,14 @@ class Signal(sp.Basic):
                 period = None
         else:
             period = Ellipsis
+        # duration
+        duration = kwargs.pop("duration", None)
+        if duration is not None:
+            if period == Ellipsis:
+                period = None
+            elif period is not None:
+               raise ValueError("Period and duration are incompatible.")
+            duration = sp.sympify(duration)
         # assumptions
         assumptions = kwargs.pop("assume", None)
         # create basic object (NO kwargs)
@@ -73,6 +77,7 @@ class Signal(sp.Basic):
         obj = sp.Basic.__new__(cls, amplitude, iv, domain, codomain)
         # other attributes
         obj._period = period
+        obj._duration = duration
         obj._assumptions = assumptions
         return obj
 
@@ -146,7 +151,11 @@ class Signal(sp.Basic):
         return period
 
     def __getstate__(self):
-        return {'_assumptions': self._assumptions}
+        return {
+            '_period': self._period,
+            '_duration': self._duration,
+            '_assumptions': self._assumptions,
+        }
 
     def _upclass(self):
         if self.__class__ == Signal:
@@ -155,9 +164,24 @@ class Signal(sp.Basic):
         idx = mro.index(Signal)
         return mro[idx - 1]
 
+    def _replace_arg(self, **kwargs):
+        # use with caution
+        args = {
+            "amplitude": self.amplitude,
+            "iv": self.iv,
+            "domain": self.domain,
+            "codomain": self.codomain,
+        }
+        for key, value in kwargs.items():
+            args[key] = value
+        self._args = (
+            args["amplitude"],
+            args["iv"],
+            args["domain"],
+            args["codomain"]
+        )
+
     def clone(self, cls, amplitude, **kwargs):
-        if cls == None:
-            cls = self._upclass()
         args = {
             "iv": self.iv,
             "domain": self.domain,
@@ -166,15 +190,20 @@ class Signal(sp.Basic):
         }
         for key, value in kwargs.items():
             args[key] = value
-        # pylint: disable-msg=redundant-keyword-arg
-        obj = Signal.__new__(cls, amplitude, **args)
-        # pylint: enable-msg=redundant-keyword-arg
-        # pylint: disable-msg=no-member
-        if hasattr(cls, "_transmute"):
-            cls._transmute(obj)
-        if hasattr(self, "_clone_extra"):
-            self._clone_extra(obj)
-        # pylint: enable-msg=no-member
+        obj = None
+        if cls == None:
+            cls = self._upclass()
+            if hasattr(cls, 'from_formula'):
+                obj = cls.from_formula(amplitude, **args)
+        if obj is None:
+            obj = Signal.__new__(cls, amplitude, **args)
+            obj._period = self._period
+            obj._duration = self._duration
+            obj._assumptions = self._assumptions
+            # pylint: disable-msg=no-member
+            if hasattr(self, "_clone_extra"):
+                self._clone_extra(obj)
+            # pylint: enable-msg=no-member
         return obj
 
     def _hashable_content(self):
@@ -262,11 +291,11 @@ class Signal(sp.Basic):
         expr = self.amplitude
         # 1.- Undef explicitly set
         if isinstance(expr, AppliedUndef):
-            if hasattr(expr, "duration"):
+            if self._duration is not None:
                 if self.is_discrete:
-                    supp = sp.Range(0, expr.duration)
+                    supp = sp.Range(0, self._duration)
                 else:
-                    supp = sp.Interval(0, expr.duration)
+                    supp = sp.Interval(0, self._duration)
             else:
                 supp = self.domain
         # 2.- delta's
@@ -292,15 +321,17 @@ class Signal(sp.Basic):
 
     @property
     def duration(self):
+        if self._duration is not None:
+            return self._duration
         supp = self.support
         duration = None
         if isinstance(supp, sp.Range):
             if supp.start >= 0:
-                duration = supp.stop
+                self._duration = supp.stop
         elif isinstance(supp, sp.Interval):
             if supp.inf == 0:
-                duration = supp.sup
-        return duration
+                self._duration = supp.sup
+        return self._duration
 
     @property
     def as_real_imag(self):
@@ -546,6 +577,8 @@ class Signal(sp.Basic):
     def _join_codomain(self, other):
         if self.codomain == sp.S.Complexes or other.codomain == sp.S.Complexes:
             return sp.S.Complexes
+        if self.codomain == other.codomain:
+            return self.codomain
         # None para que se calcule
         return None
 
