@@ -647,15 +647,15 @@ class Test_Signal(object):
         omega = sp.Symbol("omega", real=True)
 
         # pylint: disable-msg=not-callable
-        s = Signal(sp.Function("r", period=N)(x))
+        s = Signal(sp.Function("r")(x), period=N)
         assert s.is_periodic == True
         assert s.period == N
 
-        s = Signal(sp.Function("w", period=N)(t))
+        s = Signal(sp.Function("w")(t), period=N)
         assert s.is_periodic == True
         assert s.period == N
 
-        s = Signal(sp.Function("X", period=2 * sp.S.Pi)(omega))
+        s = Signal(sp.Function("X")(omega), period=2 * sp.S.Pi)
         assert s.is_periodic == True
         assert s.period == 2 * sp.S.Pi
         # pylint: enable-msg=not-callable

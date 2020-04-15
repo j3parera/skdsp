@@ -383,7 +383,7 @@ class Test_Print(object):
         assert s == "{ \u22ef 0, _0_, 0, 0, 0, 0, 0.9, 0 \u22ef }"
 
     def test_Plot(self):
-        x = ds.DeltaTrain(N=4)
+        x = ds.DeltaTrain(period=4)
         ax = x.ipystem(range(-3, 16))
         assert ax is not None
 

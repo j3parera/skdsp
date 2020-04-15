@@ -787,56 +787,56 @@ class Test_DeltaTrain(object):
         with pytest.raises(ValueError):
             d = ds.DeltaTrain(ds.n)
 
-        d = ds.DeltaTrain(N=16)
+        d = ds.DeltaTrain(period=16)
         assert d is not None
 
-        d = ds.DeltaTrain(sp.Symbol("r", integer=True), N=12)
+        d = ds.DeltaTrain(sp.Symbol("r", integer=True), period=12)
         assert d is not None
 
-        d = ds.DeltaTrain(ds.m, N=sp.Symbol("N", integer=True, positive=True))
+        d = ds.DeltaTrain(ds.m, period=sp.Symbol("N", integer=True, positive=True))
         assert d is not None
 
         with pytest.raises(ValueError):
-            d = ds.DeltaTrain(ds.m, N=sp.Symbol("N"))
+            d = ds.DeltaTrain(ds.m, period=sp.Symbol("N"))
 
     def test_DeltaTrain_iv(self):
 
-        d = ds.DeltaTrain(N=3)
+        d = ds.DeltaTrain(period=3)
         assert d.is_discrete == True
         assert d.is_continuous == False
         assert d.iv == ds.n
 
         # shift
         shift = 5
-        d = ds.DeltaTrain(N=3).shift(shift)
+        d = ds.DeltaTrain(period=3).shift(shift)
         assert d.iv == ds.n
         assert d[-1] == 1
         assert d[0] == 0
         assert d[1] == 0
 
-        d = ds.DeltaTrain(N=3).shift(ds.k)
+        d = ds.DeltaTrain(period=3).shift(ds.k)
         assert d.iv == ds.n
         assert d([0, 1, 2], 1) == [0, 1, 0]
         assert d([0, 1, 2], 2) == [0, 0, 1]
 
         # flip
-        d = ds.DeltaTrain(N=3).flip()
+        d = ds.DeltaTrain(period=3).flip()
         assert d.iv == ds.n
         assert d([0, 1, 2]) == [1, 0, 0]
 
         # shift and flip
         shift = 5
-        d = ds.DeltaTrain(N=3).shift(shift).flip()
+        d = ds.DeltaTrain(period=3).shift(shift).flip()
         assert d([0, 1, 2]) == [0, 1, 0]
 
         # flip and shift
         shift = 5
-        d = ds.DeltaTrain(N=3).flip().shift(shift)
+        d = ds.DeltaTrain(period=3).flip().shift(shift)
         assert d([0, 1, 2]) == [0, 0, 1]
 
     def test_DeltaTrain_eval(self):
 
-        d = ds.DeltaTrain(N=16)
+        d = ds.DeltaTrain(period=16)
         assert d.eval(0) == 1
         assert d.eval(1) == 0
         assert d.eval(-1) == 0
@@ -861,7 +861,7 @@ class Test_DeltaTrain(object):
         with pytest.raises(ValueError):
             d[0:2:0.5]
 
-        d = ds.DeltaTrain(N=16).shift(1)
+        d = ds.DeltaTrain(period=16).shift(1)
         assert d.eval(0) == 0
         assert d.eval(1) == 1
         assert d.eval(-1) == 0
@@ -890,7 +890,7 @@ class Test_DeltaTrain(object):
 
     def test_DeltaTrain_generator(self):
 
-        d = ds.DeltaTrain(N=5)
+        d = ds.DeltaTrain(period=5)
         with pytest.raises(ValueError):
             dg = d.generate(0, step=0.1)
             next(dg)
@@ -903,11 +903,11 @@ class Test_DeltaTrain(object):
     def test_DeltaTrain_misc(self):
 
         N = 5
-        d = ds.DeltaTrain(N=N)
+        d = ds.DeltaTrain(period=N)
         assert d.amplitude == UnitDeltaTrain(ds.n, N)
         assert d.real_part == UnitDeltaTrain(ds.n, N)
         assert d.imag_part == 0
-        assert d.real == ds.DeltaTrain(N=N)
+        assert d.real == ds.DeltaTrain(period=N)
         assert d.imag == ds.Constant(0)
         assert d.is_periodic == True
         assert d.period == N
@@ -1061,7 +1061,7 @@ class Test_DataSignal(object):
             UnitDelta(sp.Mod(ds.n, 6) - 1) + UnitDelta(sp.Mod(ds.n, 6) - 2),
             ds.n,
             sp.S.Reals,
-            6,
+            period=6,
         )
         assert s.is_periodic == True
         assert s.period == 6
@@ -1775,8 +1775,8 @@ class Test_Exponential(object):
         # TODO assumptions en general
         a = sp.Symbol("a")
         n = sp.Symbol("n", integer=True)
-        assumption = sp.Q.is_true(a > 0) & sp.Q.is_true(a < 1)
-        s = ds.Exponential(1, a, iv=n, assume=assumption)
+        assumptions = sp.Q.is_true(a > 0) & sp.Q.is_true(a < 1)
+        s = ds.Exponential(1, a, iv=n, assumptions=assumptions)
         assert isinstance(s, ds.Exponential)
 
     def test_Exponential_iv(self):
@@ -2107,9 +2107,9 @@ class Test_Undefined(object):
         x = sp.Function("x", nargs=1)
         assert d.amplitude == x(ds.n)
         assert d.real_part == sp.re(x(ds.n))
-        assert d.real == ds.DiscreteSignal(sp.re(x(ds.n)), ds.n, None, sp.S.Reals)
+        assert d.real == ds.DiscreteSignal(sp.re(x(ds.n)), ds.n, sp.S.Reals)
         assert d.imag_part == sp.im(x(ds.n))
-        assert d.imag == ds.DiscreteSignal(sp.im(x(ds.n)), ds.n, None, sp.S.Reals)
+        assert d.imag == ds.DiscreteSignal(sp.im(x(ds.n)), ds.n, sp.S.Reals)
         assert d.is_periodic == False
         assert d.period == None
         assert d.support == sp.S.Integers
@@ -2119,9 +2119,9 @@ class Test_Undefined(object):
         d = ds.Undefined("x", period=10)
         assert d.amplitude == x(ds.n)
         assert d.real_part == sp.re(x(ds.n))
-        assert d.real == ds.DiscreteSignal(sp.re(x(ds.n)), ds.n, None, sp.S.Reals)
+        assert d.real == ds.DiscreteSignal(sp.re(x(ds.n)), ds.n, sp.S.Reals)
         assert d.imag_part == sp.im(x(ds.n))
-        assert d.imag == ds.DiscreteSignal(sp.im(x(ds.n)), ds.n, None, sp.S.Reals)
+        assert d.imag == ds.DiscreteSignal(sp.im(x(ds.n)), ds.n, sp.S.Reals)
         assert d.is_periodic == True
         assert d.period == 10
         assert d.support == sp.S.Integers
@@ -2130,9 +2130,9 @@ class Test_Undefined(object):
         d = ds.Undefined("x", duration=10)
         assert d.amplitude == x(ds.n)
         assert d.real_part == sp.re(x(ds.n))
-        assert d.real == ds.DiscreteSignal(sp.re(x(ds.n)), ds.n, None, sp.S.Reals)
+        assert d.real == ds.DiscreteSignal(sp.re(x(ds.n)), ds.n, sp.S.Reals)
         assert d.imag_part == sp.im(x(ds.n))
-        assert d.imag == ds.DiscreteSignal(sp.im(x(ds.n)), ds.n, None, sp.S.Reals)
+        assert d.imag == ds.DiscreteSignal(sp.im(x(ds.n)), ds.n, sp.S.Reals)
         assert d.is_periodic == False
         assert d.period == None
         assert d.support == sp.Range(0, 10)

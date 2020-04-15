@@ -87,7 +87,7 @@ class DiscreteSignal(Signal):
         obj = cls._try_subclass(expr, iv=iv, period=period, periodic=True, **kwargs)
         if obj is None:
             codomain = kwargs.pop("codomain", None)
-            obj = cls(expr, iv=iv, period=period, codomain=codomain, **kwargs)
+            obj = cls(expr, iv, codomain, period=period, **kwargs)
         return obj
 
     @classmethod
@@ -108,8 +108,7 @@ class DiscreteSignal(Signal):
         if obj is None:
             iv = div
             codomain = kwargs.pop("codomain", None)
-            period = kwargs.pop("period", None)
-            obj = cls(expr, iv=iv, period=period, codomain=codomain, **kwargs)
+            obj = cls(expr, iv, codomain, **kwargs)
         return obj
 
     @classmethod
@@ -119,10 +118,9 @@ class DiscreteSignal(Signal):
         if obj is None:
             iv = kwargs.pop("iv", n)
             codomain = kwargs.pop("codomain", None)
-            period = kwargs.pop("period", None)
             # strip known data if they exist
             kwargs.pop("domain", None)
-            obj = cls(expr, iv=iv, period=period, codomain=codomain, **kwargs)
+            obj = cls(expr, iv, codomain, **kwargs)
         return obj
 
     @staticmethod
@@ -139,11 +137,11 @@ class DiscreteSignal(Signal):
                 expr += d * UnitDelta(iv - start - k)
         return expr
 
-    def __new__(cls, amp, iv, codomain, period, **kwargs):
+    def __new__(cls, amp, iv, codomain, **kwargs):
         if iv is not None and (not iv.is_symbol or not iv.is_integer):
             raise ValueError("Invalid independent variable.")
         return Signal.__new__(
-            cls, amp, iv, sp.S.Integers, codomain, period=period, **kwargs
+            cls, amp, iv, sp.S.Integers, codomain, **kwargs
         )
 
     def __str__(self, *_args, **_kwargs):
@@ -326,16 +324,15 @@ class Undefined(DiscreteSignal):
         if m and f in m.keys() and isinstance(m[f], AppliedUndef):
             name = m[f].name
             delay, flip, _ = DiscreteSignal._match_iv_transform(m[f].args[0], iv)
-            period = kwargs.pop("period", 0)
             duration = kwargs.pop("duration", None)
             codomain = kwargs.pop("codomain", sp.S.Reals)
-            sg = Undefined(name, iv, period, duration, codomain, **kwargs)
+            sg = Undefined(name, iv, duration, codomain, **kwargs)
             sg = DiscreteSignal._apply_gain_and_iv_transform(sg, m[A], delay, flip)
             return sg
         return None
 
     def __new__(
-        cls, name, iv=None, period=None, duration=None, codomain=sp.S.Reals, **kwargs
+        cls, name, iv=None, duration=None, codomain=sp.S.Reals, **kwargs
     ):
         iv = sp.sympify(iv) if iv is not None else n
         if not isinstance(name, str):
@@ -347,7 +344,6 @@ class Undefined(DiscreteSignal):
             iv,
             sp.S.Integers,
             codomain,
-            period=period,
             duration=duration,
             **kwargs
         )
@@ -427,7 +423,7 @@ class Delta(DiscreteSignal):
         kwargs.pop("codomain", None)
         kwargs.pop("period", None)
         obj = DiscreteSignal.__new__(
-            cls, UnitDelta(iv), iv, sp.S.Reals, sp.S.Zero, **kwargs
+            cls, UnitDelta(iv), iv, sp.S.Reals, period=sp.S.Zero, **kwargs
         )
         return obj
 
@@ -471,7 +467,7 @@ class Step(DiscreteSignal):
         kwargs.pop("domain", None)
         kwargs.pop("codomain", None)
         obj = DiscreteSignal.__new__(
-            cls, UnitStep(iv), iv, sp.S.Reals, sp.S.Zero, **kwargs
+            cls, UnitStep(iv), iv, sp.S.Reals, period=sp.S.Zero, **kwargs
         )
         return obj
 
@@ -515,7 +511,7 @@ class Ramp(DiscreteSignal):
         kwargs.pop("domain", None)
         kwargs.pop("codomain", None)
         obj = DiscreteSignal.__new__(
-            cls, UnitRamp(iv), iv, sp.S.Reals, sp.S.Zero, **kwargs
+            cls, UnitRamp(iv), iv, sp.S.Reals, period=sp.S.Zero, **kwargs
         )
         return obj
 
@@ -541,13 +537,13 @@ class DeltaTrain(DiscreteSignal):
     is_integer = True
     is_nonnegative = True
 
-    def __new__(cls, iv=None, N=0, **kwargs):
-        N = sp.sympify(N)
-        if not N.is_integer or not N.is_positive:
-            raise ValueError("N must be an integer greater than 0.")
+    def __new__(cls, iv=None, period=0, **kwargs):
+        period = sp.sympify(period)
+        if not period.is_integer or not period.is_positive:
+            raise ValueError("Period must be an integer greater than 0.")
         iv = sp.sympify(iv) if iv is not None else n
         obj = DiscreteSignal.__new__(
-            cls, UnitDeltaTrain(iv, N), iv, sp.S.Reals, N, **kwargs
+            cls, UnitDeltaTrain(iv, period), iv, sp.S.Reals, period=period, **kwargs
         )
         return obj
 
@@ -645,7 +641,7 @@ class DataSignal(DiscreteSignal):
         kwargs.pop("period", None)
         kwargs.pop("domain", None)
         kwargs.pop("codomain", None)
-        obj = DiscreteSignal.__new__(cls, expr, iv, codomain, period, **kwargs)
+        obj = DiscreteSignal.__new__(cls, expr, iv, codomain, period=period, **kwargs)
         return obj
 
     @property
@@ -770,7 +766,7 @@ class Sinusoid(_TrigonometricDiscreteSignal):
         iv = sp.sympify(iv) if iv is not None else n
         expr = A * sp.cos(omega * iv + phi)
         period = _TrigonometricDiscreteSignal._period(omega)
-        obj = DiscreteSignal.__new__(cls, expr, iv, sp.S.Reals, period, **kwargs)
+        obj = DiscreteSignal.__new__(cls, expr, iv, sp.S.Reals, period=period, **kwargs)
         obj.A = A
         obj.omega = omega
         obj.phi = phi
@@ -899,7 +895,7 @@ class Exponential(_TrigonometricDiscreteSignal):
                 )
             period = 0
         amp = sp.powsimp(amp)
-        obj = DiscreteSignal.__new__(cls, amp, iv, None, period, **kwargs)
+        obj = DiscreteSignal.__new__(cls, amp, iv, None, period=period, **kwargs)
         c, phi = as_coeff_polar(C)
         A = c * sp.Pow(r, iv)
         obj.A = A

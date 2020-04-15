@@ -70,7 +70,7 @@ class Signal(sp.Basic):
                raise ValueError("Period and duration are incompatible.")
             duration = sp.sympify(duration)
         # assumptions
-        assumptions = kwargs.pop("assume", None)
+        assumptions = kwargs.pop("assumptions", None)
         # create basic object (NO kwargs)
         if kwargs:
             raise ValueError("Unrecognized keyword argument(s): {0}".format(*kwargs))
@@ -107,10 +107,7 @@ class Signal(sp.Basic):
         if amp.has(sp.Sum):
             return None
         # 1.- Undef explicitly set
-        if isinstance(amp, AppliedUndef):
-            if hasattr(amp, "period"):
-                return amp.period
-            return None
+        # ... No longer
         # 2.- amplitude has its own method (trig functions...)
         # ... but it doesn't work with cos(x-pi) because it evaluates to -cos(x)
         # ... and then amp becomes Mul
@@ -187,6 +184,8 @@ class Signal(sp.Basic):
             "domain": self.domain,
             "codomain": self.codomain,
             "period": self._period,
+            "duration": self._duration,
+            "assumptions": self._assumptions,
         }
         for key, value in kwargs.items():
             args[key] = value
@@ -197,9 +196,6 @@ class Signal(sp.Basic):
                 obj = cls.from_formula(amplitude, **args)
         if obj is None:
             obj = Signal.__new__(cls, amplitude, **args)
-            obj._period = self._period
-            obj._duration = self._duration
-            obj._assumptions = self._assumptions
             # pylint: disable-msg=no-member
             if hasattr(self, "_clone_extra"):
                 self._clone_extra(obj)
@@ -346,7 +342,7 @@ class Signal(sp.Basic):
 
     @property
     def real(self):
-        return self.clone(None, self.real_part, period=None, codomain=sp.S.Reals)
+        return self.clone(None, self.real_part, codomain=sp.S.Reals, period=None)
 
     @property
     def imag_part(self):
@@ -357,7 +353,7 @@ class Signal(sp.Basic):
 
     @property
     def imag(self):
-        return self.clone(None, self.imag_part, period=None, codomain=sp.S.Reals)
+        return self.clone(None, self.imag_part, codomain=sp.S.Reals, period=None)
 
     @property
     def is_even(self):
@@ -621,7 +617,7 @@ class Signal(sp.Basic):
         if other is NotImplemented:
             return other
         amp = self.amplitude + other.amplitude
-        obj = self.clone(None, amp, period=period, codomain=codomain)
+        obj = self.clone(None, amp, codomain=codomain, period=period)
         return obj
 
     @call_highest_priority("__add__")
@@ -637,7 +633,7 @@ class Signal(sp.Basic):
         if other is NotImplemented:
             return other
         amp = self.amplitude - other.amplitude
-        obj = self.clone(None, amp, period=period, codomain=codomain)
+        obj = self.clone(None, amp, codomain=codomain, period=period)
         return obj
 
     @call_highest_priority("__sub__")
@@ -661,7 +657,7 @@ class Signal(sp.Basic):
             if other.amplitude.is_constant(self.iv) and not other.amplitude.is_zero
             else None
         )
-        obj = self.clone(cls, amp, period=period, codomain=codomain)
+        obj = self.clone(cls, amp, codomain=codomain, period=period)
         return obj
 
     @call_highest_priority("__mul__")
@@ -682,7 +678,7 @@ class Signal(sp.Basic):
             raise TypeError("Invalid operation.")
         amp = self.amplitude / other.amplitude
         cls = self.__class__
-        obj = self.clone(cls, amp, period=period, codomain=codomain)
+        obj = self.clone(cls, amp, codomain=codomain, period=period)
         return obj
 
     __itruediv__ = __truediv__
@@ -698,7 +694,7 @@ class Signal(sp.Basic):
         if not b.is_integer or not b.is_nonnegative:
             raise ValueError("Undefinded operation.")
         amp = sp.S.One if b.is_zero else self.amplitude ** b
-        obj = self.clone(None, amp, period=None, codomain=sp.S.Reals)
+        obj = self.clone(None, amp, codomain=sp.S.Reals, period=None)
         return obj
 
     def convolve(self, other):
@@ -717,17 +713,17 @@ class Signal(sp.Basic):
             if isinstance(amp, sp.Piecewise):
                 cond = amp.args[0].cond
                 expr = amp.args[0].expr
-                sy = self.clone(None, expr, iv=k, period=None, codomain=codomain)
+                sy = self.clone(None, expr, iv=k, codomain=codomain, period=None)
                 amp = sp.Piecewise((sy.sum(), cond), *amp.args[1:])
             else:
-                sy = self.clone(None, amp, iv=k, period=None, codomain=codomain)
+                sy = self.clone(None, amp, iv=k, codomain=codomain, period=None)
                 amp = sy.sum()
         else:
             # TODO continuous
             raise NotImplementedError
         amp = stepsimp(amp)
         amp = deltasimp(amp, self.iv)
-        obj = self.clone(None, amp, period=None, codomain=codomain)
+        obj = self.clone(None, amp, codomain=codomain, period=None)
         return obj
 
     def __matmul__(self, other):
