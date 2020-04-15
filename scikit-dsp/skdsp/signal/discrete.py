@@ -5,13 +5,9 @@ import numpy as np
 import sympy as sp
 from sympy.core.function import AppliedUndef
 from sympy.utilities.iterables import flatten, is_sequence
-from skdsp.signal.functions import (
-    UnitDelta,
-    UnitDeltaTrain,
-    UnitRamp,
-    UnitStep,
-    deltasimp,
-)
+
+from skdsp.signal.functions import (UnitDelta, UnitDeltaTrain, UnitRamp,
+                                    UnitStep, deltasimp)
 from skdsp.signal.signal import Signal
 from skdsp.util.util import as_coeff_polar, ipystem
 
@@ -22,6 +18,7 @@ n, m, k = sp.symbols("n, m, k", integer=True)
 
 class DiscreteSignal(Signal):
     @classmethod
+    @sp.cacheit
     def _all_subclasses(cls, exclude=set()):
         subclasses = set()
         for s in cls.__subclasses__():
@@ -142,7 +139,7 @@ class DiscreteSignal(Signal):
                 expr += d * UnitDelta(iv - start - k)
         return expr
 
-    def __new__(cls, amp, iv, period, codomain, **kwargs):
+    def __new__(cls, amp, iv, codomain, period, **kwargs):
         if iv is not None and (not iv.is_symbol or not iv.is_integer):
             raise ValueError("Invalid independent variable.")
         return Signal.__new__(
@@ -430,7 +427,7 @@ class Delta(DiscreteSignal):
         kwargs.pop("codomain", None)
         kwargs.pop("period", None)
         obj = DiscreteSignal.__new__(
-            cls, UnitDelta(iv), iv, sp.S.Zero, sp.S.Reals, **kwargs
+            cls, UnitDelta(iv), iv, sp.S.Reals, sp.S.Zero, **kwargs
         )
         return obj
 
@@ -474,7 +471,7 @@ class Step(DiscreteSignal):
         kwargs.pop("domain", None)
         kwargs.pop("codomain", None)
         obj = DiscreteSignal.__new__(
-            cls, UnitStep(iv), iv, sp.S.Zero, sp.S.Reals, **kwargs
+            cls, UnitStep(iv), iv, sp.S.Reals, sp.S.Zero, **kwargs
         )
         return obj
 
@@ -518,7 +515,7 @@ class Ramp(DiscreteSignal):
         kwargs.pop("domain", None)
         kwargs.pop("codomain", None)
         obj = DiscreteSignal.__new__(
-            cls, UnitRamp(iv), iv, sp.S.Zero, sp.S.Reals, **kwargs
+            cls, UnitRamp(iv), iv, sp.S.Reals, sp.S.Zero, **kwargs
         )
         return obj
 
@@ -550,7 +547,7 @@ class DeltaTrain(DiscreteSignal):
             raise ValueError("N must be an integer greater than 0.")
         iv = sp.sympify(iv) if iv is not None else n
         obj = DiscreteSignal.__new__(
-            cls, UnitDeltaTrain(iv, N), iv, N, sp.S.Reals, **kwargs
+            cls, UnitDeltaTrain(iv, N), iv, sp.S.Reals, N, **kwargs
         )
         return obj
 
@@ -648,7 +645,7 @@ class DataSignal(DiscreteSignal):
         kwargs.pop("period", None)
         kwargs.pop("domain", None)
         kwargs.pop("codomain", None)
-        obj = DiscreteSignal.__new__(cls, expr, iv, period, codomain, **kwargs)
+        obj = DiscreteSignal.__new__(cls, expr, iv, codomain, period, **kwargs)
         return obj
 
     @property
@@ -773,7 +770,7 @@ class Sinusoid(_TrigonometricDiscreteSignal):
         iv = sp.sympify(iv) if iv is not None else n
         expr = A * sp.cos(omega * iv + phi)
         period = _TrigonometricDiscreteSignal._period(omega)
-        obj = DiscreteSignal.__new__(cls, expr, iv, period, sp.S.Reals, **kwargs)
+        obj = DiscreteSignal.__new__(cls, expr, iv, sp.S.Reals, period, **kwargs)
         obj.A = A
         obj.omega = omega
         obj.phi = phi
@@ -902,7 +899,7 @@ class Exponential(_TrigonometricDiscreteSignal):
                 )
             period = 0
         amp = sp.powsimp(amp)
-        obj = DiscreteSignal.__new__(cls, amp, iv, period, None, **kwargs)
+        obj = DiscreteSignal.__new__(cls, amp, iv, None, period, **kwargs)
         c, phi = as_coeff_polar(C)
         A = c * sp.Pow(r, iv)
         obj.A = A

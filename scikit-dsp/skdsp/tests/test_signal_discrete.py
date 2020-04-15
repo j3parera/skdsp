@@ -1060,8 +1060,8 @@ class Test_DataSignal(object):
         s = ds.DiscreteSignal(
             UnitDelta(sp.Mod(ds.n, 6) - 1) + UnitDelta(sp.Mod(ds.n, 6) - 2),
             ds.n,
-            6,
             sp.S.Reals,
+            6,
         )
         assert s.is_periodic == True
         assert s.period == 6
