@@ -324,15 +324,14 @@ class Undefined(DiscreteSignal):
         if m and f in m.keys() and isinstance(m[f], AppliedUndef):
             name = m[f].name
             delay, flip, _ = DiscreteSignal._match_iv_transform(m[f].args[0], iv)
-            duration = kwargs.pop("duration", None)
             codomain = kwargs.pop("codomain", sp.S.Reals)
-            sg = Undefined(name, iv, duration, codomain, **kwargs)
+            sg = Undefined(name, iv, codomain, **kwargs)
             sg = DiscreteSignal._apply_gain_and_iv_transform(sg, m[A], delay, flip)
             return sg
         return None
 
     def __new__(
-        cls, name, iv=None, duration=None, codomain=sp.S.Reals, **kwargs
+        cls, name, iv=None, codomain=sp.S.Reals, **kwargs
     ):
         iv = sp.sympify(iv) if iv is not None else n
         if not isinstance(name, str):
@@ -344,7 +343,6 @@ class Undefined(DiscreteSignal):
             iv,
             sp.S.Integers,
             codomain,
-            duration=duration,
             **kwargs
         )
 
