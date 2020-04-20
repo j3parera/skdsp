@@ -142,3 +142,56 @@ def as_coeff_polar(z):
         else:
             return (sp.Abs(d[r]) * sp.exp(d[phi]), sp.arg(d[r]) + d[om])
     return (sp.Abs(z), sp.arg(z))
+
+
+class Constraint(object):
+
+    def __init__(self, symbol, constraint):
+        self._symbol = sp.S(symbol)
+        if not isinstance(self._symbol, sp.Symbol):
+            raise TypeError("The parameter symbol must be a symbol.")
+        self._constraint = sp.S(constraint)
+        if isinstance(self._constraint, sp.Interval):
+            d = sp.Dummy('d', real=True, positive=True)
+            new = (self._constraint.start * d + self._constraint.measure) / (1 + d) 
+            self._replace_expr = new
+            self._replace_symbol = d
+            self._replace_undo = (symbol - self._constraint.end) / (self._constraint.start - symbol)
+        else:
+            raise NotImplementedError
+        
+    @property
+    def symbol(self):
+        return self._symbol
+    
+    @property
+    def constraint(self):
+        return self._constraint
+        
+    @property
+    def replace_expr(self):
+        return self._replace_expr
+
+    @property
+    def replace_symbol(self):
+        return self._replace_symbol
+
+    @property
+    def replace_undo_expr(self):
+        return self._replace_undo
+
+    def apply(self, expr):
+        if isinstance(expr, sp.Piecewise):
+            for pair in expr.args:
+                sol = sp.solveset(pair.cond)
+                if self.constraint.intersect(sol) == sp.EmptySet:
+                    expr = expr.xreplace({pair.cond: False})
+        if expr.has(self.symbol):
+            expr = expr.xreplace({self.symbol: self.replace_expr})
+        return expr
+
+    def revert(self, expr):
+        if expr.has(self.replace_symbol):
+            expr = expr.xreplace({self.replace_symbol: self.replace_undo_expr})
+        return expr
+

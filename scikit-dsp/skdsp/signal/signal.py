@@ -10,6 +10,7 @@ from sympy.core.function import AppliedUndef, UndefinedFunction
 from sympy.utilities.iterables import flatten, is_sequence, iterable
 
 from skdsp.signal.functions import UnitDelta, deltasimp, stepsimp
+from skdsp.util.util import Constraint
 
 
 class Signal(sp.Basic):
@@ -70,7 +71,9 @@ class Signal(sp.Basic):
                raise ValueError("Period and duration are incompatible.")
             duration = sp.sympify(duration)
         # assumptions
-        assumptions = kwargs.pop("assumptions", None)
+        constraints = kwargs.pop("constraints", list())
+        if any(not isinstance(c, Constraint) for c in constraints):
+            raise TypeError("Constraints must be an iterable of Constraint type elements.")
         # create basic object (NO kwargs)
         if kwargs:
             raise ValueError("Unrecognized keyword argument(s): {0}".format(*kwargs))
@@ -78,7 +81,7 @@ class Signal(sp.Basic):
         # other attributes
         obj._period = period
         obj._duration = duration
-        obj._assumptions = assumptions
+        obj._constraints = constraints
         return obj
 
     @staticmethod
@@ -151,7 +154,7 @@ class Signal(sp.Basic):
         return {
             '_period': self._period,
             '_duration': self._duration,
-            '_assumptions': self._assumptions,
+            '_constraints': self._constraints,
         }
 
     def _upclass(self):
@@ -185,7 +188,7 @@ class Signal(sp.Basic):
             "codomain": self.codomain,
             "period": self._period,
             "duration": self._duration,
-            "assumptions": self._assumptions,
+            "constraints": self._constraints,
         }
         for key, value in kwargs.items():
             args[key] = value
@@ -222,10 +225,12 @@ class Signal(sp.Basic):
         return printer.print_signal(self)
 
     @property
+    @sp.cacheit
     def amplitude(self):
         return self.args[0]
 
     @property
+    @sp.cacheit
     def iv(self):
         return self.args[1]
 
@@ -245,10 +250,12 @@ class Signal(sp.Basic):
         return self._period
 
     @property
+    @sp.cacheit
     def domain(self):
         return self.args[2]
 
     @property
+    @sp.cacheit
     def codomain(self):
         return self.args[3]
 
@@ -541,6 +548,16 @@ class Signal(sp.Basic):
             return self.eval(np.arange(key.start, key.stop, key.step))
         return self.eval(key)
 
+    def _apply_constraints(self, expr):
+        for c in self._constraints:
+            expr = c.apply(expr)
+        return expr
+
+    def _undo_constraints(self, expr):
+        for c in self._constraints:
+            expr = c.revert(expr)
+        return expr
+
     def __rshift__(self, k):
         return self.shift(k)
 
@@ -557,7 +574,7 @@ class Signal(sp.Basic):
         """
         if k not in self.domain:
             raise ValueError("Delay not allowed.")
-        return self.clone(self.__class__, self.amplitude.subs({self.iv: self.iv - k}))
+        return self.clone(self.__class__, self.amplitude.xreplace({self.iv: self.iv - k}))
 
     delay = shift
 
@@ -565,7 +582,7 @@ class Signal(sp.Basic):
         """Returns the signal reversed in time; ie s[-n] if discrete,
         otherwise s(-t).
         """
-        return self.clone(self.__class__, self.amplitude.subs({self.iv: -self.iv}))
+        return self.clone(self.__class__, self.amplitude.xreplace({self.iv: -self.iv}))
 
     def __abs__(self):
         return self.abs
@@ -705,7 +722,7 @@ class Signal(sp.Basic):
             return other
         if self.is_discrete:
             k = sp.Symbol('k', integer=True)
-            amp = self.amplitude.subs({self.iv: k}) * other.amplitude.subs({other.iv: self.iv - k})
+            amp = self.amplitude.xreplace({self.iv: k}) * other.amplitude.xreplace({other.iv: self.iv - k})
             if period is not None:
                 # TODO periodic convolution
                 raise NotImplementedError

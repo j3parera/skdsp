@@ -94,7 +94,7 @@ class DiscreteSignal(Signal):
     def from_sampling(cls, expr, civ, div, fs, **kwargs):
         expr = sp.S(expr)
         if expr.has(sp.DiracDelta):
-            raise ValueError("Dirac delta cannot be sampled.")
+            raise ValueError("Dirac delta cannotuse.")
         expr = expr.subs({civ: div / fs})
         if expr.has(sp.Heaviside):
             hvsds = list(expr.atoms(sp.Heaviside))
@@ -257,7 +257,7 @@ class DiscreteSignal(Signal):
         else:
             S = sp.Sum(amp, (var, low, high))
         if doit:
-            S = S.doit(deep=True)
+            S = S.doit(deep=True, sum=True)
         return S
 
     def energy(self, Nmax=sp.S.Infinity):
@@ -275,7 +275,10 @@ class DiscreteSignal(Signal):
             try:
                 N = sp.Dummy("N", integer=True, positive=True)
                 S = ie.sum(-N, N)
+                S = self._apply_constraints(S)
                 E = sp.limit(S, N, Nmax)
+                E = self._undo_constraints(E)
+                E = sp.simplify(E)
             except:
                 E = None
         else:

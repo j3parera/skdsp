@@ -2,3 +2,4 @@ scikit-dsp/skdsp/signal/__pycache__/*.pyc
 .pytest_cache/v/cache/lastfailed
 .pytest_cache/v/cache/nodeids
 scikit-dsp/docs/scikit-dsp-lyxformat-508.lyx~
+scikit-dsp/pruebas.py

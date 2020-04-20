@@ -4,7 +4,7 @@ import sympy as sp
 
 import skdsp.signal.discrete as ds
 from skdsp.signal.functions import UnitDelta, UnitDeltaTrain, UnitRamp, UnitStep
-from skdsp.util.util import stem
+from skdsp.util.util import Constraint, stem
 from skdsp.signal.discrete import DiscreteSignal
 from copy import copy
 
@@ -369,11 +369,11 @@ class Test_Step(object):
         #    f(0.5)
 
         s = f(ds.n).rewrite(UnitDelta)
-        g = s.doit()
+        g = s.doit(sum=True)
         assert g == UnitStep(ds.n).rewrite(sp.Piecewise)
 
         s = f(ds.n).rewrite(UnitDelta, form="accum")
-        g = s.doit()
+        g = s.doit(sum=True)
         assert g == UnitStep(ds.n).rewrite(sp.Piecewise)
 
         g = f(ds.n).rewrite(sp.Piecewise)
@@ -1771,12 +1771,12 @@ class Test_Exponential(object):
             -sp.exp(-sp.I * 3 * sp.S.Pi / 8) / 4,
         ]
 
-    def test_Exponential_assumptions(self):
+    def test_Exponential_constraints(self):
         # TODO assumptions en general
         a = sp.Symbol("a")
         n = sp.Symbol("n", integer=True)
-        assumptions = sp.Q.is_true(a > 0) & sp.Q.is_true(a < 1)
-        s = ds.Exponential(1, a, iv=n, assumptions=assumptions)
+        constraints = [Constraint(a, sp.Interval.open(0, 1))]
+        s = ds.Exponential(1, a, iv=n, constraints=constraints)
         assert isinstance(s, ds.Exponential)
 
     def test_Exponential_iv(self):

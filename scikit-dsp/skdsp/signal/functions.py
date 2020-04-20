@@ -33,7 +33,7 @@ class UnitDelta(sp.Function):
 
     def _eval_subs(self, old, new):
         if self.func_arg.has(old):
-            return UnitDelta(self.func_arg.subs(old, new))
+            return UnitDelta(self.func_arg.xreplace({old: new}))
 
     def _eval_rewrite_as_UnitStep(self, *_args, **_kwargs):
         return UnitStep(self.func_arg) - UnitStep(self.func_arg - 1)
@@ -42,6 +42,7 @@ class UnitDelta(sp.Function):
         return sp.Piecewise((1, sp.Eq(self.func_arg, 0)), (0, True))
 
     @property
+    @sp.cacheit
     def func_arg(self):
         return self.args[0]
 
@@ -50,14 +51,16 @@ class UnitDelta(sp.Function):
         return np.equal(n, 0).astype(np.float_)
 
     def doit(self, **kwargs):
-        callers = ["Sum"]
-        frame = inspect.currentframe().f_back
-        try:
-            caller = frame.f_locals['self']
-        except KeyError:
-            # not a class but a function
-            return self
-        if caller.__class__.__name__ in callers:
+        # callers = ["Sum"]
+        # frame = inspect.currentframe().f_back
+        # try:
+        #     caller = frame.f_locals['self']
+        # except KeyError:
+        #     # not a class but a function
+        #     return self
+        # if caller.__class__.__name__ in callers:
+        sum = kwargs.pop("sum", None)
+        if sum:
             # disguise as sympy KroneckerDelta for summations
             return sp.KroneckerDelta(sp.S.Zero, self.func_arg)
         return self
@@ -299,6 +302,12 @@ def deltasimp(expr, iv):
     for d in deltas:
         arg = d.func_arg
         if not arg.has(sp.Mod):
-            k = sp.solve(arg, iv)[0]
+            k = list(sp.solveset(arg, iv, sp.S.Integers))[0]
+            expr = expr.replace(d, UnitDelta(iv - k))
+    kdeltas = expr.atoms(sp.KroneckerDelta)
+    for d in kdeltas:
+        arg = d.args[1]
+        if not arg.has(sp.Mod):
+            k = list(sp.solveset(arg, iv, sp.S.Integers))[0]
             expr = expr.replace(d, UnitDelta(iv - k))
     return expr
