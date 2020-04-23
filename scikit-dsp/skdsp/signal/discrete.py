@@ -312,9 +312,9 @@ class DiscreteSignal(Signal):
             try:
                 N = sp.Dummy("N", integer=True, positive=True)
                 S = ie.sum(-N, N)
-                S = self._apply_constraints(S)
+                S = self.apply_constraints(S, tosym=True)
                 E = sp.limit(S, N, Nmax)
-                E = self._undo_constraints(E)
+                E = self.undo_constraints(E)
                 E = sp.simplify(E)
             except:
                 E = None

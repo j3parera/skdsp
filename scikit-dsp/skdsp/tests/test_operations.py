@@ -337,6 +337,16 @@ class Test_Discrete_Other(object):
         # assert sp.simplify((s1 - expected).amplitude) == sp.S.Zero
 
 
+
+    def test_Discrete_constraints(self):
+        a = sp.Symbol("a")
+        n = sp.Symbol("n", integer=True)
+        constraints = [Constraint(a, sp.Interval.open(0, 1))]
+        s = ds.DiscreteSignal.from_formula(a**n*UnitStep(n), constraints=constraints)
+        
+        S = s.apply_constraints(s.sum(0, sp.S.Infinity))
+        assert S == 1 / (1 - a)
+
     def test_Discrete_power_energy(self):
         a = sp.Symbol('a', real=True)
         n = sp.Symbol('n', integer=True)

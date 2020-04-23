@@ -1771,14 +1771,6 @@ class Test_Exponential(object):
             -sp.exp(-sp.I * 3 * sp.S.Pi / 8) / 4,
         ]
 
-    def test_Exponential_constraints(self):
-        # TODO assumptions en general
-        a = sp.Symbol("a")
-        n = sp.Symbol("n", integer=True)
-        constraints = [Constraint(a, sp.Interval.open(0, 1))]
-        s = ds.Exponential(1, a, iv=n, constraints=constraints)
-        assert isinstance(s, ds.Exponential)
-
     def test_Exponential_iv(self):
         s = ds.Exponential(alpha=1)
         assert s.is_discrete == True

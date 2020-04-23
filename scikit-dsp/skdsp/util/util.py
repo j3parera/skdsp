@@ -188,18 +188,21 @@ class Constraint(object):
     def replace_undo_expr(self):
         return self._replace_undo
 
-    def apply(self, expr):
+    def apply_relational(self, expr):
         rels = expr.atoms(Relational)
         for rel in rels:
             if rel.has(self.symbol):
                 sol = sp.solveset(rel, self.symbol, sp.S.Reals)
                 cond = False if self.constraint.intersect(sol) == sp.EmptySet else True
                 expr = expr.xreplace({rel: cond})
+        return expr
+    
+    def apply_symbol(self, expr):
         if expr.has(self.symbol):
             expr = expr.xreplace({self.symbol: self.replace_expr})
         return expr
 
-    def revert(self, expr):
+    def revert_symbol(self, expr):
         if expr.has(self.replace_symbol):
             expr = expr.xreplace({self.replace_symbol: self.replace_undo_expr})
         return expr

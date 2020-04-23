@@ -552,16 +552,19 @@ class Signal(sp.Basic):
             return self.eval(np.arange(key.start, key.stop, key.step))
         return self.eval(key)
 
-    def _apply_constraints(self, expr, undo=False):
+    def apply_constraints(self, expr, torel=True, tosym=False, undo=False):
         for c in self._constraints:
-            expr = c.apply(expr)
+            if torel:
+                expr = c.apply_relational(expr)
+            if tosym:
+                expr = c.apply_symbol(expr)
         if undo:
-            expr = self._undo_constraints(expr)
+            expr = self.undo_constraints(expr)
         return expr
 
-    def _undo_constraints(self, expr):
+    def undo_constraints(self, expr):
         for c in self._constraints:
-            expr = c.revert(expr)
+            expr = c.revert_symbol(expr)
         return expr
 
     def __rshift__(self, k):
@@ -735,16 +738,8 @@ class Signal(sp.Basic):
             # amp = stepsimp(amp, k)
             sy = self.clone(None, amp, iv=self.iv, codomain=codomain, period=None)
             amp = sy.sum(var=k)
-            amp = sy._apply_constraints(amp, undo=True)
+            amp = sy.apply_constraints(amp, tosym=True, undo=True)
             amp = sp.simplify(amp)
-            # if isinstance(amp, sp.Piecewise):
-            #     cond = amp.args[0].cond
-            #     expr = amp.args[0].expr
-            #     sy = self.clone(None, expr, iv=self.iv, codomain=codomain, period=None)
-            #     amp = sp.Piecewise((sy.sum(), cond), *amp.args[1:])
-            # else:
-            #     sy = self.clone(None, amp, iv=k, codomain=codomain, period=None)
-            #     amp = sy.sum()
         else:
             # TODO continuous
             raise NotImplementedError
