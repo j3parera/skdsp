@@ -187,8 +187,16 @@ class DiscreteSignal(Signal):
         low = sp.S(low) if low is not None else sp.S.NegativeInfinity
         high = sp.S(high) if high is not None else sp.S.Infinity
         amp = self.amplitude
+        if term is not None:
+            term = sp.S(term)
+            amp *= term ** var
         c, u = amp.as_coeff_mul(UnitStep)
-        if len(u) != 0:
+        if len(u) == 0:
+            if amp.has(UnitRamp):
+                S = sp.Sum(amp.rewrite(sp.Piecewise), (var, low, high))
+            else:
+                S = sp.Sum(amp, (var, low, high))
+        elif len(u) == 1:
             # unit step changes limits of summation if same variable
             st = u[0]
             if var in st.free_symbols:
@@ -242,24 +250,53 @@ class DiscreteSignal(Signal):
                                         # -(u[-n-k1] - u[-n-k1]) = u[-n-k1] - u[-n-k0]
                                         low = sp.Max(low, -d[k0] + 1)
                                         high = sp.Min(high, -d[k1])
-                                        amp *= -sp.S.One
+                                        amp *= - sp.S.One
                 try:
                     if high < low:
                         return sp.S.Zero
                 except:
                     pass
-        if term is not None:
-            term = sp.S(term)
-            amp *= term ** var
-        # due to a sympy bug, but cannot be done in all cases
-        if amp.has(UnitRamp):
-            S = sp.Sum(amp.rewrite(sp.Piecewise), (var, low, high))
-        else:
-            S = sp.Sum(amp, (var, low, high))
+            if amp.has(UnitRamp):
+                S = sp.Sum(amp.rewrite(sp.Piecewise), (var, low, high))
+            else:
+                S = sp.Sum(amp, (var, low, high))
+        elif len(u) == 2:
+            # a*u[s0v-k0]*u[s1v-k1]
+            a = sp.Wild("a")
+            k0 = sp.Wild("k0")
+            s0 = sp.Wild("s0")
+            k1 = sp.Wild("k1")
+            a1 = sp.Wild("a1")
+            s1 = sp.Wild("s1")
+            pattern = a * UnitStep(s0 * var - k0) * UnitStep(s1 * var - k1)
+            st = u[0] * u[1]
+            d = st.match(pattern)
+            if d is not None:
+                # s0 = s1 = 1
+                if d[s0] == sp.S.One and d[s1] == sp.S.One:
+                    # u[v-k0]*u[v-k1]
+                    low0 = sp.Max(low, d[k0])
+                    S0 = sp.Sum(d[a] * c, (var, low0, high))
+                    cond0 = sp.simplify(d[k0] > d[k1])
+                    low1 = sp.Max(low, d[k1])
+                    S1 = sp.Sum(d[a] * c, (var, low1, high))
+                    cond1 = sp.simplify(d[k1] >= d[k0])
+                    S = sp.Piecewise((S0, cond0), (S1, cond1))
+                elif d[s0] == sp.S.NegativeOne and d[s1] == sp.S.NegativeOne:
+                    # u[-v-k0]*u[-v-k1]
+                    # u[v-k0]*u[v-k1]
+                    high0 = sp.Min(high, d[k1] - 1)
+                    S0 = sp.Sum(d[a] * c, (var, low, high0))
+                    cond0 = sp.simplify(d[k0] >= d[k1])
+                    high1 = sp.Min(high, d[k0] - 1)
+                    S1 = sp.Sum(d[a] * c, (var, low, high1))
+                    cond1 = sp.simplify(d[k1] > d[k0])
+                    S = sp.Piecewise((S0, cond0), (S1, cond1))
         if doit:
             S = S.doit(deep=True, sum=True)
         return S
 
+    @sp.cacheit
     def energy(self, Nmax=sp.S.Infinity):
         # Los límites dan muchos problemas
         # NO fiarse
@@ -285,6 +322,7 @@ class DiscreteSignal(Signal):
             E = ie.sum(-Nmax, Nmax)
         return E
 
+    @sp.cacheit
     def mean_power(self, Nmax=sp.S.Infinity):
         if Nmax == sp.S.Infinity:
             try:
@@ -655,7 +693,6 @@ class DataSignal(DiscreteSignal):
             k = sp.solve_linear(a.func_arg, 0, [self.iv])[1]
             v.append(k)
         return sp.Range(min(v), max(v) + 1)
-
 
 class _TrigonometricDiscreteSignal(DiscreteSignal):
     @staticmethod
