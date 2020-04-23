@@ -503,7 +503,7 @@ class Test_LCCDE(object):
         f3a = -(2 ** n) * UnitStep(-n - 1)
 
         y = lccde.solve(UnitDelta(n), 0)
-        expected = stepsimp(f1a + f2a + f3a)
+        expected = stepsimp(f1a + f2a + f3a, n)
         assert sp.simplify(y - expected) == sp.S.Zero
 
         # TODO
@@ -517,7 +517,7 @@ class Test_LCCDE(object):
         # assert sp.simplify(y - expected) == sp.S.Zero
 
         y = lccde.solve(UnitDelta(n), 3)
-        expected = stepsimp(f1c + f2c + f3c)
+        expected = stepsimp(f1c + f2c + f3c, n)
         assert sp.simplify(y - expected) == sp.S.Zero
 
     def test_LCCDE__process_auxiliary_conditions(self):

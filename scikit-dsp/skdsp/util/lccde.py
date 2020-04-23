@@ -141,14 +141,14 @@ class LCCDE(sp.Basic):
         return sp.Eq(self.y_part(), self.x_part())
 
     def check_solution(self, fin, fout):
+        n = self.iv
         # Caution. not 100% reliable
         x_sol = self.apply_input(fin).expand()
         y_sol = self.apply_output(fout).expand()
-        dif = stepsimp(y_sol - x_sol)
+        dif = stepsimp(y_sol - x_sol, n)
         if sp.simplify(dif) == sp.S.Zero:
             return True
         # try some points
-        n = self.iv
         for n0 in range(-100, 101):
             if sp.simplify(x_sol.subs(n, n0) - y_sol.subs(n, n0)) != sp.S.Zero:
                 return False
@@ -602,6 +602,6 @@ class LCCDE(sp.Basic):
                 ysol = ysol.subs(a[0], yrep)
             # add partial solutions
             ysol += sp.Add(*partial_sols)
-            ysol = stepsimp(ysol)
+            ysol = stepsimp(ysol, n)
             return ysol
         raise ValueError("Cannot solve for constants.")

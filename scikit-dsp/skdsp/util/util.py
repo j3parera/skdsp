@@ -9,6 +9,7 @@ from sympy.plotting.plot import (
     check_arguments,
     vectorized_lambdify,
 )
+from sympy.core.relational import Relational
 
 __all__ = [s for s in dir() if not s.startswith("_")]
 
@@ -83,7 +84,15 @@ def stem(*args, **kwargs):
 
 
 def ipystem(
-    nx, x, xlabel=None, title=None, axis=None, color="C0", marker="o", markersize=8, **kwargs
+    nx,
+    x,
+    xlabel=None,
+    title=None,
+    axis=None,
+    color="C0",
+    marker="o",
+    markersize=8,
+    **kwargs
 ):
     # TODO
     # comprobar que no existan símbolos libres sin asignar
@@ -103,14 +112,12 @@ def ipystem(
         mmin = np.min(x)
         mmax = np.max(x)
         dy = 0.1 * (mmax - mmin)
-        ymin = min(-dy, mmin - dy) 
+        ymin = min(-dy, mmin - dy)
         ymax = max(dy, mmax + dy)
         if ymin == ymax:
             ymin = -0.5
             ymax = 0.5
-        plt.axis(
-            [np.min(nx) - offx, np.max(nx) + offx, ymin, ymax]
-        )
+        plt.axis([np.min(nx) - offx, np.max(nx) + offx, ymin, ymax])
     else:
         plt.axis(axis)
     if title is not None:
@@ -119,7 +126,7 @@ def ipystem(
         plt.xlabel(xlabel, size=20, labelpad=0, ha="left")
         ax.xaxis.set_label_coords(1.02, 0.06)
     plt.grid(True)
-    plt.xticks(range(nx[0], nx[-1]+1, max(1, (nx[-1]-nx[0])//10)))
+    plt.xticks(range(nx[0], nx[-1] + 1, max(1, (nx[-1] - nx[0]) // 10)))
     # plt.tight_layout()
     return ax
 
@@ -145,29 +152,30 @@ def as_coeff_polar(z):
 
 
 class Constraint(object):
-
     def __init__(self, symbol, constraint):
         self._symbol = sp.S(symbol)
         if not isinstance(self._symbol, sp.Symbol):
             raise TypeError("The parameter symbol must be a symbol.")
         self._constraint = sp.S(constraint)
         if isinstance(self._constraint, sp.Interval):
-            d = sp.Dummy('d', real=True, positive=True)
-            new = (self._constraint.start * d + self._constraint.measure) / (1 + d) 
+            d = sp.Dummy("d", real=True, positive=True)
+            new = (self._constraint.start * d + self._constraint.measure) / (1 + d)
             self._replace_expr = new
             self._replace_symbol = d
-            self._replace_undo = (symbol - self._constraint.end) / (self._constraint.start - symbol)
+            self._replace_undo = (symbol - self._constraint.end) / (
+                self._constraint.start - symbol
+            )
         else:
             raise NotImplementedError
-        
+
     @property
     def symbol(self):
         return self._symbol
-    
+
     @property
     def constraint(self):
         return self._constraint
-        
+
     @property
     def replace_expr(self):
         return self._replace_expr
@@ -181,11 +189,12 @@ class Constraint(object):
         return self._replace_undo
 
     def apply(self, expr):
-        if isinstance(expr, sp.Piecewise):
-            for pair in expr.args:
-                sol = sp.solveset(pair.cond)
-                if self.constraint.intersect(sol) == sp.EmptySet:
-                    expr = expr.xreplace({pair.cond: False})
+        rels = expr.atoms(Relational)
+        for rel in rels:
+            if rel.has(self.symbol):
+                sol = sp.solveset(rel, self.symbol, sp.S.Reals)
+                cond = False if self.constraint.intersect(sol) == sp.EmptySet else True
+                expr = expr.xreplace({rel: cond})
         if expr.has(self.symbol):
             expr = expr.xreplace({self.symbol: self.replace_expr})
         return expr
@@ -194,4 +203,3 @@ class Constraint(object):
         if expr.has(self.replace_symbol):
             expr = expr.xreplace({self.replace_symbol: self.replace_undo_expr})
         return expr
-
