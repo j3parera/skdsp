@@ -9,7 +9,7 @@ from sympy.core.evaluate import global_evaluate
 from sympy.core.function import AppliedUndef, UndefinedFunction
 from sympy.utilities.iterables import flatten, is_sequence, iterable
 
-from skdsp.signal.functions import UnitDelta, deltasimp, stepsimp
+from skdsp.signal.functions import UnitDelta, UnitStep, deltasimp, stepsimp
 from skdsp.util.util import Constraint
 
 
@@ -192,6 +192,8 @@ class Signal(sp.Basic):
         }
         for key, value in kwargs.items():
             args[key] = value
+        if amplitude.has(UnitDelta):
+            amplitude = deltasimp(amplitude, args['iv'])
         obj = None
         if cls == None:
             cls = self._upclass()
@@ -392,14 +394,16 @@ class Signal(sp.Basic):
         return sp.Max(self.amplitude)
 
     @property
+    @sp.cacheit
     def is_energy(self):
         E = self.energy()
-        return E is not None and E.is_finite
+        # E.is_finite returns None
+        return E is not None and sp.ask(sp.Q.finite(E))
 
     @property
     def is_power(self):
         P = self.mean_power()
-        return P is not None and P.is_finite and not P.is_zero
+        return P is not None and not P.is_zero and sp.ask(sp.Q.finite(P))
 
     @property
     def is_causal(self):
@@ -548,9 +552,11 @@ class Signal(sp.Basic):
             return self.eval(np.arange(key.start, key.stop, key.step))
         return self.eval(key)
 
-    def _apply_constraints(self, expr):
+    def _apply_constraints(self, expr, undo=False):
         for c in self._constraints:
             expr = c.apply(expr)
+        if undo:
+            expr = self._undo_constraints(expr)
         return expr
 
     def _undo_constraints(self, expr):
@@ -668,7 +674,7 @@ class Signal(sp.Basic):
         amp = self.amplitude * other.amplitude
         if amp.has(sp.Pow):
             amp = sp.powsimp(amp)
-        amp = stepsimp(amp)
+        amp = stepsimp(amp, self.iv)
         cls = (
             self.__class__
             if other.amplitude.is_constant(self.iv) and not other.amplitude.is_zero
@@ -726,19 +732,23 @@ class Signal(sp.Basic):
             if period is not None:
                 # TODO periodic convolution
                 raise NotImplementedError
-            amp = stepsimp(amp)
-            if isinstance(amp, sp.Piecewise):
-                cond = amp.args[0].cond
-                expr = amp.args[0].expr
-                sy = self.clone(None, expr, iv=k, codomain=codomain, period=None)
-                amp = sp.Piecewise((sy.sum(), cond), *amp.args[1:])
-            else:
-                sy = self.clone(None, amp, iv=k, codomain=codomain, period=None)
-                amp = sy.sum()
+            # amp = stepsimp(amp, k)
+            sy = self.clone(None, amp, iv=self.iv, codomain=codomain, period=None)
+            amp = sy.sum(var=k)
+            amp = sy._apply_constraints(amp, undo=True)
+            amp = sp.simplify(amp)
+            # if isinstance(amp, sp.Piecewise):
+            #     cond = amp.args[0].cond
+            #     expr = amp.args[0].expr
+            #     sy = self.clone(None, expr, iv=self.iv, codomain=codomain, period=None)
+            #     amp = sp.Piecewise((sy.sum(), cond), *amp.args[1:])
+            # else:
+            #     sy = self.clone(None, amp, iv=k, codomain=codomain, period=None)
+            #     amp = sy.sum()
         else:
             # TODO continuous
             raise NotImplementedError
-        amp = stepsimp(amp)
+        amp = stepsimp(amp, self.iv)
         amp = deltasimp(amp, self.iv)
         obj = self.clone(None, amp, codomain=codomain, period=None)
         return obj
@@ -753,8 +763,8 @@ class Signal(sp.Basic):
     __imatmul__ = __matmul__
 
     def correlate(self, other, normalized=False):
-        # if not self.is_energy or not other.is_energy:
-        #     raise ValueError("Cannot correlate infinite energy signals.")
+        if not self.is_energy or not other.is_energy:
+            return None
         rso = self.convolve(other.flip())
         if normalized:
             rso = rso / sp.sqrt(self.energy() * other.energy())
