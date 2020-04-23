@@ -260,7 +260,7 @@ class UnitDeltaTrain(sp.Function):
         )
 
 
-def stepsimp(expr):
+def stepsimp(expr, iv):
     if isinstance(expr, sp.Mul):
         cnt = len(expr.atoms(UnitStep))
         if cnt >= 2:
@@ -298,16 +298,12 @@ def stepsimp(expr):
 
 def deltasimp(expr, iv):
     # prefer d[n-1] to d[-n+1]
-    deltas = expr.atoms(UnitDelta)
+    deltas = expr.atoms(UnitDelta, sp.KroneckerDelta)
     for d in deltas:
-        arg = d.func_arg
+        arg = d.func_arg if isinstance(d, UnitDelta) else d.args[1]
         if not arg.has(sp.Mod):
-            k = list(sp.solveset(arg, iv, sp.S.Integers))[0]
-            expr = expr.replace(d, UnitDelta(iv - k))
-    kdeltas = expr.atoms(sp.KroneckerDelta)
-    for d in kdeltas:
-        arg = d.args[1]
-        if not arg.has(sp.Mod):
-            k = list(sp.solveset(arg, iv, sp.S.Integers))[0]
-            expr = expr.replace(d, UnitDelta(iv - k))
+            sol = sp.solveset(arg, iv, sp.S.Integers)
+            if sol != sp.EmptySet:
+                k = list(sol)[0]
+                expr = expr.replace(d, UnitDelta(iv - k))
     return expr
