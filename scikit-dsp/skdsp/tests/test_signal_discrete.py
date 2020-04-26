@@ -1915,8 +1915,8 @@ class Test_Exponential(object):
         assert c.gain == sp.exp(0.1) ** ds.n
 
     def test_Exponential_misc(self):
-        s = ds.Exponential(alpha=0.5)
-        assert s.amplitude == sp.Pow(0.5, ds.n)
+        s = ds.Exponential(alpha=sp.S.Half)
+        assert s.amplitude == sp.Pow(2, -ds.n)
         assert s.phasor == 1
         assert s.carrier == 1
         assert not s.is_causal

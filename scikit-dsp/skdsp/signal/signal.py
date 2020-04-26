@@ -237,10 +237,10 @@ class Signal(sp.Basic):
         return self.args[1]
 
     def _solve_func_arg(self, func, value):
-        f = list(self.amplitude.atoms(func))[0]
-        iv = f.func_arg
-        sols = sp.solve_linear(iv, value, [self.iv])
-        return sols[1]
+        arg = func.func_arg
+        sol = sp.solveset(sp.Eq(arg, value), self.iv)
+        if sol != sp.EmptySet:
+            return list(sol)[0] 
 
     @property
     def period(self):

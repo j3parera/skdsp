@@ -298,8 +298,7 @@ class DiscreteSignal(Signal):
 
     @sp.cacheit
     def energy(self, Nmax=sp.S.Infinity):
-        # Los límites dan muchos problemas
-        # NO fiarse
+        # TODO permitir intervalos [n1, n2]
         ie = self.square_abs
         if isinstance(ie, DataSignal):
             if Nmax.is_number:
@@ -324,6 +323,7 @@ class DiscreteSignal(Signal):
 
     @sp.cacheit
     def mean_power(self, Nmax=sp.S.Infinity):
+        # TODO permitir intervalos [n1, n2]
         if Nmax == sp.S.Infinity:
             try:
                 N = sp.Dummy("N", integer=True, positive=True)
@@ -339,10 +339,12 @@ class DiscreteSignal(Signal):
     def is_causal(self):
         if self.is_periodic:
             return False
-        if self[-10:0] != [sp.S.Zero] * 10:
-            return False
-        s = self.sum(high=-1)
-        return s == sp.S.Zero
+        negs = sp.Interval.Ropen(sp.S.NegativeInfinity, 0)
+        return self.support.intersect(negs) == sp.EmptySet
+        # if self[-10:0] != [sp.S.Zero] * 10:
+        #     return False
+        # s = self.sum(high=-1)
+        # return s == sp.S.Zero
 
     @property
     def is_abs_summable(self):
@@ -430,6 +432,10 @@ class Constant(DiscreteSignal):
     def is_periodic(self):
         return True
 
+    @property
+    def is_causal(self):
+        return False
+
     def __repr__(self):
         return "Constant({0})".format(str(self.amplitude))
 
@@ -467,13 +473,13 @@ class Delta(DiscreteSignal):
         return obj
 
     @property
-    def is_periodic(self):
-        return False
+    def support(self):
+        inf = self._solve_func_arg(self.amplitude, 0)
+        return sp.Range(inf, inf + 1)
 
     @property
-    def support(self):
-        inf = self._solve_func_arg(UnitDelta, 0)
-        return sp.Range(inf, inf + 1)
+    def is_periodic(self):
+        return False
 
     def __repr__(self):
         return "Delta({0})".format(str(self))
@@ -511,14 +517,15 @@ class Step(DiscreteSignal):
         return obj
 
     @property
+    def support(self):
+        inf = self._solve_func_arg(self.amplitude, 0)
+        return sp.Range(inf, sp.S.Infinity)
+
+    @property
     def is_periodic(self):
         return False
 
     @property
-    def support(self):
-        inf = self._solve_func_arg(UnitStep, 0)
-        return sp.Range(inf, sp.S.Infinity)
-
     def __repr__(self):
         return "Step({0})".format(str(self))
 
@@ -555,13 +562,13 @@ class Ramp(DiscreteSignal):
         return obj
 
     @property
-    def is_periodic(self):
-        return False
+    def support(self):
+        inf = self._solve_func_arg(self.amplitude, 0)
+        return sp.Range(inf + 1, sp.S.Infinity)
 
     @property
-    def support(self):
-        inf = self._solve_func_arg(UnitRamp, 0)
-        return sp.Range(inf + 1, sp.S.Infinity)
+    def is_periodic(self):
+        return False
 
     def __repr__(self):
         return "Ramp({0})".format(str(self))
@@ -587,12 +594,16 @@ class DeltaTrain(DiscreteSignal):
         return obj
 
     @property
+    def support(self):
+        return sp.S.Integers
+
+    @property
     def is_periodic(self):
         return True
 
     @property
-    def support(self):
-        return sp.S.Integers
+    def is_causal(self):
+        return False
 
     def __repr__(self):
         return "DeltaTrain({0}, {1})".format(self.iv, self.period)
@@ -694,6 +705,10 @@ class DataSignal(DiscreteSignal):
             v.append(k)
         return sp.Range(min(v), max(v) + 1)
 
+    @property
+    def is_causal(self):
+        return self.support.inf >= 0
+
 class _TrigonometricDiscreteSignal(DiscreteSignal):
     @staticmethod
     def _period(omega):
@@ -736,6 +751,10 @@ class _TrigonometricDiscreteSignal(DiscreteSignal):
     @property
     def support(self):
         return sp.S.Integers
+
+    @property
+    def is_causal(self):
+        return False
 
     def _hashable_content(self):
         return (self.A, self.omega, self.phi) + super()._hashable_content(self)
