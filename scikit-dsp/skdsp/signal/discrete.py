@@ -18,77 +18,11 @@ n, m, k = sp.symbols("n, m, k", integer=True)
 
 class DiscreteSignal(Signal):
     @classmethod
-    @sp.cacheit
-    def _all_subclasses(cls, exclude=set()):
-        subclasses = set()
-        for s in cls.__subclasses__():
-            sub = s.__subclasses__()
-            if len(sub) == 0:
-                subclasses.add(s)
-            else:
-                if not s in exclude:
-                    subclasses.update(s._all_subclasses())
-        return subclasses - exclude
-
-    @classmethod
-    def _try_subclass(cls, expr, **kwargs):
-        subclasses = cls._all_subclasses(exclude=set())
-        for s in subclasses:
-            f = getattr(s, "_match_expression", None)
-            if callable(f):
-                obj = f(expr, **kwargs)
-                if obj is not None:
-                    return obj
-        return None
-
-    @staticmethod
-    def _match_iv_transform(expr, iv):
-        k = sp.Wild("k", integer=True, properties=[lambda k: k.is_constant(iv)])
-        s = sp.Wild("s")
-        m = expr.match(s * iv - k)
-        if m:
-            flip = m[s] == -1
-            return m[k], flip, m[s]
-        return iv, 0, False
-
-    @staticmethod
-    def _match_trig_args(expr, iv):
-        k = sp.Wild("k", integer=True)
-        omega = sp.Wild("omega")
-        phi = sp.Wild("phi")
-        s = sp.Wild("s")
-        m = expr.match(omega * (s * iv - k) + phi)
-        if m:
-            return m[k], m[omega], m[phi], m[s]
-        return 0, 1, 0
-
-    @staticmethod
-    def _apply_gain_and_iv_transform(sg, gain, delay, flip):
-        iv = sg.iv
-        amp = gain * sg.amplitude
-        if delay:
-            amp = amp.subs(iv, iv - delay)
-        if flip:
-            amp = amp.subs(iv, -iv)
-        sg._replace_arg(amplitude=amp)
-        return sg
-
-    @classmethod
     def _periodicity(cls, amp, iv, domain):
         if amp.has(UnitDeltaTrain):
             a, b = amp.as_independent(UnitDeltaTrain)
             return b.args[1]
         return super()._periodicity(amp, iv, domain)
-
-    @classmethod
-    def from_period(cls, expr, iv, period, **kwargs):
-        expr = sp.S(expr)
-        expr = expr.subs({iv: sp.Mod(iv, period)})
-        obj = cls._try_subclass(expr, iv=iv, period=period, periodic=True, **kwargs)
-        if obj is None:
-            codomain = kwargs.pop("codomain", None)
-            obj = cls(expr, iv, codomain, period=period, **kwargs)
-        return obj
 
     @classmethod
     def from_sampling(cls, expr, civ, div, fs, **kwargs):
