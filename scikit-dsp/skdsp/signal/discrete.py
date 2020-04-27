@@ -339,7 +339,7 @@ class DiscreteSignal(Signal):
     def is_causal(self):
         if self.is_periodic:
             return False
-        negs = sp.Interval.Ropen(sp.S.NegativeInfinity, 0)
+        negs = sp.Range(sp.S.NegativeInfinity, 0)
         return self.support.intersect(negs) == sp.EmptySet
         # if self[-10:0] != [sp.S.Zero] * 10:
         #     return False
