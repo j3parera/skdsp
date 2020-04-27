@@ -16,4 +16,5 @@
     "python.testing.nosetestArgs": [
         "."
     ],
+    "python.envFile": "${workspaceFolder}/.env"
 }
