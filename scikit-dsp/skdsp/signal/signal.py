@@ -216,6 +216,9 @@ class Signal(sp.Basic):
         # TODO 6.- sympy also fails with delta[((n-k))M] and maybe other modulus
         return period
 
+    def __str__(self, *_args, **_kwargs):
+        return sp.sstr(self.amplitude)
+
     def __getstate__(self):
         return {
             '_period': self._period,
@@ -473,7 +476,11 @@ class Signal(sp.Basic):
 
     @property
     def is_causal(self):
-        raise NotImplementedError
+        if self.is_periodic:
+            return False
+        negs = sp.Interval.Ropen(sp.S.NegativeInfinity, 0)
+        return self.support.intersect(negs) == sp.EmptySet
+
     
     @property
     def abs(self):
