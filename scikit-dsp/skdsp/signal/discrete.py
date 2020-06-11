@@ -278,8 +278,8 @@ class DiscreteSignal(Signal):
 
 
 class Undefined(DiscreteSignal):
-    @staticmethod
-    def _match_expression(expr, **kwargs):
+    @classmethod
+    def _match_expression(cls, expr, **kwargs):
         expr = sp.S(expr)
         if not expr.has(AppliedUndef):
             return None
@@ -317,8 +317,8 @@ class Constant(DiscreteSignal):
 
     is_finite = True
 
-    @staticmethod
-    def _match_expression(expr, **kwargs):
+    @classmethod
+    def _match_expression(cls, expr, **kwargs):
         expr = sp.S(expr)
         iv = kwargs.pop("iv", DiscreteSignal._default_iv)
         if expr.is_constant(iv, simplify=False):
@@ -362,8 +362,8 @@ class Delta(DiscreteSignal):
     is_integer = True
     is_nonnegative = True
 
-    @staticmethod
-    def _match_expression(expr, **kwargs):
+    @classmethod
+    def _match_expression(cls, expr, **kwargs):
         expr = sp.S(expr)
         iv = kwargs.pop("iv", DiscreteSignal._default_iv)
         expr = deltasimp(expr, iv)
@@ -407,8 +407,8 @@ class Step(DiscreteSignal):
     is_integer = True
     is_nonnegative = True
 
-    @staticmethod
-    def _match_expression(expr, **kwargs):
+    @classmethod
+    def _match_expression(cls, expr, **kwargs):
         expr = sp.S(expr)
         iv = kwargs.pop("iv", DiscreteSignal._default_iv)
         A = sp.Wild("A", properties=[lambda a: a.is_constant(iv)])
@@ -452,8 +452,8 @@ class Ramp(DiscreteSignal):
     is_integer = True
     is_nonnegative = True
 
-    @staticmethod
-    def _match_expression(expr, **kwargs):
+    @classmethod
+    def _match_expression(cls, expr, **kwargs):
         expr = sp.S(expr)
         iv = kwargs.pop("iv", DiscreteSignal._default_iv)
         A = sp.Wild("A", properties=[lambda a: a.is_constant(iv)])
@@ -529,8 +529,8 @@ class DataSignal(DiscreteSignal):
 
     is_finite = True
 
-    @staticmethod
-    def _match_expression(expr, **kwargs):
+    @classmethod
+    def _match_expression(cls, expr, **kwargs):
         atoms = expr.atoms(sp.Function)
         if len(atoms) > 1 and all(isinstance(a, UnitDelta) for a in list(atoms)):
             iv = kwargs.pop("iv", DiscreteSignal._default_iv)
@@ -704,8 +704,8 @@ class Sinusoid(_TrigonometricDiscreteSignal):
 
     is_finite = True
 
-    @staticmethod
-    def _match_expression(expr, **kwargs):
+    @classmethod
+    def _match_expression(cls, expr, **kwargs):
         expr = sp.S(expr)
         expr = expr.rewrite(sp.cos)
         iv = kwargs.pop("iv", DiscreteSignal._default_iv)
@@ -783,8 +783,8 @@ class Sinusoid(_TrigonometricDiscreteSignal):
 
 
 class Exponential(_TrigonometricDiscreteSignal):
-    @staticmethod
-    def _match_expression(expr, **kwargs):
+    @classmethod
+    def _match_expression(cls, expr, **kwargs):
         expr = sp.S(expr)
         iv = kwargs.pop("iv", DiscreteSignal._default_iv)
         C = sp.Wild("C", properties=[lambda a: a.is_constant(iv)])

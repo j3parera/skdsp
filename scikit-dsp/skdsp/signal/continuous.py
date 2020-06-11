@@ -220,8 +220,8 @@ class ContinuousSignal(Signal):
 
 class Undefined(ContinuousSignal):
     # TODO es prácticamente igual a Discrete. ¿Puede juntarse?
-    @staticmethod
-    def _match_expression(expr, **kwargs):
+    @classmethod
+    def _match_expression(cls, expr, **kwargs):
         expr = sp.S(expr)
         if not expr.has(AppliedUndef):
             return None
@@ -259,8 +259,8 @@ class Undefined(ContinuousSignal):
 
 #     is_finite = True
 
-#     @staticmethod
-#     def _match_expression(expr, **kwargs):
+#    @classmethod
+#    def _match_expression(cls, expr, **kwargs):
 #         expr = sp.S(expr)
 #         iv = kwargs.pop("iv", n)
 #         if expr.is_constant(iv, simplify=False):
@@ -304,8 +304,8 @@ class Undefined(ContinuousSignal):
 #     is_integer = True
 #     is_nonnegative = True
 
-#     @staticmethod
-#     def _match_expression(expr, **kwargs):
+#    @classmethod
+#    def _match_expression(cls, expr, **kwargs):
 #         expr = sp.S(expr)
 #         iv = kwargs.pop("iv", n)
 #         expr = deltasimp(expr, iv)
@@ -349,8 +349,8 @@ class Undefined(ContinuousSignal):
 #     is_integer = True
 #     is_nonnegative = True
 
-#     @staticmethod
-#     def _match_expression(expr, **kwargs):
+#    @classmethod
+#    def _match_expression(cls, expr, **kwargs):
 #         expr = sp.S(expr)
 #         iv = kwargs.pop("iv", n)
 #         A = sp.Wild("A", properties=[lambda a: a.is_constant(iv)])
@@ -394,8 +394,8 @@ class Undefined(ContinuousSignal):
 #     is_integer = True
 #     is_nonnegative = True
 
-#     @staticmethod
-#     def _match_expression(expr, **kwargs):
+#    @classmethod
+#    def _match_expression(cls, expr, **kwargs):
 #         expr = sp.S(expr)
 #         iv = kwargs.pop("iv", n)
 #         A = sp.Wild("A", properties=[lambda a: a.is_constant(iv)])
@@ -471,8 +471,8 @@ class Undefined(ContinuousSignal):
 
 #     is_finite = True
 
-#     @staticmethod
-#     def _match_expression(expr, **kwargs):
+#    @classmethod
+#    def _match_expression(cls, expr, **kwargs):
 #         atoms = expr.atoms(sp.Function)
 #         if len(atoms) > 1 and all(isinstance(a, UnitDelta) for a in list(atoms)):
 #             iv = kwargs.pop("iv", n)
@@ -646,8 +646,8 @@ class Undefined(ContinuousSignal):
 
 #     is_finite = True
 
-#     @staticmethod
-#     def _match_expression(expr, **kwargs):
+#    @classmethod
+#    def _match_expression(cls, expr, **kwargs):
 #         expr = sp.S(expr)
 #         expr = expr.rewrite(sp.cos)
 #         iv = kwargs.pop("iv", n)
@@ -725,8 +725,8 @@ class Undefined(ContinuousSignal):
 
 
 # class Exponential(_TrigonometricDiscreteSignal):
-#     @staticmethod
-#     def _match_expression(expr, **kwargs):
+#    @classmethod
+#    def _match_expression(cls, expr, **kwargs):
 #         expr = sp.S(expr)
 #         iv = kwargs.pop("iv", n)
 #         C = sp.Wild("C", properties=[lambda a: a.is_constant(iv)])
