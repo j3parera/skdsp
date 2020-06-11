@@ -4,3 +4,5 @@ scikit-dsp/skdsp/signal/__pycache__/*.pyc
 scikit-dsp/docs/scikit-dsp-lyxformat-508.lyx~
 scikit-dsp/pruebas.py
 .history
+scikit-dsp/skdsp/signal/.ipynb_checkpoints/signal-checkpoint.py
+scikit-dsp/skdsp/signal/.ipynb_checkpoints/continuous-checkpoint.py
